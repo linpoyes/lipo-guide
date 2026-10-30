@@ -129,6 +129,11 @@ td.txt,th.txt{text-align:left;white-space:normal}
 thead th{background:var(--wash);color:var(--dim);font-weight:700;font-size:14px}
 tbody td{border-top:1px solid var(--line)}
 tbody tr:nth-child(even){background:var(--zebra)}
+#typesTbl th,#typesTbl td{padding:9px 8px}
+#typesTbl td:first-child,#typesTbl th:first-child{padding-left:12px}
+#typesTbl td:last-child,#typesTbl th:last-child{padding-right:12px}
+#typesTbl td.txt{text-align:right}
+#flight td.txt div{font-size:15px;margin-top:2px}
 #voltBody tr{cursor:pointer}
 #voltBody tr.on{background:var(--sel)}
 #voltBody tr.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
@@ -415,8 +420,8 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
     <table class="plain">
       <thead><tr><th>電量</th><th class="txt">備用電池</th></tr></thead>
       <tbody>
-        <tr><td><b>≤ 100Wh</b></td><td class="txt"><span class="tag ok">免申請</span> 每人至多 20 顆</td></tr>
-        <tr><td><b>100–160Wh</b></td><td class="txt"><span class="tag warn">須航空公司核准</span> 每人至多 2 顆</td></tr>
+        <tr><td><b>≤ 100Wh</b></td><td class="txt"><span class="tag ok">免申請</span><div>每人至多 20 顆</div></td></tr>
+        <tr><td><b>100–160Wh</b></td><td class="txt"><span class="tag warn">須航空公司核准</span><div>每人至多 2 顆</div></td></tr>
         <tr><td><b>&gt; 160Wh</b></td><td class="txt"><span class="tag bad">不得攜帶</span></td></tr>
       </tbody>
     </table>
@@ -431,7 +436,7 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
 <!-- ───── 種類 ───── -->
 <section id="types">
   <h2>種類比較</h2>
-  <div class="tbl"><table>
+  <div class="tbl"><table id="typesTbl">
     <thead><tr><th></th><th>LiPo</th><th>LiHV</th><th>Li-ion</th></tr></thead>
     <tbody>
       <tr><td>單顆滿電</td><td class="hl">4.20V</td><td class="hl">4.35V</td><td class="hl">4.20V</td></tr>
@@ -442,7 +447,7 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
       <tr><td>放電能力</td><td>高</td><td>高</td><td>中低</td></tr>
       <tr><td>能量密度</td><td>中</td><td>中高</td><td>高</td></tr>
       <tr><td>外型</td><td>軟包</td><td>軟包</td><td>圓柱</td></tr>
-      <tr><td>主要用途</td><td>遙控車、空拍機</td><td>競賽</td><td>長航時</td></tr>
+      <tr><td>主要用途</td><td class="txt">遙控車<br>空拍機</td><td>競賽</td><td>長航時</td></tr>
     </tbody>
   </table></div>
   <div class="card" style="margin-top:12px">
