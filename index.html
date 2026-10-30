@@ -46,7 +46,7 @@
   }
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:56px}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:56px}
 body{margin:0;background:var(--bg);color:var(--text);
   font:17px/1.75 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
   font-feature-settings:"tnum"}
@@ -79,39 +79,43 @@ h3{font-size:17px;line-height:1.4;margin:0 0 8px}
 .seg button{flex:1;min-width:0;border:0;background:transparent;color:var(--dim);font:inherit;font-size:16px;
   padding:7px 0;border-radius:9px;cursor:pointer;font-weight:700}
 .seg button[aria-pressed=true]{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15)}
-.nums{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+/* 每個數值欄一列：輸入框在左、快選鈕在右。
+   2026-10-30 Android 手機（約 360px 寬＋系統字放大）三欄並排會全部擠在一起，所以改成直排。 */
+.nums{display:grid;gap:14px}
+.nums>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);column-gap:8px;align-items:stretch}
+.nums .lbl{grid-column:1/-1}
 .box{position:relative}
-.box input{width:100%;font:inherit;font-size:22px;font-weight:700;color:var(--text);background:var(--card);
+.box input{width:100%;height:100%;min-height:46px;font:inherit;font-size:22px;font-weight:700;color:var(--text);background:var(--card);
   border:1.5px solid var(--line);border-radius:11px;padding:7px 34px 7px 9px;font-size:20px;-moz-appearance:textfield}
 .box input::-webkit-inner-spin-button,.box input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .box input:focus{outline:none;border-color:var(--accent)}
 .box .u{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px;font-weight:600;pointer-events:none}
-.chips{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
-.chips button{flex:1;min-width:0;border:1px solid var(--line);background:transparent;color:var(--dim);font:inherit;font-size:12px;font-weight:600;
-  padding:4px 0;border-radius:8px;cursor:pointer;letter-spacing:-.02em}
+.chips{display:flex;gap:6px}
+.chips button{flex:1;min-width:0;border:1px solid var(--line);background:transparent;color:var(--dim);font:inherit;font-size:15px;font-weight:700;
+  padding:0;border-radius:10px;white-space:nowrap;cursor:pointer;letter-spacing:-.02em}
 .chips button[aria-pressed=true]{background:var(--sel);border-color:var(--accent);color:var(--accent)}
 
 /* ── 計算器：重點結果 ── */
-.hero{background:var(--hero);color:var(--onHero);border-radius:16px;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
-.hero div{text-align:center;padding:2px 0}
-.hero div+div{border-left:1px solid rgba(255,255,255,.18)}
-.hero .k{display:block;font-size:14px;color:var(--heroDim);font-weight:600}
-.hero .v{display:block;font-size:29px;font-weight:800;line-height:1.25;letter-spacing:-.01em;white-space:nowrap}
-.hero .v small{font-size:16px;font-weight:600;margin-left:1px}
-.hero .f{display:block;font-size:13px;color:var(--heroDim)}
+.hero{background:var(--hero);color:var(--onHero);border-radius:16px;padding:6px 16px}
+.hero>div{display:flex;align-items:center;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;padding:10px 0}
+.hero>div+div{border-top:1px solid rgba(255,255,255,.16)}
+.hero .k{font-size:16px;color:var(--heroDim);font-weight:700}
+.hero .k .f{display:block;font-size:13px;font-weight:500;opacity:.85}
+.hero .v{margin-left:auto;font-size:32px;font-weight:800;line-height:1.15;letter-spacing:-.01em;white-space:nowrap}
+.hero .v small{font-size:17px;font-weight:600;margin-left:2px}
 @media (max-width:370px){.hero .v{font-size:25px}}
 
 /* ── 計算器：明細 ── */
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media (max-width:359px){.grid{grid-template-columns:1fr}}
+/* 欄寬用 em：系統字放大時 em 跟著變大，自動從兩欄退成一欄 */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10em),1fr));gap:12px}
 @media (max-width:480px){.card.dt{padding:12px}.card.dt .kv{gap:6px}.kv .v{font-size:18px}.kv .k{font-size:15px}}
 .ttl{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-bottom:4px}
-.kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0}
+.kv{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0 10px;padding:7px 0}
 .kv+.kv{border-top:1px solid var(--line)}
 .kv .k{font-size:16px;color:var(--dim)}
 /* 算式小字在第二行，可以伸到數值下方，不擠數值的寬度 */
-.kv .k{flex:1;min-width:0}
-.kv .v{flex:none}
+.kv .k{flex:1 0 auto;max-width:100%}
+.kv .v{flex:none;margin-left:auto}
 .kv .k em{display:block;font-style:normal;font-size:12px;color:var(--faint);line-height:1.4;white-space:nowrap}
 .kv .v{font-size:22px;font-weight:700;white-space:nowrap}
 .kv .v small{font-size:14px;font-weight:600;color:var(--dim);margin-left:2px}
@@ -129,6 +133,9 @@ li::marker{color:var(--faint)}
 table{border-collapse:collapse;width:100%;font-size:16px}
 th,td{padding:10px 12px;text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
+.tbl th:first-child,.tbl td:first-child{position:sticky;left:0;z-index:1;background:var(--card)}
+.tbl thead th:first-child{background:var(--card)}
+#voltBody tr.on td:first-child{background:var(--card);background-image:linear-gradient(var(--sel),var(--sel))}
 td.txt,th.txt{text-align:left;white-space:normal}
 thead th{background:var(--wash);color:var(--dim);font-weight:700;font-size:14px}
 tbody td{border-top:1px solid var(--line)}
@@ -144,9 +151,9 @@ tbody tr:nth-child(even){background:var(--zebra)}
 .s{font-weight:800;font-size:17px}
 .use{display:block;font-size:12px;color:var(--faint);font-weight:500;line-height:1.35;white-space:nowrap}
 #volt table{font-size:14px}
-#volt th,#volt td{padding:9px 7px}
-#volt td:first-child,#volt th:first-child{padding-left:12px;white-space:normal}
-#volt td:last-child,#volt th:last-child{padding-right:12px}
+#volt th,#volt td{padding:9px 4px}
+#volt td:first-child,#volt th:first-child{padding-left:10px;white-space:normal}
+#volt td:last-child,#volt th:last-child{padding-right:10px}
 td.hl{font-weight:700}
 .plain{border:0;border-radius:0;background:transparent}
 .plain th:first-child,.plain td:first-child{padding-left:0}
@@ -217,18 +224,18 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
     </div>
     <div class="nums">
       <div>
-        <label class="lbl" for="mah">容量</label>
-        <div class="box"><input id="mah" type="number" inputmode="numeric" min="50" max="50000" step="50"><span class="u">mAh</span></div>
+        <label class="lbl" for="mah">容量 mAh</label>
+        <div class="box"><input id="mah" type="number" inputmode="numeric" min="50" max="50000" step="50"></div>
         <div class="chips" id="mahChips"></div>
       </div>
       <div>
-        <label class="lbl" for="dc">放電倍率</label>
-        <div class="box"><input id="dc" type="number" inputmode="decimal" min="1" max="200" step="1"><span class="u">C</span></div>
+        <label class="lbl" for="dc">放電倍率 C</label>
+        <div class="box"><input id="dc" type="number" inputmode="decimal" min="1" max="200" step="1"></div>
         <div class="chips" id="dcChips"></div>
       </div>
       <div>
-        <label class="lbl" for="cc">充電倍率</label>
-        <div class="box"><input id="cc" type="number" inputmode="decimal" min="0.1" max="15" step="0.5"><span class="u">C</span></div>
+        <label class="lbl" for="cc">充電倍率 C</label>
+        <div class="box"><input id="cc" type="number" inputmode="decimal" min="0.1" max="3" step="0.5"></div>
         <div class="chips" id="ccChips"></div>
       </div>
     </div>
@@ -236,9 +243,9 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
 
   <!-- 使用者最常問的三個答案放最大：充到多少、存多少、用多少電流充 -->
   <div class="hero">
-    <div><span class="k">充飽電壓</span><span class="v" id="hFull"></span><span class="f" id="hFullF"></span></div>
-    <div><span class="k">儲存電壓</span><span class="v" id="hSto"></span><span class="f" id="hStoF"></span></div>
-    <div><span class="k">充電電流</span><span class="v" id="hAmp"></span><span class="f" id="hAmpF"></span></div>
+    <div><span class="k">充飽電壓<span class="f" id="hFullF"></span></span><span class="v" id="hFull"></span></div>
+    <div><span class="k">儲存電壓<span class="f" id="hStoF"></span></span><span class="v" id="hSto"></span></div>
+    <div><span class="k">充電電流<span class="f" id="hAmpF"></span></span><span class="v" id="hAmp"></span></div>
   </div>
 
   <div class="grid">
@@ -315,7 +322,7 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
         <span class="formula">電流 = 容量(Ah) × 充電 C</span>
         <ul style="margin-top:8px">
           <li>未標示者一律 <b>1C</b></li>
-          <li>「5C Charge」為上限，非建議值</li>
+          <li>充電上限 <b>3C</b>；標示「3C Charge」為可承受值，非建議值</li>
           <li>倍率越高，壽命損耗越大</li>
         </ul>
       </div>
@@ -353,7 +360,7 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
           <tbody>
             <tr><td><b>0.5C</b></td><td class="txt">保守：延長壽命、舊電池</td></tr>
             <tr><td><b>1C</b></td><td class="txt">標準：多數電池建議值</td></tr>
-            <tr><td><b>2C 以上</b></td><td class="txt">限標示支援快充者，壽命縮短</td></tr>
+            <tr><td><b>2–3C</b></td><td class="txt">限標示支援快充者，壽命縮短；上限 3C</td></tr>
           </tbody>
         </table>
       </div>
@@ -474,12 +481,15 @@ const CHEM = {
   liion: {name:"Li-ion", full:4.20, nom:3.60, sto:3.70, cut:3.00, min:2.50, safe:0.3, std:0.5, maxDef:1},
 };
 const USE = ["微型車","1/16–1/10 車","1/10 高速車","1/8 越野車","空拍機、航模","1/8 大腳車","大型航模","1/5 大型車"];
-const PRESET = {mah:[2200,2700,5000], dc:[20,50,100], cc:[1,2,5]};
+const PRESET = {mah:[2200,2700,5000], dc:[20,50,100], cc:[1,2,3]};
+// 充電倍率上限 3C（使用者 2026-10-30 定）：輸入超過也以 3C 計，離開欄位時改回 3
+const CC_MAX = 3;
 
 // 記住上次輸入。localStorage 在私密瀏覽可能丟例外，一律包起來。
 const KEY = "lipo-guide";
 let st = {chem:"lipo", s:3, mah:2700, dc:20, cc:1};
 try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch(e) {}
+if (st.cc > 3) st.cc = 3;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} };
 
 const $ = id => document.getElementById(id);
@@ -516,7 +526,7 @@ function render() {
 
   const vFull = c.full * s, vNom = c.nom * s;
   // 上限取「標示充電倍率」；保守與標準不超過上限
-  const maxC = Number.isFinite(cc) ? cc : c.maxDef;
+  const maxC = Number.isFinite(cc) ? Math.min(cc, CC_MAX) : c.maxDef;
   const safeC = Math.min(c.safe, maxC), stdC = Math.min(c.std, maxC);
 
   html("hFull", val(vFull, 2, "V"));  $("hFullF").textContent = `${fx(c.full,2)}V × ${s}`;
@@ -571,6 +581,7 @@ chips("ccChips", PRESET.cc, "cc", "C");
 for (const k of ["mah", "dc", "cc"]) {
   $(k).value = st[k];
   $(k).addEventListener("input", e => { st[k] = parseFloat(e.target.value); render(); });
+  if (k === "cc") $(k).addEventListener("blur", e => { if (st.cc > CC_MAX) { st.cc = CC_MAX; e.target.value = CC_MAX; render(); } });
 }
 // 點對照表的一列＝切換串數並回到計算結果
 $("voltBody").onclick = e => {
