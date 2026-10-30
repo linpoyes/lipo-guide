@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610310016">
+<meta name="build" content="202610310018">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 鋰電池充電</title>
 <meta name="description" content="鋰電池充電計算、電壓對照、保養與安全知識。">
@@ -458,6 +458,32 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   </div>
 </section>
 
+<!-- ───── 種類 ───── -->
+<section id="types">
+  <h2>種類比較</h2>
+  <div class="tbl"><table id="typesTbl">
+    <thead><tr><th></th><th>LiPo</th><th>LiHV</th><th>Li-ion</th></tr></thead>
+    <tbody>
+      <tr><td>單顆滿電</td><td class="hl">4.20V</td><td class="hl">4.35V</td><td class="hl">4.20V</td></tr>
+      <tr><td>單顆儲存</td><td>3.80V</td><td>3.85V</td><td>3.70V</td></tr>
+      <tr><td>單顆標稱</td><td>3.70V</td><td>3.80V</td><td>3.60V</td></tr>
+      <tr><td>建議下限</td><td>3.30V</td><td>3.30V</td><td>3.00V</td></tr>
+      <tr><td>絕對下限</td><td>3.00V</td><td>3.00V</td><td>2.50V</td></tr>
+      <tr><td>放電能力</td><td>高</td><td>高</td><td>中低</td></tr>
+      <tr><td>能量密度</td><td>中</td><td>中高</td><td>高</td></tr>
+      <tr><td>外型</td><td>軟包</td><td>軟包</td><td>圓柱</td></tr>
+      <tr><td>主要用途</td><td class="txt">遙控車<br>空拍機</td><td>競賽</td><td>長航時</td></tr>
+    </tbody>
+  </table></div>
+  <div class="card" style="margin-top:12px">
+    <ul>
+      <li>LiHV 可用 LiPo 模式充電（僅充至 4.20V，容量較少）</li>
+      <li><b style="color:var(--bad)">LiPo 不可用 LiHV 模式充電</b>：會過充</li>
+      <li>Li-ion（18650／21700）放電電流以電芯規格書為準</li>
+    </ul>
+  </div>
+</section>
+
 <!-- ───── 安全 ───── -->
 <section id="safety">
   <h2>安全</h2>
@@ -506,31 +532,6 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   </div>
 </section>
 
-<!-- ───── 種類 ───── -->
-<section id="types">
-  <h2>種類比較</h2>
-  <div class="tbl"><table id="typesTbl">
-    <thead><tr><th></th><th>LiPo</th><th>LiHV</th><th>Li-ion</th></tr></thead>
-    <tbody>
-      <tr><td>單顆滿電</td><td class="hl">4.20V</td><td class="hl">4.35V</td><td class="hl">4.20V</td></tr>
-      <tr><td>單顆儲存</td><td>3.80V</td><td>3.85V</td><td>3.70V</td></tr>
-      <tr><td>單顆標稱</td><td>3.70V</td><td>3.80V</td><td>3.60V</td></tr>
-      <tr><td>建議下限</td><td>3.30V</td><td>3.30V</td><td>3.00V</td></tr>
-      <tr><td>絕對下限</td><td>3.00V</td><td>3.00V</td><td>2.50V</td></tr>
-      <tr><td>放電能力</td><td>高</td><td>高</td><td>中低</td></tr>
-      <tr><td>能量密度</td><td>中</td><td>中高</td><td>高</td></tr>
-      <tr><td>外型</td><td>軟包</td><td>軟包</td><td>圓柱</td></tr>
-      <tr><td>主要用途</td><td class="txt">遙控車<br>空拍機</td><td>競賽</td><td>長航時</td></tr>
-    </tbody>
-  </table></div>
-  <div class="card" style="margin-top:12px">
-    <ul>
-      <li>LiHV 可用 LiPo 模式充電（僅充至 4.20V，容量較少）</li>
-      <li><b style="color:var(--bad)">LiPo 不可用 LiHV 模式充電</b>：會過充</li>
-      <li>Li-ion（18650／21700）放電電流以電芯規格書為準</li>
-    </ul>
-  </div>
-</section>
 
 
 <footer>
@@ -675,16 +676,21 @@ for (const [id, url] of [["shopLink", SHOP_URL], ["teachLink", TEACH_URL]]) {
 // 導覽 2026-10-30 依使用者要求簡化成五類：知識＝標示／C 數／充電／儲存／種類，安全＝安全／搭機
 const GROUP = {crate:"label", charge:"label", storage:"label", types:"label", flight:"safety"};
 const links = [...document.querySelectorAll("#nav a")];
-const io = new IntersectionObserver(ents => {
-  for (const en of ents) if (en.isIntersecting) {
-    const g = GROUP[en.target.id] || en.target.id;
-    links.forEach(a => a.classList.toggle("on", a.hash === "#" + g));
-    const on = links.find(a => a.classList.contains("on")), nav = $("nav");
-    // 不用 scrollIntoView：Safari 會連帶捲動整頁
-    if (on) nav.scrollLeft = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2;
-  }
-}, {rootMargin: "-45% 0px -50% 0px"});
-document.querySelectorAll("section[id]").forEach(s => io.observe(s));
+const secs = [...document.querySelectorAll("section[id]")];
+let cur = "";
+function syncNav() {
+  const line = $("nav").offsetHeight + innerHeight * 0.3;
+  let id = secs[0].id;
+  for (const el of secs) if (el.getBoundingClientRect().top <= line) id = el.id;
+  if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) id = secs[secs.length - 1].id;
+  const g = GROUP[id] || id;
+  if (g === cur) return;
+  cur = g;
+  links.forEach(a => a.classList.toggle("on", a.hash === "#" + g));
+}
+addEventListener("scroll", () => requestAnimationFrame(syncNav), {passive: true});
+addEventListener("resize", syncNav);
+syncNav();
 
 // 自動換新版：GitHub Pages 的 HTML 會被手機暫存 10 分鐘（LINE 內建瀏覽器更久），
 // 使用者會一直看到舊畫面。開頁後不經快取抓一次線上版，build 不同就換網址重新載入。
