@@ -7,106 +7,159 @@
 <meta name="description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
 <meta property="og:title" content="RC 鋰電池充電指南">
 <meta property="og:description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
-<meta name="theme-color" content="#15294B">
+<meta name="theme-color" content="#F4F7FC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1626" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='8' width='23' height='16' rx='3' fill='%2315294B'/%3E%3Crect x='26' y='13' width='3' height='6' rx='1' fill='%2315294B'/%3E%3Cpath d='M16 10l-5 7h4l-1 5 5-7h-4z' fill='%23E8941C'/%3E%3C/svg%3E">
 <style>
-/* 色票沿用欣群／欣瀚家族（門市報表 components/ui.jsx 的 C），另加深色模式 */
+/* 色票沿用欣群／欣瀚家族（門市報表 components/ui.jsx 的 C）。
+   識讀優先：次要文字對比度拉到 WCAG AA 以上，數字一律等寬。 */
 :root{
-  --bg:#F4F7FC; --card:#FFFFFF; --line:#DCE4F0; --text:#15294B; --dim:#5A6B88; --faint:#93A1B8;
-  --accent:#2C7BE5; --deep:#1A5FD0; --ok:#18A06A; --warn:#E8941C; --bad:#DC4C3F;
-  --sel:rgba(44,123,229,.10); --wash:rgba(21,41,75,.06); --zebra:rgba(21,41,75,.03);
-  --okBg:rgba(24,160,106,.12); --warnBg:rgba(232,148,28,.13); --badBg:rgba(220,76,63,.12);
-  --gold:#B08A3E; --gray:#7A8496;
+  color-scheme:light dark;
+  --bg:#F4F7FC; --card:#FFFFFF; --line:#DCE4F0; --text:#15294B; --dim:#45567A; --faint:#6B7A96;
+  --accent:#1F6FD6; --deep:#1A5FD0; --ok:#0E8A58; --warn:#B86A00; --bad:#C8372B;
+  --sel:rgba(44,123,229,.10); --wash:rgba(21,41,75,.05); --zebra:rgba(21,41,75,.025);
+  --okBg:rgba(24,160,106,.12); --warnBg:rgba(232,148,28,.14); --badBg:rgba(220,76,63,.10);
+  --hero:#15294B; --onHero:#FFFFFF; --heroDim:#B9C6DD;
+  --gold:#A27C2F; --gray:#6E7889;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0E1626; --card:#16213A; --line:#26334F; --text:#E6ECF7; --dim:#A3B0C8; --faint:#6D7A93;
-    --accent:#5B9BF0; --deep:#2C7BE5; --ok:#3CC48C; --warn:#F2A93B; --bad:#F06A5E;
-    --sel:rgba(91,155,240,.16); --wash:rgba(230,236,247,.07); --zebra:rgba(230,236,247,.03);
-    --okBg:rgba(60,196,140,.15); --warnBg:rgba(242,169,59,.15); --badBg:rgba(240,106,94,.15);
-    --gold:#D4B06A; --gray:#9AA3B5;
+    --bg:#0E1626; --card:#16213A; --line:#2A3858; --text:#EEF2FA; --dim:#BAC6DB; --faint:#8E9BB4;
+    --accent:#6AA8FF; --deep:#2C7BE5; --ok:#4FD39C; --warn:#FFB547; --bad:#FF7A6E;
+    --sel:rgba(106,168,255,.16); --wash:rgba(238,242,250,.06); --zebra:rgba(238,242,250,.03);
+    --okBg:rgba(79,211,156,.14); --warnBg:rgba(255,181,71,.14); --badBg:rgba(255,122,110,.13);
+    --hero:#1F3C78; --onHero:#FFFFFF; --heroDim:#C3D2EE;
+    --gold:#D9B66E; --gray:#A0A9BA;
   }
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:56px}
 body{margin:0;background:var(--bg);color:var(--text);
-  font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
-.wrap{max-width:880px;margin:0 auto;padding:0 16px}
-header{padding:22px 0 10px}
-h1{margin:0;font-size:22px;letter-spacing:.02em}
-.sub{color:var(--dim);font-size:13px;margin-top:2px}
+  font:16px/1.75 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  font-feature-settings:"tnum"}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+b,strong{font-weight:700}
+
+header{padding:26px 0 12px}
+h1{margin:0;font-size:24px;line-height:1.3;letter-spacing:.02em}
+.sub{color:var(--dim);font-size:14px;margin-top:4px;letter-spacing:.06em}
+
 nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
-  display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:8px 0;margin:0 -16px;padding-left:16px;padding-right:16px}
+  display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:8px 16px}
 nav::-webkit-scrollbar{display:none}
-nav a{flex:none;color:var(--dim);text-decoration:none;font-size:13px;padding:5px 11px;border-radius:999px}
-nav a:hover{background:var(--wash);color:var(--text)}
-section{padding-top:22px}
-h2{font-size:17px;margin:0 0 10px}
-h3{font-size:15px;margin:16px 0 6px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-.card+.card{margin-top:10px}
-.grid .card{margin:0}
+nav a{flex:none;color:var(--dim);text-decoration:none;font-size:14px;font-weight:600;padding:6px 12px;border-radius:999px}
+nav a.on{background:var(--text);color:var(--bg)}
 
-/* 計算器 */
-.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.row+.row{margin-top:12px}
-.lbl{width:64px;flex:none;font-size:13px;color:var(--dim)}
-.seg{display:flex;background:var(--wash);border-radius:10px;padding:3px;gap:2px;flex:1;min-width:0}
-.seg button{flex:1;min-width:0;border:0;background:transparent;color:var(--dim);font:inherit;font-size:14px;
-  padding:6px 0;border-radius:8px;cursor:pointer;font-weight:600}
-.seg button[aria-pressed=true]{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.field{display:flex;align-items:center;gap:6px;flex:none}
-.field input{width:92px;font:inherit;font-size:16px;font-weight:600;color:var(--text);background:var(--card);
-  border:1px solid var(--line);border-radius:9px;padding:5px 9px;text-align:right}
-.field input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
-.unit{color:var(--dim);font-size:13px}
-.chips{display:flex;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
-@media (max-width:480px){.chips{flex-basis:100%;padding-left:74px}}
-.chips button{border:1px solid var(--line);background:transparent;color:var(--dim);font:inherit;font-size:12px;
-  padding:2px 9px;border-radius:999px;cursor:pointer}
-.chips button[aria-pressed=true]{background:var(--sel);border-color:transparent;color:var(--accent);font-weight:600}
-
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
-@media (min-width:640px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.ttl{font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.04em;margin-bottom:6px;display:flex;justify-content:space-between;gap:6px}
-.kv{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:3px 0}
-.kv+.kv{border-top:1px dashed var(--line)}
-.k{font-size:13px;color:var(--dim);white-space:nowrap}
-.v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.v small{font-size:12px;font-weight:500;color:var(--dim);margin-left:2px}
-.v.ok{color:var(--ok)} .v.warn{color:var(--warn)} .v.bad{color:var(--bad)}
-.f{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;text-align:right;margin-top:-2px}
-.tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;white-space:nowrap}
-.tag.ok{background:var(--okBg);color:var(--ok)} .tag.warn{background:var(--warnBg);color:var(--warn)} .tag.bad{background:var(--badBg);color:var(--bad)}
-
-/* 內容 */
-p{margin:6px 0}
-ul,ol{margin:6px 0;padding-left:20px}
-li{margin:3px 0}
-.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
-table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
-th,td{padding:7px 10px;text-align:right;white-space:nowrap}
-th:first-child,td:first-child{text-align:left}
-td.txt,th.txt{text-align:left;white-space:normal;min-width:150px}
-thead th{background:var(--wash);color:var(--dim);font-weight:600;font-size:12px}
-tbody tr:nth-child(even){background:var(--zebra)}
-tbody tr.on{background:var(--sel)}
-tbody td{border-top:1px solid var(--line)}
-.label{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
-.label span{background:var(--deep);color:#fff;font-weight:700;font-size:14px;padding:4px 10px;border-radius:7px}
-dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px}
-dt{font-weight:700;white-space:nowrap}
-dd{margin:0;color:var(--dim)}
-.ex{background:var(--wash);border-radius:10px;padding:10px 12px;margin-top:10px;font-variant-numeric:tabular-nums}
-.ex b{color:var(--text)}
-.warnbox{border-left:3px solid var(--bad)}
-.two{display:grid;gap:10px}
+section{padding-top:30px}
+h2{display:flex;align-items:center;gap:10px;font-size:19px;line-height:1.3;margin:0 0 12px}
+h2::before{content:"";width:4px;height:18px;border-radius:2px;background:var(--accent)}
+h2 .unit{font-size:14px;font-weight:600}
+h3{font-size:16px;line-height:1.4;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.stack{display:grid;gap:12px}
+.two{display:grid;gap:12px}
 @media (min-width:640px){.two{grid-template-columns:1fr 1fr}}
 
-footer{margin:34px 0 0;padding:18px 0 calc(22px + env(safe-area-inset-bottom));border-top:1px solid var(--line);text-align:center;font-size:13px;letter-spacing:.08em}
+/* ── 計算器：輸入 ── */
+.lbl{display:block;font-size:13px;font-weight:700;color:var(--dim);letter-spacing:.04em;margin-bottom:6px}
+.seg{display:flex;background:var(--wash);border-radius:11px;padding:3px;gap:2px}
+.seg button{flex:1;min-width:0;border:0;background:transparent;color:var(--dim);font:inherit;font-size:15px;
+  padding:7px 0;border-radius:9px;cursor:pointer;font-weight:700}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.nums{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+.box{position:relative}
+.box input{width:100%;font:inherit;font-size:20px;font-weight:700;color:var(--text);background:var(--card);
+  border:1.5px solid var(--line);border-radius:11px;padding:7px 34px 7px 9px;font-size:19px;-moz-appearance:textfield}
+.box input::-webkit-inner-spin-button,.box input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.box input:focus{outline:none;border-color:var(--accent)}
+.box .u{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:13px;font-weight:600;pointer-events:none}
+.chips{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.chips button{flex:1;min-width:0;border:1px solid var(--line);background:transparent;color:var(--dim);font:inherit;font-size:12px;font-weight:600;
+  padding:3px 0;border-radius:8px;cursor:pointer;letter-spacing:-.02em}
+.chips button[aria-pressed=true]{background:var(--sel);border-color:var(--accent);color:var(--accent)}
+
+/* ── 計算器：重點結果 ── */
+.hero{background:var(--hero);color:var(--onHero);border-radius:16px;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.hero div{text-align:center;padding:2px 0}
+.hero div+div{border-left:1px solid rgba(255,255,255,.18)}
+.hero .k{display:block;font-size:13px;color:var(--heroDim);font-weight:600}
+.hero .v{display:block;font-size:27px;font-weight:800;line-height:1.25;letter-spacing:-.01em;white-space:nowrap}
+.hero .v small{font-size:15px;font-weight:600;margin-left:1px}
+.hero .f{display:block;font-size:12px;color:var(--heroDim)}
+@media (max-width:370px){.hero .v{font-size:23px}}
+
+/* ── 計算器：明細 ── */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:359px){.grid{grid-template-columns:1fr}}
+@media (max-width:480px){.card.dt{padding:12px}.kv .v{font-size:18px}.kv .k{font-size:14px}}
+.ttl{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px;font-weight:700;margin-bottom:4px}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0}
+.kv+.kv{border-top:1px solid var(--line)}
+.kv .k{font-size:15px;color:var(--dim)}
+.kv .k em{display:block;font-style:normal;font-size:12px;color:var(--faint);line-height:1.4}
+.kv .v{font-size:20px;font-weight:700;white-space:nowrap}
+.kv .v small{font-size:13px;font-weight:600;color:var(--dim);margin-left:2px}
+.v.ok{color:var(--ok)} .v.warn{color:var(--warn)} .v.bad{color:var(--bad)}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.tag.ok{background:var(--okBg);color:var(--ok)} .tag.warn{background:var(--warnBg);color:var(--warn)} .tag.bad{background:var(--badBg);color:var(--bad)}
+.note{font-size:13px;color:var(--faint);margin-top:6px}
+
+/* ── 內容 ── */
+p{margin:0 0 8px}
+ul,ol{margin:0;padding-left:22px}
+li{margin:6px 0}
+li::marker{color:var(--faint)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:10px 12px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td.txt,th.txt{text-align:left;white-space:normal}
+thead th{background:var(--wash);color:var(--dim);font-weight:700;font-size:13px}
+tbody td{border-top:1px solid var(--line)}
+tbody tr:nth-child(even){background:var(--zebra)}
+#voltBody tr{cursor:pointer}
+#voltBody tr.on{background:var(--sel)}
+#voltBody tr.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.s{font-weight:800;font-size:16px}
+.use{display:block;font-size:12px;color:var(--faint);font-weight:500;line-height:1.35}
+#volt table{font-size:14px}
+#volt th,#volt td{padding:9px 7px}
+#volt td:first-child,#volt th:first-child{padding-left:12px;white-space:normal}
+#volt td:last-child,#volt th:last-child{padding-right:12px}
+td.hl{font-weight:700}
+.plain{border:0;border-radius:0;background:transparent}
+.plain th:first-child,.plain td:first-child{padding-left:0}
+.plain th:last-child,.plain td:last-child{padding-right:0}
+
+.label{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.label span{background:var(--deep);color:#fff;font-weight:700;font-size:15px;padding:4px 11px;border-radius:8px}
+dl{margin:0;display:grid;grid-template-columns:52px 1fr;gap:10px 8px}
+dt{font-weight:800;font-size:16px}
+dd{margin:0}
+dd small{display:block;color:var(--dim);font-size:14px}
+
+.formula{display:inline-block;background:var(--wash);border-radius:8px;padding:2px 10px;font-weight:700}
+.calc{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.calc .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0}
+.calc .row span:first-child{color:var(--dim)}
+.calc .row b{white-space:nowrap}
+
+.steps{list-style:none;padding:0;counter-reset:s}
+.steps li{counter-increment:s;display:flex;gap:10px;margin:10px 0}
+.steps li::before{content:counter(s);flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:3px}
+
+.danger{background:var(--badBg);border-color:transparent}
+.danger h3{color:var(--bad)}
+.danger li::marker{color:var(--bad)}
+.key{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.key .big{font-size:26px;font-weight:800;color:var(--ok);white-space:nowrap}
+.key .big small{font-size:14px;color:var(--dim);font-weight:600}
+
+footer{margin:40px 0 0;padding:20px 0 calc(24px + env(safe-area-inset-bottom));border-top:1px solid var(--line);text-align:center;font-size:14px;letter-spacing:.1em}
 footer .g{color:var(--gold);font-weight:700}
-footer .s{color:var(--gray);font-weight:600}
-footer i{display:inline-block;width:1px;height:11px;background:var(--line);margin:0 12px;vertical-align:-1px}
+footer .sv{color:var(--gray);font-weight:600}
+footer i{display:inline-block;width:1px;height:12px;background:var(--line);margin:0 14px;vertical-align:-1px}
 </style>
 </head>
 <body>
@@ -116,7 +169,7 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
   <div class="sub">LiPo · LiHV · Li-ion</div>
 </header>
 
-<nav>
+<nav id="nav">
   <a href="#calc">計算</a>
   <a href="#volt">電壓對照</a>
   <a href="#label">標示</a>
@@ -124,74 +177,73 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
   <a href="#charge">充電</a>
   <a href="#storage">儲存</a>
   <a href="#safety">安全</a>
+  <a href="#flight">搭機</a>
   <a href="#types">種類</a>
 </nav>
 
 <!-- ───── 計算 ───── -->
-<section id="calc">
-  <div class="card">
-    <div class="row">
+<section id="calc" class="stack">
+  <div class="card stack">
+    <div>
       <span class="lbl">種類</span>
-      <div class="seg" id="chem">
-        <button data-v="lipo">LiPo</button><button data-v="lihv">LiHV</button><button data-v="liion">Li-ion</button>
-      </div>
+      <div class="seg" id="chem"><button data-v="lipo">LiPo</button><button data-v="lihv">LiHV</button><button data-v="liion">Li-ion</button></div>
     </div>
-    <div class="row">
+    <div>
       <span class="lbl">串數</span>
       <div class="seg" id="cells">
         <button data-v="1">1S</button><button data-v="2">2S</button><button data-v="3">3S</button><button data-v="4">4S</button>
         <button data-v="5">5S</button><button data-v="6">6S</button><button data-v="7">7S</button><button data-v="8">8S</button>
       </div>
     </div>
-    <div class="row">
-      <span class="lbl">容量</span>
-      <div class="field"><input id="mah" type="number" inputmode="numeric" min="50" max="50000" step="50"><span class="unit">mAh</span></div>
-      <div class="chips" id="mahChips"></div>
-    </div>
-    <div class="row">
-      <span class="lbl">放電倍率</span>
-      <div class="field"><input id="dc" type="number" inputmode="decimal" min="1" max="200" step="1"><span class="unit">C</span></div>
-      <div class="chips" id="dcChips"></div>
-    </div>
-    <div class="row">
-      <span class="lbl">充電倍率</span>
-      <div class="field"><input id="cc" type="number" inputmode="decimal" min="0.1" max="15" step="0.5"><span class="unit">C</span></div>
-      <div class="chips" id="ccChips"></div>
+    <div class="nums">
+      <div>
+        <label class="lbl" for="mah">容量</label>
+        <div class="box"><input id="mah" type="number" inputmode="numeric" min="50" max="50000" step="50"><span class="u">mAh</span></div>
+        <div class="chips" id="mahChips"></div>
+      </div>
+      <div>
+        <label class="lbl" for="dc">放電倍率</label>
+        <div class="box"><input id="dc" type="number" inputmode="decimal" min="1" max="200" step="1"><span class="u">C</span></div>
+        <div class="chips" id="dcChips"></div>
+      </div>
+      <div>
+        <label class="lbl" for="cc">充電倍率</label>
+        <div class="box"><input id="cc" type="number" inputmode="decimal" min="0.1" max="15" step="0.5"><span class="u">C</span></div>
+        <div class="chips" id="ccChips"></div>
+      </div>
     </div>
   </div>
 
+  <!-- 使用者最常問的三個答案放最大：充到多少、存多少、用多少電流充 -->
+  <div class="hero">
+    <div><span class="k">充飽電壓</span><span class="v" id="hFull"></span><span class="f" id="hFullF"></span></div>
+    <div><span class="k">儲存電壓</span><span class="v" id="hSto"></span><span class="f" id="hStoF"></span></div>
+    <div><span class="k">充電電流</span><span class="v" id="hAmp"></span><span class="f" id="hAmpF"></span></div>
+  </div>
+
   <div class="grid">
-    <div class="card">
+    <div class="card dt">
       <div class="ttl">電壓</div>
-      <div class="kv"><span class="k">滿電</span><span class="v" id="vFull"></span></div>
       <div class="kv"><span class="k">標稱</span><span class="v" id="vNom"></span></div>
-      <div class="kv"><span class="k">儲存</span><span class="v ok" id="vSto"></span></div>
       <div class="kv"><span class="k">建議下限</span><span class="v warn" id="vCut"></span></div>
       <div class="kv"><span class="k">絕對下限</span><span class="v bad" id="vMin"></span></div>
     </div>
-    <div class="card">
-      <div class="ttl">充電電流</div>
-      <div class="kv"><span class="k">保守</span><span class="v ok" id="cSafe"></span></div>
-      <div class="f" id="cSafeF"></div>
-      <div class="kv"><span class="k">標準</span><span class="v" id="cStd"></span></div>
-      <div class="f" id="cStdF"></div>
-      <div class="kv"><span class="k">上限</span><span class="v warn" id="cMax"></span></div>
-      <div class="f" id="cMaxF"></div>
+    <div class="card dt">
+      <div class="ttl">充電電流 <span class="tag" style="background:var(--wash);color:var(--dim)">含充電器功率</span></div>
+      <div class="kv"><span class="k">保守<em id="cSafeF"></em></span><span class="v ok" id="cSafe"></span></div>
+      <div class="kv"><span class="k">標準<em id="cStdF"></em></span><span class="v" id="cStd"></span></div>
+      <div class="kv"><span class="k">上限<em id="cMaxF"></em></span><span class="v warn" id="cMax"></span></div>
     </div>
-    <div class="card">
+    <div class="card dt">
       <div class="ttl">放電</div>
-      <div class="kv"><span class="k">標示電流</span><span class="v" id="dAmp"></span></div>
-      <div class="f" id="dAmpF"></div>
+      <div class="kv"><span class="k">標示電流<em id="dAmpF"></em></span><span class="v" id="dAmp"></span></div>
       <div class="kv"><span class="k">標示功率</span><span class="v" id="dW"></span></div>
-      <div class="kv"><span class="k">保守電流</span><span class="v ok" id="dAmpS"></span></div>
+      <div class="kv"><span class="k">保守電流<em>標示值 × 70%</em></span><span class="v ok" id="dAmpS"></span></div>
       <div class="kv"><span class="k">保守功率</span><span class="v ok" id="dWS"></span></div>
-      <div class="f">標示值 × 70%</div>
     </div>
-    <div class="card">
+    <div class="card dt">
       <div class="ttl">能量 <span class="tag" id="air"></span></div>
-      <div class="kv"><span class="k">電量</span><span class="v" id="wh"></span></div>
-      <div class="f" id="whF"></div>
-      <div class="f">備用電池限隨身，不可託運</div>
+      <div class="kv"><span class="k">電量<em id="whF"></em></span><span class="v" id="wh"></span></div>
       <div class="kv"><span class="k">單顆滿電</span><span class="v" id="cellFull"></span></div>
       <div class="kv"><span class="k">單顆儲存</span><span class="v" id="cellSto"></span></div>
     </div>
@@ -200,9 +252,9 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
 
 <!-- ───── 電壓對照 ───── -->
 <section id="volt">
-  <h2>電壓對照 <span class="unit" id="voltChem"></span></h2>
+  <h2>電壓對照 <span class="unit tag ok" id="voltChem"></span></h2>
   <div class="tbl"><table>
-    <thead><tr><th>串數</th><th>滿電</th><th>標稱</th><th>儲存</th><th>建議下限</th><th class="txt">常見用途</th></tr></thead>
+    <thead><tr><th>串數</th><th>滿電</th><th>儲存</th><th>標稱</th><th>建議下限</th></tr></thead>
     <tbody id="voltBody"></tbody>
   </table></div>
 </section>
@@ -213,12 +265,12 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
   <div class="card">
     <div class="label"><span>3S1P</span><span>11.1V</span><span>2700mAh</span><span>20C</span><span>29.97Wh</span></div>
     <dl>
-      <dt>S</dt><dd>串聯（Series）顆數。電壓相加：3S = 3 顆串聯，滿電 4.20V × 3 = 12.60V。</dd>
-      <dt>P</dt><dd>並聯（Parallel）組數。容量相加：2S2P 5000mAh = 2 組 2500mAh 並聯，電壓仍為 2S。</dd>
-      <dt>V</dt><dd>標稱電壓，即 3.70V × 串數。並非滿電電壓，也非可放電的最低電壓。</dd>
-      <dt>mAh</dt><dd>容量。2700mAh = 2.7Ah，以 2.7A 放電約 1 小時。</dd>
-      <dt>C</dt><dd>持續放電倍率，以容量為單位。詳見「C 數」。</dd>
-      <dt>Wh</dt><dd>能量 = Ah × 標稱電壓，搭機限制以此為準。</dd>
+      <dt>S</dt><dd>串聯顆數，電壓相加<small>3S 滿電 = 4.20V × 3 = 12.60V</small></dd>
+      <dt>P</dt><dd>並聯組數，容量相加<small>2S2P 5000mAh = 2 組 2500mAh，電壓仍為 2S</small></dd>
+      <dt>V</dt><dd>標稱電壓 = 3.70V × 串數<small>非滿電電壓，亦非放電下限</small></dd>
+      <dt>mAh</dt><dd>容量<small>2700mAh = 2.7Ah，以 2.7A 放電約 1 小時</small></dd>
+      <dt>C</dt><dd>持續放電倍率<small>詳見「C 數」</small></dd>
+      <dt>Wh</dt><dd>能量 = Ah × 標稱電壓<small>搭機限制以此為準</small></dd>
     </dl>
   </div>
 </section>
@@ -226,33 +278,35 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
 <!-- ───── C 數 ───── -->
 <section id="crate">
   <h2>C 數</h2>
-  <div class="card">
-    <p><b>1C 等於電池容量本身的電流值。</b>2700mAh 的 1C 為 2.7A，20C 為 54A。</p>
+  <div class="card stack">
+    <p style="margin:0"><b>1C ＝ 電池容量的電流值。</b>2700mAh 的 1C 為 2.7A，20C 為 54A。</p>
     <div class="two">
       <div>
         <h3>放電倍率</h3>
-        <ul>
-          <li>持續放電電流 = 容量(Ah) × 放電 C</li>
-          <li>標示「20C／40C」時，前者為持續值，後者為瞬間值（約 10 秒）</li>
-          <li>市售標示普遍偏高，實際使用以 70% 估算較為穩妥</li>
-          <li>電流需求高於電池能力時：電壓驟降、電池發燙、鼓包</li>
+        <span class="formula">電流 = 容量(Ah) × 放電 C</span>
+        <ul style="margin-top:8px">
+          <li>「20C／40C」：前者持續值，後者瞬間值（約 10 秒）</li>
+          <li>市售標示普遍偏高，以 <b>70%</b> 估算</li>
+          <li>不足時：電壓驟降、發燙、鼓包</li>
         </ul>
       </div>
       <div>
         <h3>充電倍率</h3>
-        <ul>
-          <li>充電電流 = 容量(Ah) × 充電 C</li>
-          <li>未標示者一律以 1C 充電</li>
-          <li>標示「5C Charge」為可承受上限，非建議值</li>
+        <span class="formula">電流 = 容量(Ah) × 充電 C</span>
+        <ul style="margin-top:8px">
+          <li>未標示者一律 <b>1C</b></li>
+          <li>「5C Charge」為上限，非建議值</li>
           <li>倍率越高，壽命損耗越大</li>
         </ul>
       </div>
     </div>
-    <div class="ex">
-      <b>例：3S 2700mAh 20C</b><br>
-      持續電流 2.7 × 20 = <b>54A</b><br>
-      持續功率 54A × 11.1V ≈ <b>599W</b>；保守估算 ≈ <b>420W</b>（37.8A）<br>
-      充電 1C = <b>2.7A</b>，充電器輸出 12.6V × 2.7A ≈ <b>34W</b>
+    <div class="calc">
+      <h3>範例：3S 2700mAh 20C</h3>
+      <div class="row"><span>持續電流</span><b>2.7 × 20 = 54A</b></div>
+      <div class="row"><span>持續功率</span><b>54A × 11.1V ≈ 599W</b></div>
+      <div class="row"><span>保守功率</span><b>37.8A × 11.1V ≈ 420W</b></div>
+      <div class="row"><span>1C 充電電流</span><b>2.7 × 1 = 2.7A</b></div>
+      <div class="row"><span>充電器功率</span><b>12.6V × 2.7A ≈ 34W</b></div>
     </div>
   </div>
 </section>
@@ -262,30 +316,36 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
   <h2>充電</h2>
   <div class="two">
     <div class="card">
-      <h3 style="margin-top:0">標準程序</h3>
-      <ol>
-        <li>確認電池外觀無鼓包、破損，溫度回到室溫</li>
+      <h3>標準程序</h3>
+      <ol class="steps">
+        <li>確認無鼓包、破損，溫度回到室溫</li>
         <li>充電器選擇對應模式：LiPo／LiHV／Li-ion</li>
         <li>設定串數與電流（預設 1C）</li>
-        <li>同時接上主電源線與平衡線，使用「平衡充電」</li>
-        <li>確認充電器偵測的串數與電池一致後開始</li>
-        <li>置於防爆袋或不可燃表面，全程有人看管</li>
+        <li>接上主電源線與平衡線，使用<b>平衡充電</b></li>
+        <li>確認偵測串數與電池一致後開始</li>
+        <li>置於防爆袋或不可燃表面，全程看管</li>
       </ol>
     </div>
-    <div class="card">
-      <h3 style="margin-top:0">充電倍率選擇</h3>
-      <div class="tbl" style="border:0">
-        <table>
-          <thead><tr><th>倍率</th><th class="txt">適用</th></tr></thead>
+    <div class="card stack">
+      <div>
+        <h3>倍率選擇</h3>
+        <table class="plain">
           <tbody>
-            <tr><td>0.5C</td><td class="txt">保守：延長壽命、舊電池、不急用</td></tr>
-            <tr><td>1C</td><td class="txt">標準：多數電池建議值</td></tr>
-            <tr><td>2C 以上</td><td class="txt">僅限標示支援快充之電池，壽命縮短</td></tr>
+            <tr><td><b>0.5C</b></td><td class="txt">保守：延長壽命、舊電池</td></tr>
+            <tr><td><b>1C</b></td><td class="txt">標準：多數電池建議值</td></tr>
+            <tr><td><b>2C 以上</b></td><td class="txt">限標示支援快充者，壽命縮短</td></tr>
           </tbody>
         </table>
       </div>
-      <h3>平衡誤差</h3>
-      <p>平衡充電後各顆電壓差應在 0.02V 以內；超過 0.1V 表示電芯衰退，應汰換。</p>
+      <div>
+        <h3>平衡誤差</h3>
+        <table class="plain">
+          <tbody>
+            <tr><td><b class="v ok">≤ 0.02V</b></td><td class="txt">正常</td></tr>
+            <tr><td><b class="v bad">&gt; 0.1V</b></td><td class="txt">電芯衰退，應汰換</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </section>
@@ -294,12 +354,16 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
 <section id="storage">
   <h2>儲存</h2>
   <div class="card">
+    <div class="key">
+      <span class="big">3.80V<small> / 顆</small></span>
+      <div style="text-align:left;line-height:1.5"><b>超過 3 日不使用</b><br><span style="color:var(--dim);font-size:14px">充電器「儲存模式」調整<br>LiHV 為 3.85V</span></div>
+    </div>
     <ul>
-      <li><b>超過 3 日不使用，以充電器「儲存模式」調整至儲存電壓</b>（LiPo 每顆 3.80V、LiHV 3.85V）</li>
-      <li>滿電長期放置會加速老化與鼓包；過度放電後擱置則可能無法再充電</li>
-      <li>存放於 15–25°C 乾燥處，避免車內、日照與高溫環境；建議放入防爆袋或金屬盒</li>
-      <li>每 1–2 個月檢查一次電壓，必要時重新調整至儲存電壓</li>
-      <li>使用後電池溫熱，待降至室溫再充電或收納</li>
+      <li>滿電久放：加速老化、鼓包</li>
+      <li>過度放電後擱置：可能無法再充電</li>
+      <li>存放 <b>15–25°C</b> 乾燥處，避開車內與日照；建議放入防爆袋或金屬盒</li>
+      <li>每 1–2 個月檢查電壓</li>
+      <li>使用後待降至室溫再充電或收納</li>
     </ul>
   </div>
 </section>
@@ -308,42 +372,46 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
 <section id="safety">
   <h2>安全</h2>
   <div class="two">
-    <div class="card warnbox">
-      <h3 style="margin-top:0">立即停用</h3>
+    <div class="card danger">
+      <h3>立即停用</h3>
       <ul>
-        <li>外殼鼓包、變形、軟化</li>
-        <li>外皮破損、有刺鼻氣味或漏液</li>
-        <li>使用後溫度超過 60°C</li>
-        <li>任一顆電壓低於 3.0V 且無法回升</li>
-        <li>平衡後各顆電壓差仍大於 0.1V</li>
+        <li>鼓包、變形、軟化</li>
+        <li>外皮破損、刺鼻氣味、漏液</li>
+        <li>使用後溫度超過 <b>60°C</b></li>
+        <li>任一顆低於 <b>3.0V</b> 且無法回升</li>
+        <li>平衡後電壓差仍大於 <b>0.1V</b></li>
       </ul>
     </div>
     <div class="card">
-      <h3 style="margin-top:0">使用規範</h3>
+      <h3>使用規範</h3>
       <ul>
-        <li>充電環境溫度 0–45°C</li>
+        <li>充電環境 <b>0–45°C</b></li>
         <li>不在無人看管、睡眠或外出時充電</li>
-        <li>車輛使用低壓警示（LVC），設定每顆 3.2–3.3V</li>
+        <li>低壓斷電（LVC）設定每顆 <b>3.2–3.3V</b></li>
         <li>撞擊後檢查外觀，可疑者隔離觀察 24 小時</li>
-        <li>報廢時端子以絕緣膠帶包覆，送至廢電池回收點（超商、量販店、資源回收車），勿丟一般垃圾</li>
-        <li>起火時立即遠離並撥打 119，勿自行撲救；熄滅後仍可能復燃</li>
+        <li><b>報廢</b>：端子以絕緣膠帶包覆，送超商、量販店或資源回收車</li>
+        <li><b>起火</b>：立即遠離並撥打 119，勿自行撲救；熄滅後仍可能復燃</li>
       </ul>
     </div>
   </div>
-  <div class="card" style="margin-top:10px">
-    <h3 style="margin-top:0">搭機</h3>
-    <div class="tbl" style="border:0"><table>
+</section>
+
+<!-- ───── 搭機 ───── -->
+<section id="flight">
+  <h2>搭機</h2>
+  <div class="card stack">
+    <table class="plain">
       <thead><tr><th>電量</th><th class="txt">備用電池</th></tr></thead>
       <tbody>
-        <tr><td>100Wh 以下</td><td class="txt">免申請，每人至多 20 顆</td></tr>
-        <tr><td>100–160Wh</td><td class="txt">須航空公司核准，每人至多 2 顆</td></tr>
-        <tr><td>160Wh 以上</td><td class="txt">不得攜帶</td></tr>
+        <tr><td><b>≤ 100Wh</b></td><td class="txt"><span class="tag ok">免申請</span> 每人至多 20 顆</td></tr>
+        <tr><td><b>100–160Wh</b></td><td class="txt"><span class="tag warn">須航空公司核准</span> 每人至多 2 顆</td></tr>
+        <tr><td><b>&gt; 160Wh</b></td><td class="txt"><span class="tag bad">不得攜帶</span></td></tr>
       </tbody>
-    </table></div>
+    </table>
     <ul>
-      <li>一律隨身攜帶，不可託運</li>
-      <li>端子以絕緣膠帶包覆，或個別放入保護盒、夾鏈袋</li>
-      <li>各航空公司可能另有限制，出發前以航空公司公告為準</li>
+      <li>一律<b>隨身攜帶，不可託運</b></li>
+      <li>端子絕緣，或個別放入保護盒、夾鏈袋</li>
+      <li>各航空公司另有限制者，以其公告為準</li>
     </ul>
   </div>
 </section>
@@ -354,37 +422,39 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
   <div class="tbl"><table>
     <thead><tr><th></th><th>LiPo</th><th>LiHV</th><th>Li-ion</th></tr></thead>
     <tbody>
-      <tr><td>單顆滿電</td><td>4.20V</td><td>4.35V</td><td>4.20V</td></tr>
-      <tr><td>單顆標稱</td><td>3.70V</td><td>3.80V</td><td>3.60V</td></tr>
+      <tr><td>單顆滿電</td><td class="hl">4.20V</td><td class="hl">4.35V</td><td class="hl">4.20V</td></tr>
       <tr><td>單顆儲存</td><td>3.80V</td><td>3.85V</td><td>3.70V</td></tr>
+      <tr><td>單顆標稱</td><td>3.70V</td><td>3.80V</td><td>3.60V</td></tr>
       <tr><td>建議下限</td><td>3.30V</td><td>3.30V</td><td>3.00V</td></tr>
       <tr><td>絕對下限</td><td>3.00V</td><td>3.00V</td><td>2.50V</td></tr>
       <tr><td>放電能力</td><td>高</td><td>高</td><td>中低</td></tr>
       <tr><td>能量密度</td><td>中</td><td>中高</td><td>高</td></tr>
-      <tr><td>外型</td><td>軟包</td><td>軟包</td><td>圓柱（18650／21700）</td></tr>
-      <tr><td class="txt">適用</td><td class="txt">遙控車、空拍機主流</td><td class="txt">競賽、需更高電壓</td><td class="txt">長航時、低電流</td></tr>
+      <tr><td>外型</td><td>軟包</td><td>軟包</td><td>圓柱</td></tr>
+      <tr><td>主要用途</td><td>遙控車、空拍機</td><td>競賽</td><td>長航時</td></tr>
     </tbody>
   </table></div>
-  <div class="card" style="margin-top:10px">
+  <div class="card" style="margin-top:12px">
     <ul>
-      <li>LiHV 可用 LiPo 模式充電（只充到 4.20V，容量較少）；<b>LiPo 不可用 LiHV 模式充電</b>，會過充。</li>
-      <li>Li-ion 不適合大電流放電，請以電芯規格書的最大放電電流為準。</li>
+      <li>LiHV 可用 LiPo 模式充電（僅充至 4.20V，容量較少）</li>
+      <li><b style="color:var(--bad)">LiPo 不可用 LiHV 模式充電</b>：會過充</li>
+      <li>Li-ion（18650／21700）放電電流以電芯規格書為準</li>
     </ul>
   </div>
 </section>
 
-<footer><span class="g">欣群企業</span><i></i><span class="s">欣瀚資訊</span></footer>
+<footer><span class="g">欣群企業</span><i></i><span class="sv">欣瀚資訊</span></footer>
 </div>
 
 <script>
 // 每顆電壓與充電倍率。Li-ion 依常見 18650／21700 規格：標準充電 0.5C、上限 1C。
+// 數值依據：ISDT／VIFLY 充電器規格、Gens Ace 說明、Samsung／Molicel 規格書（2026-10 查證）。
 const CHEM = {
   lipo:  {name:"LiPo",   full:4.20, nom:3.70, sto:3.80, cut:3.30, min:3.00, safe:0.5, std:1,   maxDef:1},
   lihv:  {name:"LiHV",   full:4.35, nom:3.80, sto:3.85, cut:3.30, min:3.00, safe:0.5, std:1,   maxDef:1},
   liion: {name:"Li-ion", full:4.20, nom:3.60, sto:3.70, cut:3.00, min:2.50, safe:0.3, std:0.5, maxDef:1},
 };
-const USE = ["微型車、室內機","1/16–1/10 車","1/10 高速、1/8 短卡","1/8 越野、1/10 大腳","航模、空拍機","1/8 大腳、1/7 速度車","大型航模","1/5、1/7 極速車"];
-const PRESET = {mah:[1500,2200,2700,3000,5000], dc:[20,30,50,100], cc:[1,2,5]};
+const USE = ["微型車","1/16–1/10 車","1/10 高速車","1/8 越野車","空拍機、航模","1/8 大腳車","大型航模","1/5 大型車"];
+const PRESET = {mah:[2200,2700,5000], dc:[20,50,100], cc:[1,2,5]};
 
 // 記住上次輸入。localStorage 在私密瀏覽可能丟例外，一律包起來。
 const KEY = "lipo-guide";
@@ -396,7 +466,7 @@ const $ = id => document.getElementById(id);
 const fx = (n, d) => Number.isFinite(n) ? n.toFixed(d) : "—";
 const html = (id, s) => { $(id).innerHTML = s; };
 const val = (n, d, u) => Number.isFinite(n) ? `${n.toFixed(d)}<small>${u}</small>` : "—";
-const num = (n) => Number.isFinite(n) && n > 0 ? n : NaN;
+const num = n => Number.isFinite(n) && n > 0 ? n : NaN;
 const fmtC = c => (Math.round(c * 10) / 10).toString();
 
 function chips(id, list, key, unit) {
@@ -423,19 +493,22 @@ function render() {
     for (const b of $(box).children) b.setAttribute("aria-pressed", +b.dataset.v === st[key]);
 
   const vFull = c.full * s, vNom = c.nom * s;
-  html("vFull", val(vFull, 2, "V"));
-  html("vNom",  val(vNom, 2, "V"));
-  html("vSto",  val(c.sto * s, 2, "V"));
-  html("vCut",  val(c.cut * s, 2, "V"));
-  html("vMin",  val(c.min * s, 2, "V"));
-
-  // 上限取「標示充電倍率」，但不低於標準值；保守與標準也不超過上限
+  // 上限取「標示充電倍率」；保守與標準不超過上限
   const maxC = Number.isFinite(cc) ? cc : c.maxDef;
   const safeC = Math.min(c.safe, maxC), stdC = Math.min(c.std, maxC);
+
+  html("hFull", val(vFull, 2, "V"));  $("hFullF").textContent = `${fx(c.full,2)}V × ${s}`;
+  html("hSto",  val(c.sto * s, 2, "V")); $("hStoF").textContent = `${fx(c.sto,2)}V × ${s}`;
+  html("hAmp",  val(ah * stdC, 2, "A")); $("hAmpF").textContent = Number.isFinite(ah) ? `${fmtC(stdC)}C 標準` : "";
+
+  html("vNom", val(vNom, 2, "V"));
+  html("vCut", val(c.cut * s, 2, "V"));
+  html("vMin", val(c.min * s, 2, "V"));
+
   const chg = (C, idA, idF) => {
     const a = ah * C;
     html(idA, val(a, 2, "A"));
-    $(idF).textContent = Number.isFinite(a) ? `${fmtC(C)}C · 充電器 ${fx(a * vFull, 0)}W` : "";
+    $(idF).textContent = Number.isFinite(a) ? `${fmtC(C)}C · ${fx(a * vFull, 0)}W` : "";
   };
   chg(safeC, "cSafe", "cSafeF");
   chg(stdC,  "cStd",  "cStdF");
@@ -448,7 +521,7 @@ function render() {
   html("dAmpS", val(amp * 0.7, 1, "A"));
   html("dWS",   val(amp * 0.7 * vNom, 0, "W"));
 
-  // 搭機：≤100Wh 可隨身、100–160Wh 須航空公司核准、>160Wh 不得攜帶；一律不可託運
+  // 搭機（民航局／IATA）：≤100Wh 免申請、100–160Wh 須核准、>160Wh 不得攜帶；備用電池一律不可託運
   const wh = ah * vNom, air = $("air");
   html("wh", val(wh, 1, "Wh"));
   $("whF").textContent = Number.isFinite(wh) ? `${fx(ah, 2)}Ah × ${fx(vNom, 2)}V` : "";
@@ -462,7 +535,8 @@ function render() {
   $("voltChem").textContent = c.name;
   $("voltBody").innerHTML = USE.map((u, i) => {
     const n = i + 1;
-    return `<tr${n === s ? ' class="on"' : ""}><td>${n}S</td><td>${fx(c.full*n,2)}V</td><td>${fx(c.nom*n,2)}V</td><td>${fx(c.sto*n,2)}V</td><td>${fx(c.cut*n,2)}V</td><td class="txt">${u}</td></tr>`;
+    return `<tr data-s="${n}"${n === s ? ' class="on"' : ""}><td><span class="s">${n}S</span><span class="use">${u}</span></td>`
+      + `<td class="hl">${fx(c.full*n,2)}V</td><td>${fx(c.sto*n,2)}V</td><td>${fx(c.nom*n,2)}V</td><td>${fx(c.cut*n,2)}V</td></tr>`;
   }).join("");
   save();
 }
@@ -476,7 +550,25 @@ for (const k of ["mah", "dc", "cc"]) {
   $(k).value = st[k];
   $(k).addEventListener("input", e => { st[k] = parseFloat(e.target.value); render(); });
 }
+// 點對照表的一列＝切換串數並回到計算結果
+$("voltBody").onclick = e => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  st.s = +tr.dataset.s; render();
+  $("calc").scrollIntoView({behavior: "smooth"});
+};
 render();
+
+// 導覽列標示目前所在段落
+const links = [...document.querySelectorAll("#nav a")];
+const io = new IntersectionObserver(ents => {
+  for (const en of ents) if (en.isIntersecting) {
+    links.forEach(a => a.classList.toggle("on", a.hash === "#" + en.target.id));
+    const on = links.find(a => a.classList.contains("on")), nav = $("nav");
+    // 不用 scrollIntoView：Safari 會連帶捲動整頁
+    if (on) nav.scrollLeft = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2;
+  }
+}, {rootMargin: "-45% 0px -50% 0px"});
+document.querySelectorAll("section[id]").forEach(s => io.observe(s));
 </script>
 </body>
 </html>
