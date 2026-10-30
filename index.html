@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610310009">
+<meta name="build" content="202610310012">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RC 鋰電池充電</title>
 <meta name="description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
@@ -49,6 +49,11 @@
   }
 }
 *{box-sizing:border-box}
+/* 浮水印「赤貧軍團」：整頁斜向平鋪，疊在內容上方但不擋點擊；濃度壓在 5% 以下，不影響閱讀 */
+body::after{content:"";position:fixed;inset:0;z-index:50;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22330%22%20height%3D%22200%22%3E%3Cg%20transform%3D%22rotate%28-24%20165%20100%29%22%20font-family%3D%22PingFang%20TC%2CNoto%20Sans%20TC%2CMicrosoft%20JhengHei%2Csans-serif%22%20font-weight%3D%22900%22%20fill%3D%22rgba%2826%2C33%2C48%2C0.05%29%22%3E%3Ctext%20x%3D%2230%22%20y%3D%2285%22%20font-size%3D%2230%22%20letter-spacing%3D%226%22%3E%E8%B5%A4%E8%B2%A7%E8%BB%8D%E5%9C%98%3C/text%3E%3Ctext%20x%3D%22175%22%20y%3D%22185%22%20font-size%3D%2230%22%20letter-spacing%3D%226%22%3E%E8%B5%A4%E8%B2%A7%E8%BB%8D%E5%9C%98%3C/text%3E%3C/g%3E%3C/svg%3E");background-size:330px 200px}
+@media (prefers-color-scheme: dark){body::after{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22330%22%20height%3D%22200%22%3E%3Cg%20transform%3D%22rotate%28-24%20165%20100%29%22%20font-family%3D%22PingFang%20TC%2CNoto%20Sans%20TC%2CMicrosoft%20JhengHei%2Csans-serif%22%20font-weight%3D%22900%22%20fill%3D%22rgba%28243%2C236%2C223%2C0.045%29%22%3E%3Ctext%20x%3D%2230%22%20y%3D%2285%22%20font-size%3D%2230%22%20letter-spacing%3D%226%22%3E%E8%B5%A4%E8%B2%A7%E8%BB%8D%E5%9C%98%3C/text%3E%3Ctext%20x%3D%22175%22%20y%3D%22185%22%20font-size%3D%2230%22%20letter-spacing%3D%226%22%3E%E8%B5%A4%E8%B2%A7%E8%BB%8D%E5%9C%98%3C/text%3E%3C/g%3E%3C/svg%3E")}}
+@media print{body::after{position:absolute}}
+
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:56px}
 body{margin:0;background:var(--bg);color:var(--text);
   font:17px/1.75 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
@@ -69,6 +74,7 @@ header{padding:16px 0 12px}
 .pillar span{font-size:12px;color:#C9CBD2;line-height:1.45}
 /* 只在「・」處換行，詞不會被拆開 */
 .pillar s{text-decoration:none;white-space:nowrap}
+.pillar[aria-disabled=true]{cursor:default}
 .pillar em{position:absolute;top:-8px;right:-4px;font-style:normal;font-size:11px;font-weight:800;background:#fff;color:var(--red);border:1.5px solid var(--red);border-radius:999px;padding:0 7px;line-height:1.6}
 h1{margin:14px 0 0;font-size:28px;line-height:1.3;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
 h1::before{content:"";flex:none;width:16px;height:16px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
@@ -77,13 +83,17 @@ h1::before{content:"";flex:none;width:16px;height:16px;border-radius:50%;backgro
 nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
   display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:8px 16px}
 nav::-webkit-scrollbar{display:none}
-nav a{flex:1 0 auto;text-align:center;color:var(--dim);text-decoration:none;font-size:15px;font-weight:600;padding:6px 8px;border-radius:999px}
-nav a.on{background:var(--accent);color:#fff}
-@media (prefers-color-scheme: dark){nav a.on{color:#0C1424}}
+nav a{flex:1 0 auto;text-align:center;color:var(--dim);text-decoration:none;font-size:15px;font-weight:700;padding:6px 8px;border-radius:999px}
+nav a.on{background:var(--red);color:#fff}
+@media (min-width:640px){nav a{flex:0 0 auto;padding:6px 18px}}
 
 section{padding-top:30px}
-h2{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.3;margin:0 0 12px}
-h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--red)}
+h2{display:flex;align-items:center;gap:10px;width:fit-content;max-width:100%;font-size:20px;line-height:1.3;margin:0 0 12px;
+  background:#17181D;color:#fff;padding:7px 22px 7px 10px;border-radius:10px 4px 4px 10px;
+  clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+h2::before{content:"";flex:none;width:16px;height:16px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px #fff}
+h2 .tag.ok{background:#fff;color:#1F7A4A}
+@media (prefers-color-scheme: dark){h2{background:#262A35}}
 h2 .unit{font-size:15px;font-weight:600}
 h3{font-size:17px;line-height:1.4;margin:0 0 8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
@@ -171,10 +181,10 @@ table{border-collapse:collapse;width:100%;font-size:16px}
 th,td{padding:10px 12px;text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 .tbl th:first-child,.tbl td:first-child{position:sticky;left:0;z-index:1;background:var(--card)}
-.tbl thead th:first-child{background:var(--card)}
 #voltBody tr.on td:first-child{background:var(--card);background-image:linear-gradient(var(--sel),var(--sel))}
 td.txt,th.txt{text-align:left;white-space:normal}
-thead th{background:var(--wash);color:var(--dim);font-weight:700;font-size:14px}
+thead th{background:#17181D;color:#fff;font-weight:700;font-size:14px}
+.tbl thead th:first-child{background:#17181D}
 tbody td{border-top:1px solid var(--line)}
 tbody tr:nth-child(even){background:var(--zebra)}
 #typesTbl th,#typesTbl td{padding:9px 8px}
@@ -194,6 +204,8 @@ tbody tr:nth-child(even){background:var(--zebra)}
 td.hl{font-weight:700}
 .plain{border:0;border-radius:0;background:transparent}
 .plain th:first-child,.plain td:first-child{padding-left:0}
+.plain thead th:first-child{padding-left:10px}
+.plain thead th:last-child{padding-right:10px}
 .plain th:last-child,.plain td:last-child{padding-right:0}
 
 .label{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
@@ -227,10 +239,6 @@ footer .team{display:flex;align-items:center;justify-content:center;gap:14px;fon
 footer .team span{margin-right:-.3em;white-space:nowrap}
 footer .team::before,footer .team::after{content:"";flex:0 1 44px;min-width:0;height:2px;border-radius:1px;background:var(--crimson)}
 footer .emblem{display:block;width:96px;height:96px;margin:0 auto 14px;border-radius:22px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.soon{display:flex;align-items:center;gap:16px;border-style:dashed;border-width:2px}
-.soon img{flex:none;width:64px;height:64px;border-radius:15px}
-.soon b{display:block;font-size:19px;font-weight:800}
-.soon span{display:inline-block;margin-top:4px;font-size:15px;font-weight:700;color:var(--onRed);background:var(--red);padding:2px 12px;border-radius:999px;letter-spacing:.1em}
 footer .brand{margin-top:12px;font-size:14px;letter-spacing:.12em}
 footer .g{color:var(--gold);font-weight:700}
 footer .sv{color:var(--gray);font-weight:600}
@@ -245,7 +253,7 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   <!-- 三大區塊（依使用者 2026-10-31 主視覺）：原圖底部那排字在手機上太小，改用 HTML 重做才讀得到、點得到 -->
   <div class="pillars">
     <a class="pillar" href="#calc"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9.5" y="2" width="5" height="2.5" rx="1" fill="currentColor"/><path d="M13 7.5 9.5 13h3l-1 4.5L15 12h-3z" fill="currentColor"/></svg></i><b>鋰電池</b><span><s>介紹</s>・<s>選購</s>・<s>充電</s></span></a>
-    <a class="pillar" href="#shop"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14.5 5 10h10l3 3.5h2.5v3H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7" cy="17" r="2.3" fill="currentColor"/><circle cx="17" cy="17" r="2.3" fill="currentColor"/><path d="M16 10 18 6.5h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></i><b>車種買賣</b><span><s>遙控車</s>・<s>配件</s>・<s>改裝</s></span><em>敬請期待</em></a>
+    <a class="pillar" id="shopLink" aria-disabled="true"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14.5 5 10h10l3 3.5h2.5v3H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7" cy="17" r="2.3" fill="currentColor"/><circle cx="17" cy="17" r="2.3" fill="currentColor"/><path d="M16 10 18 6.5h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></i><b>車種買賣</b><span><s>遙控車</s>・<s>配件</s>・<s>改裝</s></span><em>敬請期待</em></a>
     <a class="pillar" href="#label"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 6.5 4.5 3 5v13c3.5-.5 7 0 9 1.5 2-1.5 5.5-2 9-1.5V5c-3.5-.5-7 0-9 1.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></i><b>完整教學</b><span><s>入門</s>・<s>安全</s>・<s>技巧</s></span></a>
   </div>
 </header>
@@ -255,7 +263,6 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   <a href="#volt">電壓</a>
   <a href="#label">知識</a>
   <a href="#safety">安全</a>
-  <a href="#shop">買賣</a>
 </nav>
 
 <!-- ───── 計算 ───── -->
@@ -523,14 +530,6 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   </div>
 </section>
 
-<!-- ───── 車種買賣（預留；上線後把這段換成商品或連結） ───── -->
-<section id="shop">
-  <h2>車種買賣</h2>
-  <div class="card soon">
-    <img src="badge.png?v=1" alt="" width="64" height="64">
-    <div><b>遙控車・配件・升級改裝</b><span>敬請期待</span></div>
-  </div>
-</section>
 
 <footer>
   <img class="emblem" src="badge.png?v=1" alt="赤貧軍團" width="96" height="96">
@@ -660,6 +659,13 @@ $("voltBody").onclick = e => {
 };
 render();
 
+// 車種買賣：賣場開張後把網址填進 SHOP_URL，三格裡那一格就會直接開賣場（另開分頁）
+const SHOP_URL = "";
+if (SHOP_URL) {
+  const a = $("shopLink");
+  a.href = SHOP_URL; a.target = "_blank"; a.rel = "noopener";
+  a.removeAttribute("aria-disabled"); a.querySelector("em")?.remove();
+}
 // 導覽列標示目前所在段落
 // 導覽 2026-10-30 依使用者要求簡化成五類：知識＝標示／C 數／充電／儲存／種類，安全＝安全／搭機
 const GROUP = {crate:"label", charge:"label", storage:"label", types:"label", flight:"safety"};
