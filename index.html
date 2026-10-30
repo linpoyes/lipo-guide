@@ -191,6 +191,7 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
       <div class="ttl">能量 <span class="tag" id="air"></span></div>
       <div class="kv"><span class="k">電量</span><span class="v" id="wh"></span></div>
       <div class="f" id="whF"></div>
+      <div class="f">備用電池限隨身，不可託運</div>
       <div class="kv"><span class="k">單顆滿電</span><span class="v" id="cellFull"></span></div>
       <div class="kv"><span class="k">單顆儲存</span><span class="v" id="cellSto"></span></div>
     </div>
@@ -232,7 +233,7 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
         <h3>放電倍率</h3>
         <ul>
           <li>持續放電電流 = 容量(Ah) × 放電 C</li>
-          <li>標示「20C／40C」時，前者為持續值，後者為數秒的瞬間值</li>
+          <li>標示「20C／40C」時，前者為持續值，後者為瞬間值（約 10 秒）</li>
           <li>市售標示普遍偏高，實際使用以 70% 估算較為穩妥</li>
           <li>電流需求高於電池能力時：電壓驟降、電池發燙、鼓包</li>
         </ul>
@@ -284,7 +285,7 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
         </table>
       </div>
       <h3>平衡誤差</h3>
-      <p>充飽後各顆電壓差應在 0.01–0.03V 以內；超過 0.1V 表示電芯老化，應停用。</p>
+      <p>平衡充電後各顆電壓差應在 0.02V 以內；超過 0.1V 表示電芯衰退，應汰換。</p>
     </div>
   </div>
 </section>
@@ -296,7 +297,7 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
     <ul>
       <li><b>超過 3 日不使用，以充電器「儲存模式」調整至儲存電壓</b>（LiPo 每顆 3.80V、LiHV 3.85V）</li>
       <li>滿電長期放置會加速老化與鼓包；過度放電後擱置則可能無法再充電</li>
-      <li>存放於陰涼乾燥處，避免車內、日照與高溫環境；建議放入防爆袋或金屬盒</li>
+      <li>存放於 15–25°C 乾燥處，避免車內、日照與高溫環境；建議放入防爆袋或金屬盒</li>
       <li>每 1–2 個月檢查一次電壓，必要時重新調整至儲存電壓</li>
       <li>使用後電池溫熱，待降至室溫再充電或收納</li>
     </ul>
@@ -314,7 +315,7 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
         <li>外皮破損、有刺鼻氣味或漏液</li>
         <li>使用後溫度超過 60°C</li>
         <li>任一顆電壓低於 3.0V 且無法回升</li>
-        <li>平衡誤差持續大於 0.1V</li>
+        <li>平衡後各顆電壓差仍大於 0.1V</li>
       </ul>
     </div>
     <div class="card">
@@ -324,10 +325,26 @@ footer i{display:inline-block;width:1px;height:11px;background:var(--line);margi
         <li>不在無人看管、睡眠或外出時充電</li>
         <li>車輛使用低壓警示（LVC），設定每顆 3.2–3.3V</li>
         <li>撞擊後檢查外觀，可疑者隔離觀察 24 小時</li>
-        <li>報廢前放電至最低電壓，送至鋰電池回收點，勿丟一般垃圾</li>
-        <li>起火時勿用水，以大量沙土覆蓋並遠離</li>
+        <li>報廢時端子以絕緣膠帶包覆，送至廢電池回收點（超商、量販店、資源回收車），勿丟一般垃圾</li>
+        <li>起火時立即遠離並撥打 119，勿自行撲救；熄滅後仍可能復燃</li>
       </ul>
     </div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <h3 style="margin-top:0">搭機</h3>
+    <div class="tbl" style="border:0"><table>
+      <thead><tr><th>電量</th><th class="txt">備用電池</th></tr></thead>
+      <tbody>
+        <tr><td>100Wh 以下</td><td class="txt">免申請，每人至多 20 顆</td></tr>
+        <tr><td>100–160Wh</td><td class="txt">須航空公司核准，每人至多 2 顆</td></tr>
+        <tr><td>160Wh 以上</td><td class="txt">不得攜帶</td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li>一律隨身攜帶，不可託運</li>
+      <li>端子以絕緣膠帶包覆，或個別放入保護盒、夾鏈袋</li>
+      <li>各航空公司可能另有限制，出發前以航空公司公告為準</li>
+    </ul>
   </div>
 </section>
 
