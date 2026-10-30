@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610302350">
+<meta name="build" content="202610302354">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RC 鋰電池充電</title>
 <meta name="description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
@@ -17,33 +17,35 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="RC 鋰電池充電">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#F4F7FC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1626" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F3ECDF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C1424" media="(prefers-color-scheme: dark)">
 <!-- 圖示：icon-source.png（使用者提供的原圖）→ 主畫面圖示取中間卡片滿版，iOS 自己切圓角；改圖後把 ?v= 加一 -->
 <link rel="icon" type="image/png" href="favicon.png?v=1">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="鋰電池充電">
 <style>
-/* 色票沿用欣群／欣瀚家族（門市報表 components/ui.jsx 的 C）。
-   識讀優先：次要文字對比度拉到 WCAG AA 以上，數字一律等寬。 */
+/* 色票依「赤貧軍團」主視覺（brand-source.png：北齋浮世繪）：和紙米色底、普魯士藍、朱紅、墨黑。
+   識讀優先：內文用墨色、次要文字對比度 WCAG AA 以上；紋理只放在橫幅，不放在文字底下。 */
 :root{
   color-scheme:light dark;
-  --bg:#F4F7FC; --card:#FFFFFF; --line:#DCE4F0; --text:#15294B; --dim:#45567A; --faint:#6B7A96;
-  --accent:#1F6FD6; --deep:#1A5FD0; --ok:#0E8A58; --warn:#B86A00; --bad:#C8372B;
-  --sel:rgba(44,123,229,.10); --wash:rgba(21,41,75,.05); --zebra:rgba(21,41,75,.025);
-  --okBg:rgba(24,160,106,.12); --warnBg:rgba(232,148,28,.14); --badBg:rgba(220,76,63,.10);
-  --hero:#15294B; --onHero:#FFFFFF; --heroDim:#B9C6DD;
-  --gold:#A27C2F; --gray:#6E7889; --crimson:#A8201A;
+  --bg:#F3ECDF; --card:#FFFCF5; --line:#E2D6C0; --text:#1A2130; --dim:#4A5163; --faint:#6E7383;
+  --accent:#1C3F7C; --deep:#17356B; --ok:#1F7A4A; --warn:#A85A00; --bad:#B3261E;
+  --red:#D7261E; --onRed:#FFFFFF;
+  --sel:rgba(28,63,124,.10); --wash:rgba(26,33,48,.055); --zebra:rgba(26,33,48,.03);
+  --okBg:rgba(31,122,74,.12); --warnBg:rgba(168,90,0,.12); --badBg:rgba(179,38,30,.10);
+  --hero:#17356B; --onHero:#FFFFFF; --heroDim:#C9D5EC;
+  --gold:#94701F; --gray:#5F6472; --crimson:#C11F18;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0E1626; --card:#16213A; --line:#2A3858; --text:#EEF2FA; --dim:#BAC6DB; --faint:#8E9BB4;
-    --accent:#6AA8FF; --deep:#2C7BE5; --ok:#4FD39C; --warn:#FFB547; --bad:#FF7A6E;
-    --sel:rgba(106,168,255,.16); --wash:rgba(238,242,250,.06); --zebra:rgba(238,242,250,.03);
-    --okBg:rgba(79,211,156,.14); --warnBg:rgba(255,181,71,.14); --badBg:rgba(255,122,110,.13);
-    --hero:#1F3C78; --onHero:#FFFFFF; --heroDim:#C3D2EE;
-    --gold:#D9B66E; --gray:#A0A9BA; --crimson:#D2453A;
+    --bg:#0C1424; --card:#142039; --line:#26355A; --text:#F3ECDF; --dim:#CBC4B6; --faint:#9A968C;
+    --accent:#7FA8EC; --deep:#2F5AA8; --ok:#5BD69B; --warn:#FFB650; --bad:#FF7B72;
+    --red:#E5372E; --onRed:#FFFFFF;
+    --sel:rgba(127,168,236,.17); --wash:rgba(243,236,223,.06); --zebra:rgba(243,236,223,.03);
+    --okBg:rgba(91,214,155,.14); --warnBg:rgba(255,182,80,.14); --badBg:rgba(255,123,114,.13);
+    --hero:#1D3D7A; --onHero:#FFFFFF; --heroDim:#D0DBF0;
+    --gold:#DDBB72; --gray:#A9A79F; --crimson:#E5372E;
   }
 }
 *{box-sizing:border-box}
@@ -54,19 +56,22 @@ body{margin:0;background:var(--bg);color:var(--text);
 .wrap{max-width:860px;margin:0 auto;padding:0 16px}
 b,strong{font-weight:700}
 
-header{padding:26px 0 12px}
-h1{margin:0;font-size:27px;line-height:1.3;letter-spacing:.02em}
+header{padding:16px 0 12px}
+.banner{display:block;width:100%;height:auto;aspect-ratio:1138/560;object-fit:cover;object-position:center 30%;border-radius:16px;border:3px solid var(--text);background:#E9DFC9}
+h1{margin:14px 0 0;font-size:28px;line-height:1.3;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+h1::before{content:"";flex:none;width:16px;height:16px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
 .sub{color:var(--dim);font-size:15px;margin-top:4px;letter-spacing:.06em}
 
 nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
   display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:8px 16px}
 nav::-webkit-scrollbar{display:none}
-nav a{flex:none;color:var(--dim);text-decoration:none;font-size:15px;font-weight:600;padding:6px 12px;border-radius:999px}
-nav a.on{background:var(--text);color:var(--bg)}
+nav a{flex:1 0 auto;text-align:center;color:var(--dim);text-decoration:none;font-size:15px;font-weight:600;padding:6px 8px;border-radius:999px}
+nav a.on{background:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){nav a.on{color:#0C1424}}
 
 section{padding-top:30px}
 h2{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.3;margin:0 0 12px}
-h2::before{content:"";width:4px;height:18px;border-radius:2px;background:var(--accent)}
+h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--red)}
 h2 .unit{font-size:15px;font-weight:600}
 h3{font-size:17px;line-height:1.4;margin:0 0 8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
@@ -99,7 +104,7 @@ h3{font-size:17px;line-height:1.4;margin:0 0 8px}
 .chips button[aria-pressed=true]{background:var(--sel);border-color:var(--accent);color:var(--accent)}
 
 /* ── 計算器：重點結果 ── */
-.hero{background:var(--hero);color:var(--onHero);border-radius:16px;padding:6px 16px}
+.hero{background:var(--hero);color:var(--onHero);border-radius:16px;padding:6px 16px;border-top:5px solid var(--red)}
 .hero>div{display:flex;align-items:center;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;padding:10px 0}
 .hero>div+div{border-top:1px solid rgba(255,255,255,.16)}
 .hero .k{font-size:16px;color:var(--heroDim);font-weight:700}
@@ -178,7 +183,7 @@ dd small{display:block;color:var(--dim);font-size:15px}
 
 .steps{list-style:none;padding:0;counter-reset:s}
 .steps li{counter-increment:s;position:relative;padding-left:34px;margin:10px 0}
-.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:var(--red);color:var(--onRed);
   font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:3px}
 
 .danger{background:var(--badBg);border-color:transparent}
@@ -193,6 +198,11 @@ footer{margin:48px 0 0;padding:34px 0 calc(30px + env(safe-area-inset-bottom));b
 footer .team{display:flex;align-items:center;justify-content:center;gap:14px;font-size:28px;font-weight:900;line-height:1.2;color:var(--text);letter-spacing:.3em}
 footer .team span{margin-right:-.3em;white-space:nowrap}
 footer .team::before,footer .team::after{content:"";flex:0 1 44px;min-width:0;height:2px;border-radius:1px;background:var(--crimson)}
+footer .emblem{display:block;width:84px;height:84px;margin:0 auto 12px;border-radius:50%;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.soon{display:flex;align-items:center;gap:16px;border-style:dashed;border-width:2px}
+.soon img{flex:none;width:64px;height:64px;border-radius:50%}
+.soon b{display:block;font-size:19px;font-weight:800}
+.soon span{display:inline-block;margin-top:4px;font-size:15px;font-weight:700;color:var(--onRed);background:var(--red);padding:2px 12px;border-radius:999px;letter-spacing:.1em}
 footer .brand{margin-top:12px;font-size:14px;letter-spacing:.12em}
 footer .g{color:var(--gold);font-weight:700}
 footer .sv{color:var(--gray);font-weight:600}
@@ -202,19 +212,16 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
 <body>
 <div class="wrap">
 <header>
+  <img class="banner" src="banner.jpg?v=1" alt="赤貧軍團" width="1138" height="691">
   <h1>RC 鋰電池充電</h1>
 </header>
 
 <nav id="nav">
   <a href="#calc">計算</a>
-  <a href="#volt">電壓對照</a>
-  <a href="#label">標示</a>
-  <a href="#crate">C 數</a>
-  <a href="#charge">充電</a>
-  <a href="#storage">儲存</a>
+  <a href="#volt">電壓</a>
+  <a href="#label">知識</a>
   <a href="#safety">安全</a>
-  <a href="#flight">搭機</a>
-  <a href="#types">種類</a>
+  <a href="#shop">賣場</a>
 </nav>
 
 <!-- ───── 計算 ───── -->
@@ -478,7 +485,17 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   </div>
 </section>
 
+<!-- ───── 賣場（預留；上線後把這段換成商品或連結） ───── -->
+<section id="shop">
+  <h2>賣場</h2>
+  <div class="card soon">
+    <img src="emblem.png?v=1" alt="" width="64" height="64">
+    <div><b>赤貧軍團賣場</b><span>敬請期待</span></div>
+  </div>
+</section>
+
 <footer>
+  <img class="emblem" src="emblem.png?v=1" alt="赤貧軍團" width="84" height="84">
   <div class="team"><span>赤貧軍團</span></div>
   <div class="brand"><span class="g">欣群企業</span><i></i><span class="sv">欣瀚資訊</span></div>
 </footer>
@@ -604,10 +621,13 @@ $("voltBody").onclick = e => {
 render();
 
 // 導覽列標示目前所在段落
+// 導覽 2026-10-30 依使用者要求簡化成五類：知識＝標示／C 數／充電／儲存／種類，安全＝安全／搭機
+const GROUP = {crate:"label", charge:"label", storage:"label", types:"label", flight:"safety"};
 const links = [...document.querySelectorAll("#nav a")];
 const io = new IntersectionObserver(ents => {
   for (const en of ents) if (en.isIntersecting) {
-    links.forEach(a => a.classList.toggle("on", a.hash === "#" + en.target.id));
+    const g = GROUP[en.target.id] || en.target.id;
+    links.forEach(a => a.classList.toggle("on", a.hash === "#" + g));
     const on = links.find(a => a.classList.contains("on")), nav = $("nav");
     // 不用 scrollIntoView：Safari 會連帶捲動整頁
     if (on) nav.scrollLeft = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2;
