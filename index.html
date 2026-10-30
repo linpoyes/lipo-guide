@@ -84,6 +84,8 @@ h3{font-size:17px;line-height:1.4;margin:0 0 8px}
 .nums{display:grid;gap:14px}
 .nums>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);column-gap:8px;align-items:stretch}
 .nums .lbl{grid-column:1/-1}
+/* 最窄的手機（320px）：輸入框讓一點寬度給快選鈕 */
+@media (max-width:340px){.nums>div{grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr)}.box input{padding:7px 6px}.chips{gap:4px}footer .team{gap:10px;letter-spacing:.2em}footer .team span{margin-right:-.2em}}
 .box{position:relative}
 .box input{width:100%;height:100%;min-height:46px;font:inherit;font-size:20px;font-weight:700;color:var(--text);background:var(--card);
   border:1.5px solid var(--line);border-radius:11px;padding:7px 10px;-moz-appearance:textfield}
@@ -185,10 +187,15 @@ dd small{display:block;color:var(--dim);font-size:15px}
 .key .big{font-size:28px;font-weight:800;color:var(--ok);white-space:nowrap}
 .key .big small{font-size:15px;color:var(--dim);font-weight:600}
 
-footer{margin:40px 0 0;padding:20px 0 calc(24px + env(safe-area-inset-bottom));border-top:1px solid var(--line);text-align:center;font-size:15px;letter-spacing:.1em}
+/* 頁尾：主名「赤貧軍團」最大，下方一行「欣群企業 ｜ 欣瀚資訊」（使用者 2026-10-30 定） */
+footer{margin:48px 0 0;padding:34px 0 calc(30px + env(safe-area-inset-bottom));border-top:1px solid var(--line);text-align:center}
+footer .team{display:flex;align-items:center;justify-content:center;gap:14px;font-size:28px;font-weight:900;line-height:1.2;color:var(--text);letter-spacing:.3em}
+footer .team span{margin-right:-.3em;white-space:nowrap}
+footer .team::before,footer .team::after{content:"";flex:0 1 44px;min-width:0;height:2px;border-radius:1px;background:var(--gold);opacity:.7}
+footer .brand{margin-top:12px;font-size:14px;letter-spacing:.12em}
 footer .g{color:var(--gold);font-weight:700}
 footer .sv{color:var(--gray);font-weight:600}
-footer i{display:inline-block;width:1px;height:12px;background:var(--line);margin:0 14px;vertical-align:-1px}
+footer i{display:inline-block;width:1px;height:12px;background:var(--line);margin:0 12px;vertical-align:-1px}
 </style>
 </head>
 <body>
@@ -470,7 +477,10 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   </div>
 </section>
 
-<footer><span class="g">欣群企業</span><i></i><span class="sv">欣瀚資訊</span></footer>
+<footer>
+  <div class="team"><span>赤貧軍團</span></div>
+  <div class="brand"><span class="g">欣群企業</span><i></i><span class="sv">欣瀚資訊</span></div>
+</footer>
 </div>
 
 <script>
