@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610302358">
+<meta name="build" content="202610310000">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RC 鋰電池充電</title>
 <meta name="description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
@@ -251,7 +251,7 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
       <span class="lbl">串數</span>
       <div class="seg" id="cells">
         <button data-v="1">1S</button><button data-v="2">2S</button><button data-v="3">3S</button><button data-v="4">4S</button>
-        <button data-v="5">5S</button><button data-v="6">6S</button><button data-v="7">7S</button><button data-v="8">8S</button>
+        <button data-v="5">5S</button><button data-v="6">6S</button>
       </div>
     </div>
     <div class="nums">
@@ -316,6 +316,7 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
     <thead><tr><th>串數</th><th>滿電</th><th>儲存</th><th>標稱</th><th>建議下限</th></tr></thead>
     <tbody id="voltBody"></tbody>
   </table></div>
+  <p class="note">7S／8S 車款多為兩顆電池串接（8S = 2 × 4S），依單顆串數充電。</p>
 </section>
 
 <!-- ───── 標示 ───── -->
@@ -528,7 +529,8 @@ const CHEM = {
   lihv:  {name:"LiHV",   full:4.35, nom:3.80, sto:3.85, cut:3.30, min:3.00, safe:0.5, std:1,   maxDef:1},
   liion: {name:"Li-ion", full:4.20, nom:3.60, sto:3.70, cut:3.00, min:2.50, safe:0.3, std:0.5, maxDef:1},
 };
-const USE = ["微型車","1/16–1/10 車","1/10 高速車","1/8 越野車","空拍機、航模","1/8 大腳車","大型航模","1/5 大型車"];
+// 串數只到 6S（使用者 2026-10-30 定）：7S／8S 車款多半是兩顆電池串接（例：8S = 2 × 4S），每顆仍依 4S 充電
+const USE = ["微型車","1/16–1/10 車","1/10 高速車","1/8 越野車","空拍機、航模","1/8 大腳車"];
 const PRESET = {mah:[2200,2700,5000], dc:[20,50,100], cc:[1,2,3]};
 // 充電倍率上限 3C（使用者 2026-10-30 定）：輸入超過也以 3C 計，離開欄位時改回 3
 const CC_MAX = 3;
@@ -538,6 +540,7 @@ const KEY = "lipo-guide";
 let st = {chem:"lipo", s:3, mah:2700, dc:20, cc:1};
 try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch(e) {}
 if (st.cc > 3) st.cc = 3;
+if (!(st.s >= 1 && st.s <= 6)) st.s = 3;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} };
 
 const $ = id => document.getElementById(id);
