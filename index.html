@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610302356">
+<meta name="build" content="202610302358">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RC 鋰電池充電</title>
 <meta name="description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
@@ -132,6 +132,22 @@ h3{font-size:17px;line-height:1.4;margin:0 0 8px}
 .tag{display:inline-block;font-size:13px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
 .tag.ok{background:var(--okBg);color:var(--ok)} .tag.warn{background:var(--warnBg);color:var(--warn)} .tag.bad{background:var(--badBg);color:var(--bad)}
 .note{font-size:14px;color:var(--faint);margin-top:6px}
+
+/* ── 電池標示 ── */
+.pack{position:relative;overflow:hidden;background:#15171C;color:#fff;border-radius:16px;padding:16px 18px;
+  border:2px solid #000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.pack::before{content:"";position:absolute;right:-30px;top:0;bottom:0;width:120px;background:var(--red);transform:skewX(-18deg)}
+.pack>div{position:relative;display:flex;gap:12px;font-weight:800;letter-spacing:.02em}
+.pk-top,.pk-bot{font-size:19px}
+.pk-cap{align-items:baseline;font-size:40px;line-height:1.15;margin:2px 0}
+.pk-cap small{font-size:20px;margin-left:4px;font-weight:700;color:#C9CDD6}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9em),1fr));gap:10px;margin-top:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.tile b{display:inline-block;min-width:40px;text-align:center;font-size:18px;font-weight:900;color:var(--onRed);background:var(--red);
+  border-radius:8px;padding:1px 8px;margin-bottom:6px}
+.tile h3{margin:0;font-size:17px}
+.tile p{margin:2px 0 0;font-size:15px;color:var(--dim)}
+.tile em{display:block;margin-top:4px;font-style:normal;font-size:13px;color:var(--faint);line-height:1.45}
 
 /* ── 內容 ── */
 p{margin:0 0 8px}
@@ -305,16 +321,19 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
 <!-- ───── 標示 ───── -->
 <section id="label">
   <h2>電池標示</h2>
-  <div class="card">
-    <div class="label"><span>3S1P</span><span>11.1V</span><span>2700mAh</span><span>20C</span><span>29.97Wh</span></div>
-    <dl>
-      <dt>S</dt><dd>串聯顆數，電壓相加<small>3S 滿電 = 4.20V × 3 = 12.60V</small></dd>
-      <dt>P</dt><dd>並聯組數，容量相加<small>2S2P 5000mAh = 2 組 2500mAh，電壓仍為 2S</small></dd>
-      <dt>V</dt><dd>標稱電壓 = 3.70V × 串數<small>非滿電電壓，亦非放電下限</small></dd>
-      <dt>mAh</dt><dd>容量<small>2700mAh = 2.7Ah，以 2.7A 放電約 1 小時</small></dd>
-      <dt>C</dt><dd>持續放電倍率<small>詳見「C 數」</small></dd>
-      <dt>Wh</dt><dd>能量 = Ah × 標稱電壓<small>搭機限制以此為準</small></dd>
-    </dl>
+  <!-- 電池貼紙示意：跟實物一樣把標示印在黑色電池上，下面每格解釋一個代號 -->
+  <div class="pack">
+    <div class="pk-top"><span>3S1P</span><span>11.1V</span></div>
+    <div class="pk-cap">2700<small>mAh</small></div>
+    <div class="pk-bot"><span>20C</span><span>29.97Wh</span></div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><b>S</b><h3>串聯顆數</h3><p>電壓相加</p><em>3S 滿電 = 12.60V</em></div>
+    <div class="tile"><b>P</b><h3>並聯組數</h3><p>容量相加</p><em>2S2P 5000mAh = 2 組 2500mAh</em></div>
+    <div class="tile"><b>V</b><h3>標稱電壓</h3><p>3.70V × 串數</p><em>非滿電，亦非下限</em></div>
+    <div class="tile"><b>mAh</b><h3>容量</h3><p>2700mAh = 2.7Ah</p><em>2.7A 放電約 1 小時</em></div>
+    <div class="tile"><b>C</b><h3>放電倍率</h3><p>容量 × C = 電流</p><em>2.7Ah × 20C = 54A</em></div>
+    <div class="tile"><b>Wh</b><h3>能量</h3><p>Ah × 標稱電壓</p><em>搭機限制以此為準</em></div>
   </div>
 </section>
 
