@@ -2,6 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
+<meta name="build" content="202610302348">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RC 鋰電池充電</title>
 <meta name="description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
@@ -613,6 +614,22 @@ const io = new IntersectionObserver(ents => {
   }
 }, {rootMargin: "-45% 0px -50% 0px"});
 document.querySelectorAll("section[id]").forEach(s => io.observe(s));
+
+// 自動換新版：GitHub Pages 的 HTML 會被手機暫存 10 分鐘（LINE 內建瀏覽器更久），
+// 使用者會一直看到舊畫面。開頁後不經快取抓一次線上版，build 不同就換網址重新載入。
+// 每個 build 只重載一次，避免任何情況下無限重整。
+(async () => {
+  try {
+    const mine = document.querySelector('meta[name="build"]').content;
+    const res = await fetch(location.pathname + "?_=" + Date.now(), {cache: "no-store"});
+    const live = ((await res.text()).match(/<meta name="build" content="(\d+)"/) || [])[1];
+    if (!live || live === mine) return;
+    const k = "lipo-guide-reload-" + live;
+    if (sessionStorage.getItem(k)) return;
+    sessionStorage.setItem(k, "1");
+    location.replace(location.pathname + "?v=" + live + location.hash);
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>
