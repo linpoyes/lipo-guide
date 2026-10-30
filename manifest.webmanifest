@@ -1,6 +1,6 @@
 {
-  "name": "RC 鋰電池充電指南",
-  "short_name": "鋰電池指南",
+  "name": "RC 鋰電池充電",
+  "short_name": "鋰電池充電",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
