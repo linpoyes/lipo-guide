@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610302348">
+<meta name="build" content="202610302350">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RC 鋰電池充電</title>
 <meta name="description" content="LiPo／LiHV／Li-ion 電池電壓、充電電流、放電功率計算與保養知識。">
@@ -34,7 +34,7 @@
   --sel:rgba(44,123,229,.10); --wash:rgba(21,41,75,.05); --zebra:rgba(21,41,75,.025);
   --okBg:rgba(24,160,106,.12); --warnBg:rgba(232,148,28,.14); --badBg:rgba(220,76,63,.10);
   --hero:#15294B; --onHero:#FFFFFF; --heroDim:#B9C6DD;
-  --gold:#A27C2F; --gray:#6E7889;
+  --gold:#A27C2F; --gray:#6E7889; --crimson:#A8201A;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -43,7 +43,7 @@
     --sel:rgba(106,168,255,.16); --wash:rgba(238,242,250,.06); --zebra:rgba(238,242,250,.03);
     --okBg:rgba(79,211,156,.14); --warnBg:rgba(255,181,71,.14); --badBg:rgba(255,122,110,.13);
     --hero:#1F3C78; --onHero:#FFFFFF; --heroDim:#C3D2EE;
-    --gold:#D9B66E; --gray:#A0A9BA;
+    --gold:#D9B66E; --gray:#A0A9BA; --crimson:#D2453A;
   }
 }
 *{box-sizing:border-box}
@@ -192,7 +192,7 @@ dd small{display:block;color:var(--dim);font-size:15px}
 footer{margin:48px 0 0;padding:34px 0 calc(30px + env(safe-area-inset-bottom));border-top:1px solid var(--line);text-align:center}
 footer .team{display:flex;align-items:center;justify-content:center;gap:14px;font-size:28px;font-weight:900;line-height:1.2;color:var(--text);letter-spacing:.3em}
 footer .team span{margin-right:-.3em;white-space:nowrap}
-footer .team::before,footer .team::after{content:"";flex:0 1 44px;min-width:0;height:2px;border-radius:1px;background:var(--gold);opacity:.7}
+footer .team::before,footer .team::after{content:"";flex:0 1 44px;min-width:0;height:2px;border-radius:1px;background:var(--crimson)}
 footer .brand{margin-top:12px;font-size:14px;letter-spacing:.12em}
 footer .g{color:var(--gold);font-weight:700}
 footer .sv{color:var(--gray);font-weight:600}
