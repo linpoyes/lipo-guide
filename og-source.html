@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}
+body{width:1200px;height:630px;overflow:hidden;background:#0E1626;color:#fff;
+  font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;font-feature-settings:"tnum"}
+.bg{position:absolute;inset:0;background:
+  radial-gradient(700px 500px at 1050px 120px,rgba(44,123,229,.35),transparent 70%),
+  radial-gradient(600px 400px at 100px 620px,rgba(232,148,28,.14),transparent 70%)}
+.wrap{position:relative;height:100%;padding:72px 80px 56px;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:40px}
+.txt{flex:1}
+.kick{font-size:26px;font-weight:700;color:#8FB8F5;letter-spacing:.14em}
+h1{font-size:84px;font-weight:800;line-height:1.15;margin-top:10px;letter-spacing:.01em}
+.stats{display:flex;gap:18px;margin-top:auto}
+.st{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:18px 24px}
+.st .k{font-size:22px;color:#B9C6DD;font-weight:600}
+.st .v{font-size:46px;font-weight:800;line-height:1.2}
+.st .v small{font-size:22px;font-weight:600;color:#B9C6DD;margin-left:4px}
+.st.g .v{color:#4FD39C} .st.o .v{color:#FFB547}
+.foot{margin-top:28px;font-size:22px;letter-spacing:.12em;display:flex;align-items:center;gap:16px}
+.foot .g{color:#D9B66E;font-weight:700} .foot .s{color:#A0A9BA;font-weight:600}
+.foot i{width:1px;height:18px;background:rgba(255,255,255,.25)}
+</style></head><body><div class="bg"></div>
+<div class="wrap">
+  <div class="top">
+    <div class="txt">
+      <div class="kick">LiPo · LiHV · Li-ion</div>
+      <h1>RC 鋰電池<br>充電指南</h1>
+    </div>
+    <svg width="250" height="170" viewBox="0 0 250 170">
+      <rect x="6" y="12" width="210" height="146" rx="22" fill="none" stroke="#fff" stroke-width="10"/>
+      <rect x="220" y="58" width="22" height="54" rx="7" fill="#fff"/>
+      <rect x="24" y="30" width="56" height="110" rx="10" fill="#4FD39C"/>
+      <rect x="86" y="30" width="56" height="110" rx="10" fill="#4FD39C"/>
+      <rect x="148" y="30" width="50" height="110" rx="10" fill="rgba(255,255,255,.16)"/>
+      <path d="M128 18 L92 92 h30 l-10 60 l44 -82 h-30 z" fill="#FFB547" stroke="#0E1626" stroke-width="6" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="stats">
+    <div class="st"><div class="k">充飽電壓</div><div class="v">4.20<small>V／顆</small></div></div>
+    <div class="st g"><div class="k">儲存電壓</div><div class="v">3.80<small>V／顆</small></div></div>
+    <div class="st o"><div class="k">標準充電</div><div class="v">1C</div></div>
+  </div>
+  <div class="foot"><span class="g">欣群企業</span><i></i><span class="s">欣瀚資訊</span></div>
+</div></body></html>
