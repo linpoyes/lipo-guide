@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610310015">
+<meta name="build" content="202610310016">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 鋰電池充電</title>
 <meta name="description" content="鋰電池充電計算、電壓對照、保養與安全知識。">
@@ -254,9 +254,9 @@ footer i{display:inline-block;width:1px;height:12px;background:var(--line);margi
   <h1 class="sr">RC 鋰電池充電</h1>
   <!-- 三大區塊（依使用者 2026-10-31 主視覺）：原圖底部那排字在手機上太小，改用 HTML 重做才讀得到、點得到 -->
   <div class="pillars">
-    <a class="pillar" href="#calc" aria-current="page"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9.5" y="2" width="5" height="2.5" rx="1" fill="currentColor"/><path d="M13 7.5 9.5 13h3l-1 4.5L15 12h-3z" fill="currentColor"/></svg></i><b>鋰電池</b><span><s>介紹</s>・<s>選購</s>・<s>充電</s></span></a>
+    <a class="pillar" href="#calc" aria-current="page"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9.5" y="2" width="5" height="2.5" rx="1" fill="currentColor"/><path d="M13 7.5 9.5 13h3l-1 4.5L15 12h-3z" fill="currentColor"/></svg></i><b>鋰電池</b><span><s>充電</s>・<s>保養</s>・<s>安全</s></span></a>
     <a class="pillar" id="shopLink" aria-disabled="true"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14.5 5 10h10l3 3.5h2.5v3H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7" cy="17" r="2.3" fill="currentColor"/><circle cx="17" cy="17" r="2.3" fill="currentColor"/><path d="M16 10 18 6.5h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></i><b>車種買賣</b><span><s>遙控車</s>・<s>配件</s>・<s>改裝</s></span><em>敬請期待</em></a>
-    <a class="pillar" href="#label"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 6.5 4.5 3 5v13c3.5-.5 7 0 9 1.5 2-1.5 5.5-2 9-1.5V5c-3.5-.5-7 0-9 1.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></i><b>完整教學</b><span><s>入門</s>・<s>安全</s>・<s>技巧</s></span></a>
+    <a class="pillar" id="teachLink" aria-disabled="true"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 6.5 4.5 3 5v13c3.5-.5 7 0 9 1.5 2-1.5 5.5-2 9-1.5V5c-3.5-.5-7 0-9 1.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></i><b>完整教學</b><span><s>新手</s>・<s>保養</s>・<s>改裝</s></span><em>敬請期待</em></a>
   </div>
 </header>
 
@@ -661,11 +661,14 @@ $("voltBody").onclick = e => {
 };
 render();
 
-// 車種買賣：賣場開張後把網址填進 SHOP_URL，三格裡那一格就會直接開賣場（另開分頁）
-const SHOP_URL = "";
-if (SHOP_URL) {
-  const a = $("shopLink");
-  a.href = SHOP_URL; a.target = "_blank"; a.rel = "noopener";
+// 三大格分工（2026-10-31）：鋰電池＝本頁（電池計算與知識）；車種買賣＝外部賣場；
+// 完整教學＝整個遙控車玩法的教學（新手、保養、改裝），不是本頁知識段落的捷徑。
+// 網址有了就填進來，那一格會直接開該頁（另開分頁），並拿掉「敬請期待」。
+const SHOP_URL = "", TEACH_URL = "";
+for (const [id, url] of [["shopLink", SHOP_URL], ["teachLink", TEACH_URL]]) {
+  if (!url) continue;
+  const a = $(id);
+  a.href = url; a.target = "_blank"; a.rel = "noopener";
   a.removeAttribute("aria-disabled"); a.querySelector("em")?.remove();
 }
 // 導覽列標示目前所在段落
