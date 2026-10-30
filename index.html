@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610310018">
+<meta name="build" content="202610310019">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 鋰電池充電</title>
 <meta name="description" content="鋰電池充電計算、電壓對照、保養與安全知識。">
@@ -76,7 +76,8 @@ header{padding:16px 0 12px}
 /* 只在「・」處換行，詞不會被拆開 */
 .pillar s{text-decoration:none;white-space:nowrap}
 .pillar[aria-disabled=true]{cursor:default}
-.pillar[aria-current]{border-color:var(--red);box-shadow:inset 0 -5px 0 var(--red),0 0 0 2px var(--red)}
+.pillar:not([aria-disabled=true]):active{transform:scale(.97);filter:brightness(1.15)}
+.pillar{transition:transform .12s,filter .12s}
 .pillar em{position:absolute;top:-8px;right:-4px;font-style:normal;font-size:11px;font-weight:800;background:#fff;color:var(--red);border:1.5px solid var(--red);border-radius:999px;padding:0 7px;line-height:1.6}
 .sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 h1{margin:14px 0 0;font-size:28px;line-height:1.3;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
