@@ -2,6 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
+<meta name="build" content="202610312224">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -245,8 +246,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=1"></script>
-<script src="tw-zip.js?v=1"></script>
+<script src="shop-core.js?v=202610312224"></script>
+<script src="tw-zip.js?v=202610312224"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -396,7 +397,33 @@ let serverQuote = null, step = "cart", ship = lsGet("cp-ship", SHIP_HOME), store
 const cvsAllowed = () => cart.length > 0 && cart.every(l => { const p = catalog && catalog.products.find(x => x.id === l.id); return p && p.cvsOk; });
 const shipNow = () => ship === SHIP_CVS && cvsAllowed() ? SHIP_CVS : SHIP_HOME;
 // 7-11 交貨便電子地圖：選完門市 POST 回 Apps Script（?cb=711），再帶 #store=… 回到本頁
-const storeMapUrl = () => "https://emap.presco.com.tw/c2cemap.ashx?eshopid=870&servicetype=1&url=" + encodeURIComponent(API + "?cb=711");
+// 選門市：地圖開在新分頁；選完 Apps Script 把門市存進快取（以 sk 為鍵）並自己關掉那一頁，
+// 這邊輪詢拿回門市直接填上——不需要使用者再按「回到賣場」。新分頁被擋時退回同頁跳轉（#store=… 帶回）。
+const storeMapUrl = sk => "https://emap.presco.com.tw/c2cemap.ashx?eshopid=870&servicetype=1&url=" + encodeURIComponent(API + "?cb=711" + (sk ? "&sk=" + sk : ""));
+let storePoll = null;
+function pickStore() {
+  saveDraft();
+  const sk = crypto.getRandomValues(new Uint32Array(4)).join("");
+  const win = window.open(storeMapUrl(sk), "_blank");
+  if (!win) { location.href = storeMapUrl(""); return; }
+  clearInterval(storePoll);
+  const started = Date.now();
+  const check = async () => {
+    if (Date.now() - started > 15 * 60000) return clearInterval(storePoll);
+    try {
+      const r = await (await fetch(API + "?action=store&sk=" + sk + "&_=" + Date.now())).json();
+      if (r.store && r.store.id) {
+        clearInterval(storePoll); document.removeEventListener("visibilitychange", onVis);
+        try { win.close(); } catch (e) {}
+        store = r.store; lsSet("cp-store", store); ship = SHIP_CVS; lsSet("cp-ship", ship);
+        drawCart(); refreshQuote();
+      }
+    } catch (e) {}
+  };
+  const onVis = () => { if (!document.hidden) check(); };
+  document.addEventListener("visibilitychange", onVis);
+  storePoll = setInterval(check, 2500);
+}
 
 function openCart() { step = "cart"; drawCart(); open("cSheet"); refreshQuote(); }
 $("cartBtn").onclick = openCart;
@@ -452,7 +479,8 @@ function drawCart() {
   } else {
     $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">填寫訂購資料</div>
       <form id="orderForm">
-        <div class="field"><label for="oName">姓名</label><input id="oName" autocomplete="name" required></div>
+        <div class="field"><label for="oName">收件人真實姓名</label><input id="oName" autocomplete="name" maxlength="10" required>
+          <span class="hint">取貨時需核對證件，請填寫與證件相同的姓名；中文 2–5 字或英文 4–10 字母，不可有數字與符號</span></div>
         <div class="field"><label for="oPhone">手機</label><input id="oPhone" type="tel" inputmode="tel" autocomplete="tel" required></div>
         <div class="field"><label for="oLine">LINE ID（選填）</label><input id="oLine"></div>
         <div class="field"><label>寄送方式</label><div class="ships" id="ships">
@@ -468,7 +496,6 @@ function drawCart() {
             : '<button type="button" class="pickstore" data-pickstore>選擇 7-11 門市</button>'}</div>
         <div class="field"><label for="oNote">備註（選填）</label><textarea id="oNote"></textarea></div>
         ${summary}
-        <div class="hint">送出後由專人以電話或 LINE 確認付款方式</div>
         <div class="msg bad" id="orderErr"></div>
         <div class="buyrow"><button type="button" class="btn ghost" data-step="cart" style="flex:none;width:96px">返回</button><button class="btn" id="submitBtn">送出訂單</button></div>
       </form>`;
@@ -491,7 +518,7 @@ $("cPanel").addEventListener("click", e => {
   if (st) { step = st.dataset.step; drawCart(); $("cPanel").scrollTop = 0; }
   const sb = e.target.closest("[data-ship]");
   if (sb && !sb.disabled) { saveDraft(); ship = sb.dataset.ship; lsSet("cp-ship", ship); serverQuote = null; drawCart(); refreshQuote(); }
-  if (e.target.closest("[data-pickstore]")) { saveDraft(); location.href = storeMapUrl(); }
+  if (e.target.closest("[data-pickstore]")) pickStore();
 });
 $("cPanel").addEventListener("submit", e => {
   e.preventDefault();
@@ -502,6 +529,14 @@ $("cPanel").addEventListener("submit", e => {
   if (e.target.id === "orderForm") submitOrder();
 });
 
+// 收件人姓名規則（同綠界物流：中文 2–5 字、英文 4–10 字母，不可有數字與符號），超商與宅配取件都要核對證件
+function checkName(n) {
+  if (!n) return "請填寫收件人真實姓名";
+  if (/[0-9０-９]/.test(n)) return "姓名不可包含數字";
+  if (/^[\u4e00-\u9fff]+$/.test(n)) return n.length >= 2 && n.length <= 5 ? "" : "中文姓名需 2–5 字";
+  if (/^[A-Za-z][A-Za-z .]*$/.test(n)) { const l = n.replace(/[ .]/g, "").length; return l >= 4 && l <= 10 ? "" : "英文姓名需 4–10 個字母"; }
+  return "姓名請填寫與證件相同的中文或英文，不可有符號";
+}
 // 去選門市前先把填到一半的資料存起來，回來時還原
 function saveDraft() {
   if (!$("oName")) return;
@@ -531,7 +566,10 @@ async function submitOrder() {
              address: sm === SHIP_CVS ? (store ? `7-11 ${store.name}門市（店號 ${store.id}）${store.addr}` : "") : homeAddress(),
              note: $("oNote").value.trim()};
   const err = $("orderErr");
-  if (!c.name || !c.phone) { err.textContent = "請填寫姓名與手機"; return; }
+  c.name = c.name.normalize("NFKC").replace(/\s+/g, " ").trim();
+  const nameErr = checkName(c.name);
+  if (nameErr) { err.textContent = nameErr; $("oName").focus(); return; }
+  if (!c.phone) { err.textContent = "請填寫手機"; return; }
   if (!/^09\d{8}$/.test(c.phone.replace(/[-\s]/g, ""))) { err.textContent = "手機格式為 09 開頭 10 碼"; return; }
   if (!c.address) { err.textContent = sm === SHIP_CVS ? "請選擇 7-11 門市" : !$("oCounty").value || !$("oDist").value ? "請選擇縣市與區域" : "請填寫路名門牌"; return; }
   c.phone = c.phone.replace(/[-\s]/g, "");

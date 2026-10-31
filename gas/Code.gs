@@ -53,6 +53,10 @@ function doGet(e) {
   const a = (e.parameter || {}).action;
   if (a === "catalog") return out_(catalog_());
   if (a === "ping") return out_({ ok: true });
+  if (a === "store") { // 賣場輪詢：選門市的結果（sk 是賣場產生的一次性亂數）
+    const v = CacheService.getScriptCache().get("store:" + String((e.parameter || {}).sk || ""));
+    return out_({ ok: true, store: v ? JSON.parse(v) : null });
+  }
   return out_({ ok: false, error: "unknown action" });
 }
 
@@ -225,9 +229,21 @@ function quote_(items, codeStr, shipMethod) {
 }
 
 /* ───────────── 公開：送出訂單 ───────────── */
+// 收件人姓名＝取貨時核對證件用（規則同綠界物流：中文 2–5 字、英文 4–10 字母，不可有數字與符號）；前台 checkName 要一致
+function checkName_(n) {
+  if (!n) return "請填寫收件人真實姓名";
+  if (/[0-9]/.test(n)) return "姓名不可包含數字";
+  if (/^[\u4e00-\u9fff]+$/.test(n)) return n.length >= 2 && n.length <= 5 ? "" : "中文姓名需 2–5 字";
+  if (/^[A-Za-z][A-Za-z .]*$/.test(n)) { const l = n.replace(/[ .]/g, "").length; return l >= 4 && l <= 10 ? "" : "英文姓名需 4–10 個字母"; }
+  return "姓名請填寫與證件相同的中文或英文，不可有符號";
+}
 function placeOrder_(req) {
   const c = req.customer || {};
-  if (!c.name || !c.phone) return { ok: false, error: "請填寫姓名與電話" };
+  c.name = String(c.name || "").normalize("NFKC").replace(/\s+/g, " ").trim();
+  c.phone = String(c.phone || "").replace(/[-\s]/g, "");
+  const nameErr = checkName_(c.name);
+  if (nameErr) return { ok: false, error: nameErr };
+  if (!/^09\d{8}$/.test(c.phone)) return { ok: false, error: "手機格式為 09 開頭 10 碼" };
   if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
   if (!c.address) return { ok: false, error: c.shipMethod === SHIP_CVS ? "請選擇 7-11 門市" : "請填寫收件地址" };
   const lock = LockService.getScriptLock();
@@ -410,6 +426,7 @@ function storeReturn_(p) {
   const pick = keys => { for (const k in p) if (keys.indexOf(k.toLowerCase()) >= 0 && p[k]) return String(p[k]); return ""; };
   const store = { id: pick(["storeid", "cvsstoreid"]), name: pick(["storename", "cvsstorename"]), addr: pick(["storeaddress", "cvsaddress"]) };
   const url = SHOP_PAGE + "#store=" + encodeURIComponent(JSON.stringify(store));
+  if (p.sk && /^\d{8,60}$/.test(String(p.sk))) CacheService.getScriptCache().put("store:" + p.sk, JSON.stringify(store), 1800);
   const safe = url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
   const label = (store.name ? "7-11 " + store.name + "門市" : "門市").replace(/[<>&]/g, "");
   return HtmlService.createHtmlOutput(
@@ -417,6 +434,7 @@ function storeReturn_(p) {
     '<div style="font-family:-apple-system,sans-serif;text-align:center;padding:40px 16px">' +
     '<p style="font-size:18px;font-weight:700">已選擇 ' + label + '</p>' +
     '<a href="' + safe + '" target="_top" style="display:inline-block;margin-top:12px;padding:12px 28px;border-radius:12px;background:#D7261E;color:#fff;font-weight:800;text-decoration:none;font-size:17px">回到賣場</a></div>' +
-    '<script>try{window.top.location.href=' + JSON.stringify(url) + '}catch(e){}</script>'
+    // 新分頁模式：賣場會自己帶回門市，這一頁直接關掉；同頁模式才跳轉
+    '<script>' + (p.sk ? 'try{window.top.close()}catch(e){}' : 'try{window.top.location.href=' + JSON.stringify(url) + '}catch(e){}') + '</script>'
   ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }

@@ -74,3 +74,18 @@ async function busy(btn, fn) {
   btn.disabled = true; btn.setAttribute("aria-busy", "true");
   try { return await fn(); } finally { btn.disabled = false; btn.removeAttribute("aria-busy"); }
 }
+
+// 自動換新版（同 index.html）：手機與 LINE 內建瀏覽器會暫存舊頁面，開頁時不經快取比對線上 build，不同就重載一次。
+(async () => {
+  try {
+    const mine = (document.querySelector('meta[name="build"]') || {}).content;
+    if (!mine) return;
+    const res = await fetch(location.pathname + "?_=" + Date.now(), {cache: "no-store"});
+    const live = ((await res.text()).match(/<meta name="build" content="(\d+)"/) || [])[1];
+    if (!live || live === mine) return;
+    const k = "cp-reload-" + location.pathname + live;
+    if (sessionStorage.getItem(k)) return;
+    sessionStorage.setItem(k, "1");
+    location.replace(location.pathname + "?v=" + live + location.hash);
+  } catch (e) {}
+})();

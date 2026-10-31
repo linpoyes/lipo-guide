@@ -3,7 +3,9 @@
 set -e
 cd "${0:A:h}"
 b=$(date +%Y%m%d%H%M)
-sed -i '' -E "s/<meta name=\"build\" content=\"[0-9]+\">/<meta name=\"build\" content=\"$b\">/" index.html
+sed -i '' -E "s/<meta name=\"build\" content=\"[0-9]+\">/<meta name=\"build\" content=\"$b\">/" index.html shop.html admin.html
+# 共用 js 也換版本號，避免手機拿到舊的 shop-core.js
+sed -i '' -E "s/(shop-core|tw-zip)\.js\?v=[0-9]+/\1.js?v=$b/g" shop.html admin.html
 git add -A
 git commit -qm "${1:-更新}
 
