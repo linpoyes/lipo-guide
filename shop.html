@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312240">
+<meta name="build" content="202610312241">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -258,8 +258,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312240"></script>
-<script src="tw-zip.js?v=202610312240"></script>
+<script src="shop-core.js?v=202610312241"></script>
+<script src="tw-zip.js?v=202610312241"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -325,7 +325,8 @@ function renderReels() {
     const info = videoInfo(v.src), poster = v.poster ? imgUrl(v.poster, 400) : info.thumb;
     // 上傳檔與影片網址：卡片直接靜音循環播放（像短影音）；YouTube 只能放縮圖
     const media = info.kind !== "youtube"
-      ? `<video src="${esc(info.url)}" ${poster ? `poster="${esc(poster)}"` : ""} muted loop playsinline preload="none"></video>`
+      // crossorigin 必加：Drive 直連帶 Cross-Origin-Resource-Policy: same-site，一般載入會被擋（error 4）；CORS 模式有 ACAO:* 才放行
+      ? `<video src="${esc(info.url)}" crossorigin="anonymous" ${poster ? `poster="${esc(poster)}"` : ""} muted loop playsinline preload="none"></video>`
       : poster ? `<img src="${esc(poster)}" alt="" loading="lazy">` : "";
     return `<button class="reel" data-id="${esc(v.id)}"><span class="snd" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6" stroke="#fff" stroke-width="2"/></svg></span>${media}<span class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg></span><b>${esc(v.title)}</b></button>`;
   }).join("");
@@ -343,7 +344,7 @@ $("reels").onclick = e => {
   const b = e.target.closest(".reel"); if (!b) return;
   const v = catalog.videos.find(x => x.id === b.dataset.id), info = videoInfo(v.src);
   const player = info.kind === "youtube" ? `<iframe class="vplayer" src="https://www.youtube.com/embed/${info.id}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`
-    : `<video class="vplayer" src="${esc(info.url)}" controls autoplay playsinline ${v.poster ? `poster="${esc(imgUrl(v.poster, 720))}"` : ""}
+    : `<video class="vplayer" src="${esc(info.url)}" crossorigin="anonymous" controls autoplay playsinline ${v.poster ? `poster="${esc(imgUrl(v.poster, 720))}"` : ""}
         ${info.preview ? `onerror="this.outerHTML='<iframe class=&quot;vplayer&quot; src=&quot;${info.preview}&quot; allow=&quot;autoplay; fullscreen&quot; allowfullscreen></iframe>'"` : ""}></video>`;
   const p = v.productId && catalog.products.find(x => x.id === v.productId);
   $("vPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
