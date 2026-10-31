@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312302">
+<meta name="build" content="202610312306">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -65,16 +65,11 @@ svg{width:22px;height:22px}
 .notice:empty{display:none}
 
 /* ── 分類列 ── */
-.brands{margin-top:22px}
-.blabel{font-size:14px;font-weight:800;color:var(--dim);margin-bottom:6px}
-.brow{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px}
-.brow::-webkit-scrollbar{display:none}
-.brow button{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:96px;padding:9px 14px;border:2px solid var(--ink);border-radius:12px;background:var(--card);color:var(--text);text-align:left;box-shadow:inset 4px 0 0 var(--red)}
-.brow button b{font-size:16px;font-weight:900;letter-spacing:.02em;white-space:nowrap}
-.brow button small{font-size:12px;color:var(--faint);font-weight:700}
-.brow button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--red)}
-.brow button[aria-pressed=true] small{color:#C9CBD2}
-@media (prefers-color-scheme: dark){.brow button{border-color:#3A4466}}
+.frow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.flabel{flex:none;width:34px;font-size:13px;font-weight:800;color:var(--dim)}
+.frow .cats{flex:1;min-width:0;margin:0 -14px 0 0;padding:2px 14px 2px 0}
+.cats button.zero{opacity:.5}
+.promos button[aria-pressed=true]{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
 .cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -14px 10px;padding:2px 14px}
 .cats::-webkit-scrollbar{display:none}
 .cats button{flex:none;display:flex;align-items:center;gap:5px;height:36px;padding:0 13px;border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;font-size:14px;font-weight:800;white-space:nowrap}
@@ -261,11 +256,12 @@ footer nav a{color:var(--faint);text-decoration:none}
   </section>
 
   <section>
-    <!-- 品牌：只列有上架商品的品牌；點進去＝清單只看該品牌，下方分類也只算該品牌的 -->
-    <div class="brands" id="brands"></div>
     <div class="h2row"><h2 id="listTitle">全部商品</h2>
       <select id="sortSel" class="sortsel" aria-label="排序"><option value="rec">推薦</option><option value="hot">熱門</option><option value="low">價格低→高</option><option value="high">價格高→低</option><option value="stock">庫存多→少</option></select></div>
-    <div class="cats" id="cats"></div>
+    <!-- 篩選（2026-10-31 改）：品牌與分類是同一組條件，互相連動——
+         件數一律依「另一個條件」計算；精選專區＝直接選分類並清掉品牌。 -->
+    <div class="frow" id="brandRow"><span class="flabel">品牌</span><div class="cats" id="brands"></div></div>
+    <div class="frow" id="catRow"><span class="flabel">分類</span><div class="cats" id="cats"></div></div>
     <div class="grid" id="grid"></div>
   </section>
 </main>
@@ -284,8 +280,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312302"></script>
-<script src="tw-zip.js?v=202610312302"></script>
+<script src="shop-core.js?v=202610312306"></script>
+<script src="tw-zip.js?v=202610312306"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -309,29 +305,47 @@ let filter = {cat: "all", brand: "", q: "", sort: lsGet("cp-sort", "rec")};
 
 /* ── 分類列 ── */
 // 分類只顯示「有上架商品」的那幾類（手機版面小，空分類只會佔位置）；項目旁顯示件數
+const inBrand = p => !filter.brand || p.brand === filter.brand;
+const inCat = p => filter.cat === "all" || p.category === filter.cat;
 function renderCats() {
-  const n = {}; (catalog ? catalog.products : []).filter(p => !filter.brand || p.brand === filter.brand).forEach(p => n[p.category] = (n[p.category] || 0) + 1);
-  const cats = CATEGORIES.filter(([k]) => n[k]);
-  $("cats").hidden = cats.length < 2;
-  $("cats").innerHTML = [["all", "全部"], ...cats].map(([k, nm]) => `<button data-cat="${k}">${svg(k)}${nm}${k !== "all" ? `<small>${n[k]}</small>` : ""}</button>`).join("");
+  const ps = catalog ? catalog.products : [], n = {};
+  ps.filter(inBrand).forEach(p => n[p.category] = (n[p.category] || 0) + 1);
+  // 有商品的分類＋目前選的分類（就算 0 件也要看得到自己選了什麼）
+  const cats = CATEGORIES.filter(([k]) => n[k] || k === filter.cat);
+  $("catRow").hidden = !catalog || (cats.length < 2 && filter.cat === "all");
+  $("cats").innerHTML = [["all", "全部"], ...cats].map(([k, nm]) =>
+    `<button data-cat="${k}" aria-pressed="${filter.cat === k}">${svg(k)}${nm}<small>${k === "all" ? ps.filter(inBrand).length : n[k] || 0}</small></button>`).join("");
 }
-$("cats").onclick = e => { const b = e.target.closest("button"); if (b) setCat(b.dataset.cat); };
-document.querySelector(".promos").onclick = e => { const b = e.target.closest("button"); if (b) { setCat(b.dataset.cat); $("listTitle").scrollIntoView({behavior: "smooth", block: "start"}); } };
-function setCat(c) { filter.cat = c; filter.q = ""; $("q").value = ""; renderCats(); renderList(); }
 function renderBrands() {
-  const n = {}; (catalog ? catalog.products : []).forEach(p => { if (p.brand) n[p.brand] = (n[p.brand] || 0) + 1; });
-  const list = Object.keys(n).sort((a, b) => n[b] - n[a] || a.localeCompare(b));
-  $("brands").hidden = !list.length;
-  $("brands").innerHTML = `<div class="blabel">品牌</div><div class="brow">` + list.map(b =>
-    `<button data-brand="${esc(b)}" aria-pressed="${filter.brand === b}"><b>${esc(b)}</b><small>${n[b]} 件</small></button>`).join("") + "</div>";
+  const ps = catalog ? catalog.products : [], n = {}, all = new Set();
+  ps.forEach(p => { if (p.brand) { all.add(p.brand); if (inCat(p)) n[p.brand] = (n[p.brand] || 0) + 1; } });
+  const list = [...all].sort((a, b) => (n[b] || 0) - (n[a] || 0) || a.localeCompare(b));
+  $("brandRow").hidden = !list.length;
+  $("brands").innerHTML = `<button data-brand="" aria-pressed="${!filter.brand}">全部<small>${ps.filter(inCat).length}</small></button>` +
+    list.map(b => `<button data-brand="${esc(b)}" aria-pressed="${filter.brand === b}" ${n[b] ? "" : 'class="zero"'}>${esc(b)}<small>${n[b] || 0}</small></button>`).join("");
 }
+function markPromos() {
+  document.querySelectorAll(".promos button").forEach(b => b.setAttribute("aria-pressed", !filter.brand && !filter.q && b.dataset.cat === filter.cat));
+}
+function refilter(scroll) {
+  renderBrands(); renderCats(); renderList(); markPromos();
+  if (scroll) $("listTitle").scrollIntoView({behavior: "smooth", block: "start"});
+}
+function setCat(c) { filter.cat = c; filter.q = ""; $("q").value = ""; refilter(); }
+$("cats").onclick = e => { const b = e.target.closest("[data-cat]"); if (b) setCat(b.dataset.cat); };
 $("brands").onclick = e => {
   const b = e.target.closest("[data-brand]"); if (!b) return;
-  filter.brand = filter.brand === b.dataset.brand ? "" : b.dataset.brand; // 再點一次＝取消
-  filter.cat = "all"; filter.q = ""; $("q").value = "";
-  renderBrands(); renderCats(); renderList(); $("listTitle").scrollIntoView({behavior: "smooth", block: "start"});
+  filter.brand = b.dataset.brand; filter.q = ""; $("q").value = "";
+  // 這個品牌在目前分類沒有商品 → 分類退回全部，避免一進去就空白
+  if (filter.brand && !catalog.products.some(p => p.brand === filter.brand && inCat(p))) filter.cat = "all";
+  refilter();
 };
-$("searchForm").onsubmit = e => { e.preventDefault(); filter.q = $("q").value.trim(); filter.cat = "all"; filter.brand = ""; renderBrands(); renderCats(); renderList(); $("listTitle").scrollIntoView({behavior: "smooth"}); };
+// 精選專區＝重新從這個分類開始看：清掉品牌與搜尋
+document.querySelector(".promos").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  filter.brand = ""; filter.q = ""; $("q").value = ""; filter.cat = b.dataset.cat; refilter(true);
+};
+$("searchForm").onsubmit = e => { e.preventDefault(); filter.q = $("q").value.trim(); filter.cat = "all"; filter.brand = ""; refilter(true); };
 
 /* ── 列表 ── */
 function renderList() {
@@ -346,7 +360,8 @@ function renderList() {
               low: (a, b) => a.price - b.price, high: (a, b) => b.price - a.price, stock: (a, b) => stockN(b) - stockN(a)}[filter.sort] || (() => 0);
   list.sort((a, b) => ((a.stock === 0) - (b.stock === 0)) || by(a, b));
   $("sortSel").value = filter.sort;
-  $("grid").innerHTML = list.length ? list.map(card).join("") : '<div class="empty">尚無商品</div>';
+  $("grid").innerHTML = list.length ? list.map(card).join("")
+    : `<div class="empty">${filter.q ? "找不到相符的商品" : `${esc([filter.brand, filter.cat !== "all" ? catName(filter.cat) : ""].filter(Boolean).join("・"))} 尚無商品`}<br><button class="btn ghost" data-reset style="margin-top:12px;height:40px;padding:0 18px;flex:none">看全部商品</button></div>`;
 }
 function card(p) {
   const out = p.stock === 0, best = (p.tiers || []).slice(-1)[0];
@@ -359,6 +374,7 @@ function card(p) {
       <span class="meta">${p.stock === 0 ? "已售完" : p.stock > 0 ? `庫存 ${p.stock}` : "現貨"}${p.sold ? `・已售 ${p.sold}` : ""}</span>
     </div></button>`;
 }
+$("grid").addEventListener("click", e => { if (e.target.closest("[data-reset]")) { filter = {...filter, cat: "all", brand: "", q: ""}; $("q").value = ""; refilter(); } });
 $("sortSel").onchange = e => { filter.sort = e.target.value; lsSet("cp-sort", filter.sort); renderList(); };
 $("grid").onclick = e => { const b = e.target.closest(".pcard"); if (b) openProduct(b.dataset.id); };
 
@@ -715,7 +731,7 @@ async function submitOrder() {
 /* ── 載入 ── */
 function renderAll() {
   $("notice").textContent = (catalog && catalog.settings.notice) || "";
-  renderBrands(); renderCats(); renderReels(); renderList(); saveCart();
+  renderReels(); refilter(); saveCart();
 }
 renderAll();
 api(null, {tries: 3, timeout: 45000}).then(d => {
