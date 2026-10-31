@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312233">
+<meta name="build" content="202610312235">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -121,7 +121,7 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .panel{position:relative;width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--bg);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
 @media (min-width:700px){.panel{border-radius:18px}}
 .close{position:sticky;top:0;float:right;z-index:2;width:36px;height:36px;border:0;border-radius:50%;background:var(--ink);color:#fff;font-size:20px;line-height:1}
-.gallery{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.gallery{display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:14px}
 .gallery::-webkit-scrollbar{display:none}
 .noimg{flex:none;width:100%;aspect-ratio:16/9;border-radius:14px;background:var(--wash);display:flex;align-items:center;justify-content:center;color:var(--faint)}
 .noimg svg{width:56px;height:56px}
@@ -253,8 +253,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312233"></script>
-<script src="tw-zip.js?v=202610312233"></script>
+<script src="shop-core.js?v=202610312235"></script>
+<script src="tw-zip.js?v=202610312235"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -377,8 +377,8 @@ function openProduct(id) {
     g.onscroll = () => { const i = Math.round(g.scrollLeft / gStep(g)); if (i !== gi) { gi = i; mark(); } };
     mark();
   };
-  // 每張圖的寬度＋8px 間距（gallery 左右各有 16px 內距，不能直接用 clientWidth）
-  const gStep = g => Math.max(1, (g.firstElementChild ? g.firstElementChild.offsetWidth : g.clientWidth) + 8);
+  // 每張圖剛好一個 gallery 寬（無間距、無內距），切換才會對齊不露出隔壁張
+  const gStep = g => Math.max(1, g.clientWidth);
   // 箭頭與圓點：電腦上沒辦法用手指滑，必須有按鈕才能切換
   const mark = () => {
     const pn = $("pPanel");
