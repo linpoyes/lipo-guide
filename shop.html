@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312306">
+<meta name="build" content="202610312307">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -280,8 +280,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312306"></script>
-<script src="tw-zip.js?v=202610312306"></script>
+<script src="shop-core.js?v=202610312307"></script>
+<script src="tw-zip.js?v=202610312307"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -320,7 +320,7 @@ function renderBrands() {
   const ps = catalog ? catalog.products : [], n = {}, all = new Set();
   ps.forEach(p => { if (p.brand) { all.add(p.brand); if (inCat(p)) n[p.brand] = (n[p.brand] || 0) + 1; } });
   const list = [...all].sort((a, b) => (n[b] || 0) - (n[a] || 0) || a.localeCompare(b));
-  $("brandRow").hidden = !list.length;
+  $("brandRow").hidden = !catalog || !list.length;
   $("brands").innerHTML = `<button data-brand="" aria-pressed="${!filter.brand}">全部<small>${ps.filter(inCat).length}</small></button>` +
     list.map(b => `<button data-brand="${esc(b)}" aria-pressed="${filter.brand === b}" ${n[b] ? "" : 'class="zero"'}>${esc(b)}<small>${n[b] || 0}</small></button>`).join("");
 }
