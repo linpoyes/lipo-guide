@@ -153,12 +153,22 @@ function code_(r) {
 }
 
 /* ───────────── 公開：型錄 ───────────── */
+// 已售數量＝未取消訂單的件數加總（賣場「熱門」排序用）
+function withSold_(products) {
+  const sold = {};
+  rows_("orders").forEach(o => {
+    if (String(o.status) === "已取消") return;
+    json_(o.items, []).forEach(i => sold[i.id] = (sold[i.id] || 0) + (Number(i.qty) || 0));
+  });
+  products.forEach(p => p.sold = sold[p.id] || 0);
+  return products;
+}
 function catalog_() {
   const bySort = (a, b) => a.sort - b.sort;
   const s = getSettings_();
   return {
     ok: true,
-    products: rows_("products").map(product_).filter(p => p.active).sort(bySort),
+    products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
     settings: { shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
   };
@@ -275,12 +285,16 @@ function login_(user, pass) {
   }
   const token = Utilities.getUuid() + Utilities.getUuid();
   const props = PropertiesService.getScriptProperties(), now = Date.now();
-  Object.keys(props.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && Number(props.getProperty(k)) < now) props.deleteProperty(k); });
+  Object.keys(props.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && k.indexOf("SESS_REVOKED_") < 0 && Number(props.getProperty(k)) < now) props.deleteProperty(k); });
   props.setProperty("SESS_" + hash_(token), String(now + SESSION_DAYS * 86400000));
+  // 指令碼屬性剛寫入時，下一個請求偶爾讀不到（10-31 實測：登入後第一個動作回 auth），所以同時放快取（最長 6 小時）
+  cache.put("tok:" + token, "1", 21600);
   return { ok: true, token: token, isDefault: String(pass) === "01" };
 }
 function checkToken_(t) {
   if (!t) return false;
+  if (CacheService.getScriptCache().get("tok:" + t) === "1" &&
+      PropertiesService.getScriptProperties().getProperty("SESS_REVOKED_" + hash_(t)) !== "1") return true;
   const exp = Number(PropertiesService.getScriptProperties().getProperty("SESS_" + hash_(t)) || 0);
   return exp > Date.now();
 }
@@ -288,7 +302,7 @@ function checkToken_(t) {
 /* ───────────── 後台動作 ───────────── */
 const ADMIN = {
   admin_all: () => ({
-    products: rows_("products").map(product_).sort((a, b) => a.sort - b.sort),
+    products: withSold_(rows_("products").map(product_)).sort((a, b) => a.sort - b.sort),
     videos: rows_("videos").map(video_).sort((a, b) => a.sort - b.sort),
     codes: rows_("codes").map(code_),
     settings: getSettings_(),
@@ -364,11 +378,18 @@ const ADMIN = {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化，否則全形新密碼改完會登不進去
     r.oldPass = nf(r.oldPass); r.newUser = nf(r.newUser); r.newPass = nf(r.newPass);
     if (hash_(p.getProperty("ADMIN_SALT") + ":" + String(r.oldPass || "")) !== p.getProperty("ADMIN_HASH")) throw new Error("目前密碼錯誤");
-    if (!r.newUser || String(r.newPass || "").length < 4) throw new Error("新密碼至少 4 碼");
+    if (!r.newUser || String(r.newPass || "").length < 2) throw new Error("新密碼至少 2 碼");
     setAdmin_(String(r.newUser), String(r.newPass));
     // 改密碼後，其他裝置的登入全部失效，只保留目前這台
     const keep = "SESS_" + hash_(r.token);
-    Object.keys(p.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && k !== keep) p.deleteProperty(k); });
+    const all = p.getProperties();
+    Object.keys(all).forEach(k => {
+      if (k.indexOf("SESS_REVOKED_") === 0) { if (Number(all[k + "_AT"] || 0) < Date.now() - 86400000) { p.deleteProperty(k); p.deleteProperty(k + "_AT"); } return; }
+      if (k.indexOf("SESS_") === 0 && k.indexOf("_AT") < 0 && k !== keep) {
+        p.deleteProperty(k);
+        p.setProperty("SESS_REVOKED_" + k.slice(5), "1"); p.setProperty("SESS_REVOKED_" + k.slice(5) + "_AT", String(Date.now()));
+      }
+    });
   },
   // 上傳圖片／影片到雲端硬碟資料夾，設為「知道連結者可檢視」，回傳檔案 id
   admin_upload: r => {

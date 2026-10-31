@@ -265,7 +265,7 @@ function drawProducts() {
   $("main").innerHTML = `<h2>商品 ${ps.length} 項 <button class="btn" id="newP">新增商品</button></h2>
     <div class="list">${ps.length ? ps.map(p => `<button class="row" data-p="${esc(p.id)}">
       ${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 150))}" alt="">` : '<div class="ph"></div>'}
-      <div class="info"><b>${esc(p.name)}</b><small>${esc(catName(p.category))}・${money(p.price)}・${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}</small></div>
+      <div class="info"><b>${esc(p.name)}</b><small>${esc(catName(p.category))}・${money(p.price)}・${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}・已售 ${p.sold || 0}</small></div>
       <div class="right"><span class="pill ${p.active ? "on" : "off"}">${p.active ? "上架" : "下架"}</span>${p.hot ? '<br><span class="pill new">熱銷</span>' : ""}</div></button>`).join("") : '<div class="empty">尚無商品</div>'}</div>`;
   $("newP").onclick = () => editProduct(null);
   $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-p]"); if (b) editProduct(b.dataset.p); };
@@ -440,7 +440,7 @@ function drawSettings() {
       ${isDefault ? '<div class="err">目前為初始密碼，請立即變更</div>' : ""}
       <div class="f"><label for="ou">帳號</label><input id="ou" value="${esc(data.user)}" autocomplete="username"></div>
       <div class="f"><label for="op">目前密碼</label><input id="op" type="password" autocomplete="current-password"></div>
-      <div class="f"><label for="np">新密碼</label><input id="np" type="password" autocomplete="new-password"><span class="note">至少 4 碼</span></div>
+      <div class="f"><label for="np">新密碼</label><input id="np" type="password" autocomplete="new-password"><span class="note">至少 2 碼</span></div>
       <div class="err" id="aerr"></div><div class="btns"><button class="btn ink" id="aSave">變更帳號密碼</button></div></div>`;
   $("sSave").onclick = e => busy(e.target, async () => {
     await admin("admin_saveSettings", {settings: {shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});

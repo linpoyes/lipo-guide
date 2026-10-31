@@ -76,6 +76,7 @@ h2{display:flex;align-items:center;gap:10px;width:fit-content;max-width:100%;fon
 h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px #fff}
 @media (prefers-color-scheme: dark){h2{background:#262A35}.cartbtn{background:#262A35}.btn.ink{background:#262A35}}
 .h2row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sortsel{margin-top:12px;font:inherit;font-size:14px;font-weight:800;color:var(--text);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:5px 8px}
 .h2row a{font-size:14px;font-weight:700;color:var(--dim);text-decoration:none;margin-top:12px}
 
 /* ── 短影音 ── */
@@ -104,6 +105,7 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .price{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
 .price b{font-size:19px;font-weight:900;color:var(--red)}
 .price s{font-size:13px;color:var(--faint)}
+.meta{font-size:12px;color:var(--faint);font-weight:700}
 .tierhint{font-size:12px;font-weight:800;color:var(--ok)}
 .badge{position:absolute;top:8px;left:8px;z-index:1;font-size:11px;font-weight:900;color:#fff;background:var(--red);border-radius:6px;padding:1px 7px;letter-spacing:.06em}
 .badge.out{background:#555}
@@ -223,7 +225,8 @@ footer nav a{color:var(--faint);text-decoration:none}
   </section>
 
   <section>
-    <div class="h2row"><h2 id="listTitle">全部商品</h2><a href="./">鋰電池充電計算 ›</a></div>
+    <div class="h2row"><h2 id="listTitle">全部商品</h2>
+      <select id="sortSel" class="sortsel" aria-label="排序"><option value="rec">推薦</option><option value="hot">熱門</option><option value="low">價格低→高</option><option value="high">價格高→低</option><option value="stock">庫存多→少</option></select></div>
     <div class="grid" id="grid"></div>
   </section>
 </main>
@@ -263,7 +266,7 @@ const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 let catalog = lsGet("cp-catalog", null);
 let cart = lsGet("cp-cart", []);          // [{id, qty}]
 let code = lsGet("cp-code", "");
-let filter = {cat: "all", q: ""};
+let filter = {cat: "all", q: "", sort: lsGet("cp-sort", "rec")};
 
 /* ── 分類列 ── */
 $("cats").innerHTML = [["all", "全部"], ...CATEGORIES].map(([k, n]) => `<button data-cat="${k}">${svg(k)}${n}</button>`).join("");
@@ -279,6 +282,12 @@ function renderList() {
   if (!catalog) { $("grid").innerHTML = '<div class="skel"></div>'.repeat(4); return; }
   const q = filter.q.toLowerCase();
   const list = catalog.products.filter(p => (filter.cat === "all" || p.category === filter.cat) && (!q || (p.name + p.desc).toLowerCase().includes(q)));
+  // 排序：熱門＝標示熱銷優先、再依已售件數；庫存不限量視為最多；售完一律排最後
+  const stockN = p => p.stock < 0 ? Infinity : p.stock;
+  const by = {rec: (a, b) => a.sort - b.sort, hot: (a, b) => (b.hot - a.hot) || (b.sold || 0) - (a.sold || 0),
+              low: (a, b) => a.price - b.price, high: (a, b) => b.price - a.price, stock: (a, b) => stockN(b) - stockN(a)}[filter.sort] || (() => 0);
+  list.sort((a, b) => ((a.stock === 0) - (b.stock === 0)) || by(a, b));
+  $("sortSel").value = filter.sort;
   $("grid").innerHTML = list.length ? list.map(card).join("") : '<div class="empty">尚無商品</div>';
 }
 function card(p) {
@@ -289,8 +298,10 @@ function card(p) {
     <div class="body"><span class="name">${esc(p.name)}</span>
       <span class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}</span>
       ${best ? `<span class="tierhint">${best.qty} 件起 每件 ${money(best.price)}</span>` : ""}
+      <span class="meta">${p.stock === 0 ? "已售完" : p.stock > 0 ? `庫存 ${p.stock}` : "現貨"}${p.sold ? `・已售 ${p.sold}` : ""}</span>
     </div></button>`;
 }
+$("sortSel").onchange = e => { filter.sort = e.target.value; lsSet("cp-sort", filter.sort); renderList(); };
 $("grid").onclick = e => { const b = e.target.closest(".pcard"); if (b) openProduct(b.dataset.id); };
 
 /* ── 短影音 ── */
