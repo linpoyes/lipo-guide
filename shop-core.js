@@ -57,6 +57,7 @@ function videoInfo(src) {
   if (!src) return null;
   const yt = src.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
   if (yt) return {kind: "youtube", id: yt[1], thumb: `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`};
+  if (/^media\//.test(src)) return {kind: "file", url: src}; // 後台上傳的影片：存在網站 repo，同網域直接播
   if (src.startsWith("drive:")) {
     const id = src.slice(6);
     // 直連檔案（支援分段讀取，<video> 可直接播）；/preview 是 Drive 播放器，只在直連失敗時退回

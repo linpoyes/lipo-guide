@@ -376,6 +376,8 @@ const ADMIN = {
     const sh = sheet_("orders"), col = SHEETS.orders.indexOf(r.field === "payStatus" ? "payStatus" : "status") + 1;
     rows_("orders").forEach(o => { if (nos.indexOf(String(o.orderNo)) >= 0) sh.getRange(o._row, col).setNumberFormat("@").setValue(String(r.value)); });
   },
+  // 一次性設定 GitHub 權杖（只存在指令碼屬性，不進版控）；需要 repo contents 寫入權限
+  admin_setGithubToken: r => { PropertiesService.getScriptProperties().setProperty("GH_TOKEN", String(r.ghToken || "")); },
   admin_deleteOrder: r => { remove_("orders", "orderNo", r.orderNo); },
   // 只刪媒體資料夾裡的檔案（避免拿 token 刪到雲端硬碟其他東西）
   admin_trashFile: r => {
@@ -407,8 +409,23 @@ const ADMIN = {
       }
     });
   },
-  // 上傳圖片／影片到雲端硬碟資料夾，設為「知道連結者可檢視」，回傳檔案 id
+  // 上傳：影片 → 直接存進網站 repo 的 media/（GitHub Pages 同網域，<video> 才能直接播放）；
+  // 圖片 → 雲端硬碟（lh3 縮圖網址外站可用）。
+  // 為什麼影片不能放雲端硬碟：Drive 直連沒有給外站的 CORS 標頭、又帶 CORP same-site，瀏覽器一律擋（2026-10-31 實測 error 4）。
   admin_upload: r => {
+    const gh = PropertiesService.getScriptProperties().getProperty("GH_TOKEN");
+    if (String(r.mime || "").indexOf("video/") === 0 && gh) {
+      if (r.data.length > 41 * 1024 * 1024) throw new Error("影片超過 30MB，請先壓縮");
+      const ext = (String(r.name || "").match(/\.(mp4|mov|m4v|webm)$/i) || [, "mp4"])[1].toLowerCase();
+      const path = "media/v" + Date.now().toString(36) + "." + ext;
+      const res = UrlFetchApp.fetch("https://api.github.com/repos/" + GH_REPO + "/contents/" + path, {
+        method: "put", contentType: "application/json", muteHttpExceptions: true,
+        headers: { Authorization: "Bearer " + gh, Accept: "application/vnd.github+json" },
+        payload: JSON.stringify({ message: "賣場短影音上傳 " + path, content: r.data, branch: "main" }),
+      });
+      if (res.getResponseCode() >= 300) throw new Error("影片上傳失敗（GitHub " + res.getResponseCode() + "）");
+      return { src: path };
+    }
     const bytes = Utilities.base64Decode(r.data);
     if (bytes.length > 40 * 1024 * 1024) throw new Error("檔案超過 40MB");
     const folder = DriveApp.getFolderById(PropertiesService.getScriptProperties().getProperty("MEDIA_FOLDER"));
@@ -422,6 +439,7 @@ const ADMIN = {
 // 7-11 交貨便電子地圖（emap.presco.com.tw/c2cemap.ashx）選完門市會 POST：storeid／storename／storeaddress（大小寫不一，全部容錯）。
 // 回一個小頁面把門市帶回賣場網址的 #store=…；Apps Script 頁面在 iframe 裡，跳轉要用使用者點擊（target=_top），自動跳轉當備援。
 const SHOP_PAGE = "https://linpoyes.github.io/lipo-guide/shop.html";
+const GH_REPO = "linpoyes/lipo-guide";
 function storeReturn_(p) {
   const pick = keys => { for (const k in p) if (keys.indexOf(k.toLowerCase()) >= 0 && p[k]) return String(p[k]); return ""; };
   const store = { id: pick(["storeid", "cvsstoreid"]), name: pick(["storename", "cvsstorename"]), addr: pick(["storeaddress", "cvsaddress"]) };

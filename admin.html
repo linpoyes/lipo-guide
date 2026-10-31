@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312241">
+<meta name="build" content="202610312244">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -128,7 +128,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202610312241"></script>
+<script src="shop-core.js?v=202610312244"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -335,7 +335,7 @@ function drawVideos() {
   $("main").innerHTML = `<h2>短影音 ${vs.length} 支 <button class="btn" id="newV">新增影片</button></h2>
     <div class="list">${vs.length ? vs.map(v => { const info = videoInfo(v.src), th = v.poster ? imgUrl(v.poster, 150) : info.thumb;
       return `<button class="row" data-v="${esc(v.id)}">${th ? `<img src="${esc(th)}" alt="">` : '<div class="ph"></div>'}
-      <div class="info"><b>${esc(v.title || "（未命名）")}</b><small>${info.kind === "youtube" ? "YouTube" : info.kind === "drive" ? "上傳檔案" : "影片連結"}${v.productId ? "・連結商品" : ""}</small></div>
+      <div class="info"><b>${esc(v.title || "（未命名）")}</b><small>${info.kind === "youtube" ? "YouTube" : /^media\//.test(v.src) || info.kind === "drive" ? "上傳檔案" : "影片連結"}${v.productId ? "・連結商品" : ""}</small></div>
       <div class="right"><span class="pill ${v.active ? "on" : "off"}">${v.active ? "上架" : "下架"}</span></div></button>`; }).join("") : '<div class="empty">尚無影片</div>'}</div>`;
   $("newV").onclick = () => editVideo(null);
   $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-v]"); if (b) editVideo(b.dataset.v); };
@@ -349,9 +349,9 @@ function editVideo(id) {
       <div class="f"><label for="vt">標題</label><input id="vt" value="${esc(v.title)}" placeholder="例：3S 2700mAh 實測"></div>
       <div class="f"><label>影片</label>
         <div class="btns" style="margin:0"><button class="btn ink" data-upv>上傳影片檔</button></div>
-        <span class="note">直式 MP4 為佳（手機錄影即可），單支 40MB 以內；賣場會自動靜音循環播放</span>
-        <input id="vs" value="${esc(v.src.startsWith("drive:") ? "" : v.src)}" placeholder="${v.src.startsWith("drive:") ? "已上傳影片檔" : "https://youtube.com/shorts/…"}">
-        ${info ? `<span class="note" style="color:var(--ok)">${info.kind === "drive" ? "已上傳影片檔" : info.kind === "youtube" ? "YouTube 影片" : "影片連結"}</span>` : ""}</div>
+        <span class="note">直式 MP4 為佳（手機錄影即可），單支 30MB 以內；賣場會自動靜音循環播放</span>
+        <input id="vs" value="${esc(/^(drive:|media\/)/.test(v.src) ? "" : v.src)}" placeholder="${/^(drive:|media\/)/.test(v.src) ? "已上傳影片檔" : "https://youtube.com/shorts/…"}">
+        ${info ? `<span class="note" style="color:var(--ok)">${/^media\//.test(v.src) || info.kind === "drive" ? "已上傳影片檔" : info.kind === "youtube" ? "YouTube 影片" : "影片連結"}</span>` : ""}</div>
       <div class="f"><label>封面（選填）</label><div class="thumbs">
         ${v.poster ? `<div class="thumb"><img src="${esc(imgUrl(v.poster, 200))}" alt=""><button data-rmp aria-label="移除">×</button></div>` : ""}
         <button class="addimg" data-upp>＋ 封面</button></div><span class="note">未設定時自動使用影片畫面</span></div>
@@ -361,13 +361,13 @@ function editVideo(id) {
       <div class="err" id="verr"></div>
       <div class="btns">${id ? '<button class="btn danger" data-del style="flex:none">刪除</button>' : ""}<button class="btn" data-save>儲存</button></div>`;
   };
-  const read = () => { v.title = $("vt").value.trim(); const s = $("vs").value.trim(); if (s || !v.src.startsWith("drive:")) v.src = s || v.src; v.productId = $("vp").value; v.active = $("va").checked; };
+  const read = () => { v.title = $("vt").value.trim(); const s = $("vs").value.trim(); if (s) v.src = s; v.productId = $("vp").value; v.active = $("va").checked; };
   draw(); openModal();
   $("mPanel").onclick = async e => {
     if (e.target.closest("[data-x]")) return closeModal();
     const upv = e.target.closest("[data-upv]");
     if (upv) { read(); const [f] = await pickFiles("video/*"); if (!f) return;
-      if (f.size > 40 * 1024 * 1024) return toast("影片超過 40MB，請先壓縮");
+      if (f.size > 30 * 1024 * 1024) return toast("影片超過 30MB，請先壓縮");
       await busy(upv, async () => { upv.textContent = "上傳中，請勿關閉"; v.src = await uploadFile(f); }).catch(err => toast(err.message)); draw(); return; }
     const upp = e.target.closest("[data-upp]");
     if (upp) { read(); const [f] = await pickFiles("image/*"); if (!f) return; await busy(upp, async () => { upp.textContent = "上傳中"; v.poster = await uploadImage(f); }).catch(err => toast(err.message)); draw(); return; }
@@ -464,7 +464,7 @@ function pickFiles(accept, multiple) {
 const toB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
 async function uploadFile(file) {
   const r = await admin("admin_upload", {name: file.name, mime: file.type, data: await toB64(file)}, {timeout: 300000});
-  return "drive:" + r.fileId;
+  return r.src || "drive:" + r.fileId; // 影片回 media/…（存在網站上），圖片回 drive:<id>
 }
 // 圖片先在瀏覽器縮到最長邊 1600、轉 JPEG，上傳快、賣場載入也快
 async function uploadImage(file) {
