@@ -59,7 +59,9 @@ function videoInfo(src) {
   if (yt) return {kind: "youtube", id: yt[1], thumb: `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`};
   if (src.startsWith("drive:")) {
     const id = src.slice(6);
-    return {kind: "drive", id, url: `https://drive.google.com/file/d/${id}/preview`, thumb: `https://lh3.googleusercontent.com/d/${id}=w600`};
+    // 直連檔案（支援分段讀取，<video> 可直接播）；/preview 是 Drive 播放器，只在直連失敗時退回
+    return {kind: "drive", id, url: `https://drive.usercontent.google.com/download?id=${id}&export=download`,
+            preview: `https://drive.google.com/file/d/${id}/preview`, thumb: `https://lh3.googleusercontent.com/d/${id}=w600`};
   }
   return {kind: "file", url: src};
 }

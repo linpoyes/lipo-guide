@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312237">
+<meta name="build" content="202610312240">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -87,6 +87,11 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .reel img,.reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .reel::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 55%,rgba(0,0,0,.75))}
 .reel .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:rgba(215,38,30,.92);display:flex;align-items:center;justify-content:center;z-index:1}
+.reel.live .play{display:none}
+.reel .snd{position:absolute;top:8px;right:8px;z-index:1;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center}
+.reel.live .snd{display:flex}
+.reel .snd svg{width:14px;height:14px}
+.vplayer{object-fit:contain}
 .reel .play svg{width:22px;height:22px;margin-left:3px}
 .reel b{position:absolute;left:8px;right:8px;bottom:8px;z-index:1;font-size:13px;line-height:1.35;text-align:left;font-weight:800}
 
@@ -253,8 +258,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312237"></script>
-<script src="tw-zip.js?v=202610312237"></script>
+<script src="shop-core.js?v=202610312240"></script>
+<script src="tw-zip.js?v=202610312240"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -318,22 +323,35 @@ function renderReels() {
   $("reelSec").hidden = !vs.length;
   $("reels").innerHTML = vs.map(v => {
     const info = videoInfo(v.src), poster = v.poster ? imgUrl(v.poster, 400) : info.thumb;
-    const media = poster ? `<img src="${esc(poster)}" alt="" loading="lazy">`
-      : info.kind === "file" ? `<video src="${esc(info.url)}#t=0.1" muted playsinline preload="metadata"></video>` : "";
-    return `<button class="reel" data-id="${esc(v.id)}">${media}<span class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg></span><b>${esc(v.title)}</b></button>`;
+    // 上傳檔與影片網址：卡片直接靜音循環播放（像短影音）；YouTube 只能放縮圖
+    const media = info.kind !== "youtube"
+      ? `<video src="${esc(info.url)}" ${poster ? `poster="${esc(poster)}"` : ""} muted loop playsinline preload="none"></video>`
+      : poster ? `<img src="${esc(poster)}" alt="" loading="lazy">` : "";
+    return `<button class="reel" data-id="${esc(v.id)}"><span class="snd" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6" stroke="#fff" stroke-width="2"/></svg></span>${media}<span class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg></span><b>${esc(v.title)}</b></button>`;
   }).join("");
+  // 捲進畫面才播、離開就停（省流量、省電）；播得動就把播放鈕藏起來
+  reelIO && reelIO.disconnect();
+  reelIO = new IntersectionObserver(ents => ents.forEach(en => {
+    const vd = en.target.querySelector("video"); if (!vd) return;
+    if (en.isIntersecting) { vd.preload = "auto"; vd.play().then(() => en.target.classList.add("live")).catch(() => {}); }
+    else vd.pause();
+  }), {threshold: .6});
+  $("reels").querySelectorAll(".reel").forEach(r => reelIO.observe(r));
 }
+let reelIO = null;
 $("reels").onclick = e => {
   const b = e.target.closest(".reel"); if (!b) return;
   const v = catalog.videos.find(x => x.id === b.dataset.id), info = videoInfo(v.src);
   const player = info.kind === "youtube" ? `<iframe class="vplayer" src="https://www.youtube.com/embed/${info.id}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`
-    : info.kind === "drive" ? `<iframe class="vplayer" src="${info.url}" allow="autoplay; fullscreen" allowfullscreen></iframe>`
-    : `<video class="vplayer" src="${esc(info.url)}" controls autoplay playsinline></video>`;
+    : `<video class="vplayer" src="${esc(info.url)}" controls autoplay playsinline ${v.poster ? `poster="${esc(imgUrl(v.poster, 720))}"` : ""}
+        ${info.preview ? `onerror="this.outerHTML='<iframe class=&quot;vplayer&quot; src=&quot;${info.preview}&quot; allow=&quot;autoplay; fullscreen&quot; allowfullscreen></iframe>'"` : ""}></video>`;
   const p = v.productId && catalog.products.find(x => x.id === v.productId);
   $("vPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
     <div class="ptitle">${esc(v.title)}</div>${player}
     ${p ? `<div class="buyrow"><button class="btn" data-open="${esc(p.id)}">查看商品　${money(p.price)}</button></div>` : ""}`;
   open("vSheet");
+  // 點開後直接有聲音播放（使用者點擊算互動，瀏覽器允許）
+  const vp = $("vPanel").querySelector("video"); if (vp) { vp.muted = false; vp.play().catch(() => { vp.muted = true; vp.play().catch(() => {}); }); }
 };
 $("vPanel").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) { close("vSheet"); openProduct(b.dataset.open); } });
 

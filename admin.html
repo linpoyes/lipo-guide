@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312237">
+<meta name="build" content="202610312240">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -128,7 +128,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202610312237"></script>
+<script src="shop-core.js?v=202610312240"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -349,7 +349,7 @@ function editVideo(id) {
       <div class="f"><label for="vt">標題</label><input id="vt" value="${esc(v.title)}" placeholder="例：3S 2700mAh 實測"></div>
       <div class="f"><label>影片</label>
         <div class="btns" style="margin:0"><button class="btn ink" data-upv>上傳影片檔</button></div>
-        <span class="note">直式短片為佳，單支 40MB 以內；或貼上 YouTube Shorts 連結</span>
+        <span class="note">直式 MP4 為佳（手機錄影即可），單支 40MB 以內；賣場會自動靜音循環播放</span>
         <input id="vs" value="${esc(v.src.startsWith("drive:") ? "" : v.src)}" placeholder="${v.src.startsWith("drive:") ? "已上傳影片檔" : "https://youtube.com/shorts/…"}">
         ${info ? `<span class="note" style="color:var(--ok)">${info.kind === "drive" ? "已上傳影片檔" : info.kind === "youtube" ? "YouTube 影片" : "影片連結"}</span>` : ""}</div>
       <div class="f"><label>封面（選填）</label><div class="thumbs">
