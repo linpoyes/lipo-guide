@@ -255,8 +255,9 @@ function login_(user, pass) {
   const fails = Number(cache.get("loginFails") || 0);
   if (fails >= 8) return { ok: false, error: "嘗試次數過多，請 10 分鐘後再試" };
   const p = PropertiesService.getScriptProperties();
-  const okUser = String(user || "") === p.getProperty("ADMIN_USER");
-  const okPass = hash_(p.getProperty("ADMIN_SALT") + ":" + String(pass || "")) === p.getProperty("ADMIN_HASH");
+  user = String(user || "").normalize("NFKC").trim(); pass = String(pass || "").normalize("NFKC").trim(); // 全形「０１」也能登入
+  const okUser = user === p.getProperty("ADMIN_USER");
+  const okPass = hash_(p.getProperty("ADMIN_SALT") + ":" + pass) === p.getProperty("ADMIN_HASH");
   if (!okUser || !okPass) {
     cache.put("loginFails", String(fails + 1), 600);
     return { ok: false, error: "帳號或密碼錯誤" };

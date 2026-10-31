@@ -218,10 +218,10 @@ footer nav a{color:var(--faint);text-decoration:none}
 </main>
 
 <footer>
-  <img src="badge.png?v=1" alt="赤貧軍團" width="72" height="72">
+  <img id="footBadge" src="badge.png?v=1" alt="赤貧軍團" width="72" height="72">
   <div class="team"><span>赤貧軍團</span></div>
   <div class="brandline"><span class="g">欣群企業</span><i></i><span class="s">欣瀚資訊</span></div>
-  <nav><a href="./">鋰電池充電</a><a href="admin.html">管理後台</a></nav>
+  <nav><a href="./">鋰電池充電</a></nav>
 </footer>
 
 <!-- 商品 -->
@@ -495,6 +495,13 @@ async function submitOrder() {
     } catch (e) { err.textContent = e.message; }
   });
 }
+
+/* ── 隱藏的後台入口：頁尾徽章 3 秒內連點 5 下（使用者 2026-10-31：後台入口不要顯示） ── */
+{ let n = 0, t = 0;
+  $("footBadge").addEventListener("click", () => {
+    const now = Date.now(); n = now - t < 3000 ? n + 1 : 1; t = now;
+    if (n >= 5) location.href = "admin.html";
+  }); }
 
 /* ── 載入 ── */
 function renderAll() {
