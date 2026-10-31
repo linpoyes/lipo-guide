@@ -129,7 +129,8 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <script src="shop-core.js?v=1"></script>
 <script>
 const $ = id => document.getElementById(id);
-let token = sessionStorage.getItem("cp-admin") || "";
+// 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
+let token = lsGet("cp-admin", "") || "";
 let data = null, orders = null, tab = sessionStorage.getItem("cp-tab") || "orders", orderFilter = "新訂單";
 const STATUSES = ["新訂單", "已確認", "已出貨", "已完成", "已取消"];
 
@@ -138,7 +139,7 @@ async function admin(action, body = {}, opts) {
   try { return await api({action, token, ...body}, opts); }
   catch (e) { if (e.message === "auth") { logout(); throw new Error("登入已逾時，請重新登入"); } throw e; }
 }
-function logout() { token = ""; sessionStorage.removeItem("cp-admin"); drawLogin(); }
+function logout() { token = ""; lsSet("cp-admin", ""); drawLogin(); }
 
 /* ── 登入 ── */
 function drawLogin() {
@@ -157,8 +158,8 @@ function drawLogin() {
         // 全形轉半形：中文輸入法常打出「０１」，看起來一樣但比對不過（2026-10-31 使用者登不進去的原因）
         const half = v => v.normalize("NFKC").trim();
         const r = await api({action: "login", user: half($("lu").value), pass: half($("lp").value)});
-        token = r.token; sessionStorage.setItem("cp-admin", token);
-        if (r.isDefault) sessionStorage.setItem("cp-default-pw", "1");
+        token = r.token; lsSet("cp-admin", token);
+        lsSet("cp-default-pw", r.isDefault ? "1" : "");
         await loadAll(); drawApp();
       } catch (err) { $("lerr").textContent = err.message; }
     });
@@ -427,7 +428,7 @@ function editCode(code) {
 
 /* ── 設定 ── */
 function drawSettings() {
-  const s = data.settings, isDefault = sessionStorage.getItem("cp-default-pw") === "1";
+  const s = data.settings, isDefault = lsGet("cp-default-pw", "") === "1";
   $("main").innerHTML = `<h2>賣場設定</h2><div class="card">
       <div class="f2"><div class="f"><label for="sf">黑貓宅配運費</label><input id="sf" type="number" inputmode="numeric" value="${s.shipFee}"></div>
         <div class="f"><label for="sc">7-11 店到店運費</label><input id="sc" type="number" inputmode="numeric" value="${s.shipFeeCvs}"></div></div>
@@ -448,7 +449,7 @@ function drawSettings() {
   $("aSave").onclick = e => busy(e.target, async () => {
     $("aerr").textContent = "";
     await admin("admin_changeLogin", {oldPass: $("op").value, newUser: $("ou").value.trim(), newPass: $("np").value});
-    sessionStorage.removeItem("cp-default-pw"); toast("已變更，下次請用新密碼登入"); $("op").value = $("np").value = ""; drawSettings();
+    lsSet("cp-default-pw", ""); toast("已變更，其他裝置需重新登入"); $("op").value = $("np").value = ""; drawSettings();
   }).catch(err => $("aerr").textContent = err.message);
 }
 
@@ -477,7 +478,9 @@ function closeModal() { $("modal").classList.remove("open"); document.body.style
 $("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 
 /* ── 啟動 ── */
-if (token) { $("app").innerHTML = '<div class="empty">載入中…</div>'; loadAll().then(drawApp).catch(() => logout()); }
+// 只有後端明確回「auth」（過期／失效）才登出；連線失敗不登出，避免 GAS 冷啟動就被踢掉
+if (token) { $("app").innerHTML = '<div class="empty">載入中…</div>';
+  loadAll().then(drawApp).catch(e => { if (!token) return; $("app").innerHTML = `<div class="empty">${esc(e.message)}<br><br><button class="btn" onclick="location.reload()">重新整理</button></div>`; }); }
 else drawLogin();
 </script>
 </body>

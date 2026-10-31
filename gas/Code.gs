@@ -23,7 +23,9 @@ const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: 
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "" };
-const SESSION_HOURS = 6;
+// 登入有效 10 天（使用者 2026-10-31：登入過的裝置不要一直登出）。
+// CacheService 最長只存 6 小時，所以 session 存在指令碼屬性：SESS_<token 雜湊> = 到期毫秒。
+const SESSION_DAYS = 10;
 
 /* ───────────── 初始化（第一次在編輯器手動執行一次，順便完成授權） ───────────── */
 function setup() {
@@ -272,10 +274,16 @@ function login_(user, pass) {
     return { ok: false, error: "帳號或密碼錯誤" };
   }
   const token = Utilities.getUuid() + Utilities.getUuid();
-  cache.put("tok:" + token, "1", SESSION_HOURS * 3600);
+  const props = PropertiesService.getScriptProperties(), now = Date.now();
+  Object.keys(props.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && Number(props.getProperty(k)) < now) props.deleteProperty(k); });
+  props.setProperty("SESS_" + hash_(token), String(now + SESSION_DAYS * 86400000));
   return { ok: true, token: token, isDefault: String(pass) === "01" };
 }
-function checkToken_(t) { return !!t && CacheService.getScriptCache().get("tok:" + t) === "1"; }
+function checkToken_(t) {
+  if (!t) return false;
+  const exp = Number(PropertiesService.getScriptProperties().getProperty("SESS_" + hash_(t)) || 0);
+  return exp > Date.now();
+}
 
 /* ───────────── 後台動作 ───────────── */
 const ADMIN = {
@@ -353,9 +361,14 @@ const ADMIN = {
   },
   admin_changeLogin: r => {
     const p = PropertiesService.getScriptProperties();
+    const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化，否則全形新密碼改完會登不進去
+    r.oldPass = nf(r.oldPass); r.newUser = nf(r.newUser); r.newPass = nf(r.newPass);
     if (hash_(p.getProperty("ADMIN_SALT") + ":" + String(r.oldPass || "")) !== p.getProperty("ADMIN_HASH")) throw new Error("目前密碼錯誤");
     if (!r.newUser || String(r.newPass || "").length < 4) throw new Error("新密碼至少 4 碼");
     setAdmin_(String(r.newUser), String(r.newPass));
+    // 改密碼後，其他裝置的登入全部失效，只保留目前這台
+    const keep = "SESS_" + hash_(r.token);
+    Object.keys(p.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && k !== keep) p.deleteProperty(k); });
   },
   // 上傳圖片／影片到雲端硬碟資料夾，設為「知道連結者可檢視」，回傳檔案 id
   admin_upload: r => {
