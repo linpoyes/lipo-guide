@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312225">
+<meta name="build" content="202610312233">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -125,6 +125,13 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .gallery::-webkit-scrollbar{display:none}
 .noimg{flex:none;width:100%;aspect-ratio:16/9;border-radius:14px;background:var(--wash);display:flex;align-items:center;justify-content:center;color:var(--faint)}
 .noimg svg{width:56px;height:56px}
+.gwrap{position:relative}
+.gnav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1}
+.gnav.prev{left:6px} .gnav.next{right:6px}
+.gnav:disabled{opacity:0;pointer-events:none}
+.gdots{display:flex;justify-content:center;gap:7px;margin-top:8px}
+.gdots button{width:9px;height:9px;padding:0;border-radius:50%;border:0;background:var(--line);cursor:pointer}
+.gdots button.on{background:var(--red);width:22px;border-radius:5px}
 .gallery img{flex:none;width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px;scroll-snap-align:center;background:var(--wash)}
 .ptitle{font-size:20px;font-weight:900;margin:12px 0 4px;line-height:1.35}
 .tiers{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
@@ -246,8 +253,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312225"></script>
-<script src="tw-zip.js?v=202610312225"></script>
+<script src="shop-core.js?v=202610312233"></script>
+<script src="tw-zip.js?v=202610312233"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -347,11 +354,14 @@ let pQty = 1;
 function openProduct(id) {
   const p = catalog.products.find(x => x.id === id); if (!p) return;
   pQty = 1;
+  let gi = 0;   // 目前第幾張；改數量會重畫整塊，要記住位置，不然會跳回第一張
+  const nImg = p.images.length;
   const imgs = p.images.length ? p.images.map(s => `<img src="${esc(imgUrl(s, 1000))}" alt="">`).join("") : `<div class="noimg">${svg(p.category || "all")}</div>`;
   const draw = () => {
     const u = unitPrice(p, pQty), out = p.stock === 0;
     $("pPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
-      <div class="gallery">${imgs}</div>
+      <div class="gwrap"><div class="gallery">${imgs}</div>${nImg > 1 ? `<button class="gnav prev" data-g="-1" aria-label="上一張">‹</button><button class="gnav next" data-g="1" aria-label="下一張">›</button>` : ""}</div>
+      ${nImg > 1 ? `<div class="gdots">${p.images.map((_, i) => `<button data-gi="${i}" aria-label="第 ${i + 1} 張"></button>`).join("")}</div>` : ""}
       <div class="ptitle">${esc(p.name)}</div>
       <div class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}<span class="hint">${esc(catName(p.category))}${p.stock > 0 ? `・庫存 ${p.stock}` : ""}</span></div>
       ${p.tiers.length ? `<table class="tiers"><tr><th>多件優惠</th><th>每件</th></tr>
@@ -362,9 +372,25 @@ function openProduct(id) {
         <div class="stepper"><button data-q="-1" aria-label="減少">−</button><span>${pQty}</span><button data-q="1" aria-label="增加">＋</button></div>
         <button class="btn" data-add ${out ? "disabled" : ""}>${out ? "已售完" : `加入購物車　${money(u * pQty)}`}</button>
       </div>`;
+    const g = $("pPanel").querySelector(".gallery");
+    g.scrollLeft = gi * gStep(g);
+    g.onscroll = () => { const i = Math.round(g.scrollLeft / gStep(g)); if (i !== gi) { gi = i; mark(); } };
+    mark();
   };
+  // 每張圖的寬度＋8px 間距（gallery 左右各有 16px 內距，不能直接用 clientWidth）
+  const gStep = g => Math.max(1, (g.firstElementChild ? g.firstElementChild.offsetWidth : g.clientWidth) + 8);
+  // 箭頭與圓點：電腦上沒辦法用手指滑，必須有按鈕才能切換
+  const mark = () => {
+    const pn = $("pPanel");
+    pn.querySelectorAll(".gdots button").forEach((b, i) => b.classList.toggle("on", i === gi));
+    const pv = pn.querySelector(".gnav.prev"), nx = pn.querySelector(".gnav.next");
+    if (pv) { pv.disabled = gi <= 0; nx.disabled = gi >= nImg - 1; }
+  };
+  const goImg = i => { gi = Math.max(0, Math.min(nImg - 1, i)); const g = $("pPanel").querySelector(".gallery"); g.scrollTo({left: gi * gStep(g), behavior: "smooth"}); mark(); };
   draw();
   $("pPanel").onclick = e => {
+    const gb = e.target.closest("[data-g]"); if (gb) return goImg(gi + Number(gb.dataset.g));
+    const gd = e.target.closest("[data-gi]"); if (gd) return goImg(Number(gd.dataset.gi));
     const q = e.target.closest("[data-q]");
     if (q) { const max = p.stock > 0 ? p.stock : 99; pQty = Math.min(max, Math.max(1, pQty + Number(q.dataset.q))); draw(); }
     if (e.target.closest("[data-add]")) { addToCart(p.id, pQty); close("pSheet"); openCart(); }
