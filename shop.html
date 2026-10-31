@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312250">
+<meta name="build" content="202610312254">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -65,11 +65,12 @@ svg{width:22px;height:22px}
 .notice:empty{display:none}
 
 /* ── 分類列 ── */
-.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:12px -14px 0;padding:2px 14px 4px}
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -14px 10px;padding:2px 14px}
 .cats::-webkit-scrollbar{display:none}
-.cats button{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:74px;padding:8px 6px;border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;font-size:13px;font-weight:800}
+.cats button{flex:none;display:flex;align-items:center;gap:5px;height:36px;padding:0 13px;border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;font-size:14px;font-weight:800;white-space:nowrap}
 .cats button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
-.cats svg{width:24px;height:24px}
+.cats button small{font-size:12px;opacity:.7;font-weight:700}
+.cats svg{width:17px;height:17px}
 
 /* ── 段落標題（同 index.html 的墨色筆刷條） ── */
 h2{display:flex;align-items:center;gap:10px;width:fit-content;max-width:100%;font-size:18px;line-height:1.3;margin:22px 0 10px;
@@ -96,13 +97,21 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .vwrap .mute{position:absolute;top:10px;left:10px;z-index:2;width:44px;height:44px;border:2px solid rgba(255,255,255,.85);border-radius:50%;background:rgba(0,0,0,.72);box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:0}
 .vwrap .mute svg{width:22px;height:22px}
 .reel .play svg{width:22px;height:22px;margin-left:3px}
+.reel.skel{border-color:transparent;background:linear-gradient(90deg,var(--wash),var(--line),var(--wash));background-size:200% 100%;animation:sk 1.2s infinite}
+.reel.skel::after{display:none}
 .reel b{position:absolute;left:8px;right:8px;bottom:8px;z-index:1;font-size:13px;line-height:1.35;text-align:left;font-weight:800}
 
 /* ── 專區橫幅 ── */
 .promos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-@media (max-width:760px){.promos{grid-template-columns:1fr;}}
-.promos button{padding:0;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:#000}
-.promos img{display:block;width:100%;height:auto;aspect-ratio:520/195;object-fit:cover}
+.promos button{position:relative;display:block;height:150px;padding:0;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:#17181D;text-align:left;color:#fff}
+.promos img{position:absolute;right:0;top:0;width:62%;height:100%;object-fit:cover;-webkit-mask-image:linear-gradient(90deg,transparent,#000 35%);mask-image:linear-gradient(90deg,transparent,#000 35%)}
+.promos span{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 14px;gap:4px;max-width:66%}
+.promos b{font-size:24px;font-weight:900;letter-spacing:.06em;line-height:1.15;text-shadow:0 2px 6px rgba(0,0,0,.8)}
+.promos small{font-size:12px;font-weight:700;color:#D6D8DE;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+.promos i{align-self:flex-start;margin-top:6px;font-style:normal;font-size:13px;font-weight:800;background:#fff;color:#17181D;border-radius:999px;padding:3px 12px}
+.promos button::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--red);z-index:1}
+@media (max-width:760px){.promos{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -14px;padding:0 14px}
+  .promos::-webkit-scrollbar{display:none}.promos button{flex:none;width:86%;height:136px;scroll-snap-align:start}}
 
 /* ── 商品 ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,9.4em),1fr));gap:10px}
@@ -224,25 +233,26 @@ footer nav a{color:var(--faint);text-decoration:none}
   <img class="hero" src="shop-hero.jpg?v=1" alt="赤貧軍團 玩車不貧" width="1619" height="370">
   <div class="notice" id="notice"></div>
 
-  <div class="cats" id="cats"></div>
-
-  <section id="reelSec" hidden>
-    <h2>短影音</h2>
-    <div class="reels" id="reels"></div>
-  </section>
-
+  <!-- 精選專區：文字用 HTML 畫（任何螢幕都清晰），圖用原始高解析素材；手機左右滑 -->
   <section id="promoSec">
     <h2>精選專區</h2>
     <div class="promos">
-      <button data-cat="battery"><img src="promo-1.jpg?v=1" alt="鋰電池專區" width="520" height="195"></button>
-      <button data-cat="car"><img src="promo-2.jpg?v=1" alt="車種買賣" width="500" height="195"></button>
-      <button data-cat="parts"><img src="promo-3.jpg?v=1" alt="改裝配件" width="507" height="195"></button>
+      <button data-cat="battery"><img src="promo-battery.jpg?v=1" alt="" width="480" height="260"><span><b>鋰電池專區</b><small>優惠電池・規格教學・安全使用</small><i>立即選購 ›</i></span></button>
+      <button data-cat="car"><img src="promo-car.jpg?v=1" alt="" width="540" height="460"><span><b>車種買賣</b><small>全新・二手・高 CP 值精選</small><i>立即選購 ›</i></span></button>
+      <button data-cat="parts"><img src="promo-parts.jpg?v=1" alt="" width="494" height="386"><span><b>改裝配件</b><small>升級改裝・性能提升</small><i>立即選購 ›</i></span></button>
     </div>
+  </section>
+
+  <!-- 短影音：先放骨架佔住高度，資料回來才換成影片，避免整頁往下跳 -->
+  <section id="reelSec">
+    <h2>短影音</h2>
+    <div class="reels" id="reels"><div class="reel skel"></div><div class="reel skel"></div><div class="reel skel"></div></div>
   </section>
 
   <section>
     <div class="h2row"><h2 id="listTitle">全部商品</h2>
       <select id="sortSel" class="sortsel" aria-label="排序"><option value="rec">推薦</option><option value="hot">熱門</option><option value="low">價格低→高</option><option value="high">價格高→低</option><option value="stock">庫存多→少</option></select></div>
+    <div class="cats" id="cats"></div>
     <div class="grid" id="grid"></div>
   </section>
 </main>
@@ -261,8 +271,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312250"></script>
-<script src="tw-zip.js?v=202610312250"></script>
+<script src="shop-core.js?v=202610312254"></script>
+<script src="tw-zip.js?v=202610312254"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -285,7 +295,13 @@ let code = lsGet("cp-code", "");
 let filter = {cat: "all", q: "", sort: lsGet("cp-sort", "rec")};
 
 /* ── 分類列 ── */
-$("cats").innerHTML = [["all", "全部"], ...CATEGORIES].map(([k, n]) => `<button data-cat="${k}">${svg(k)}${n}</button>`).join("");
+// 分類只顯示「有上架商品」的那幾類（手機版面小，空分類只會佔位置）；項目旁顯示件數
+function renderCats() {
+  const n = {}; (catalog ? catalog.products : []).forEach(p => n[p.category] = (n[p.category] || 0) + 1);
+  const cats = CATEGORIES.filter(([k]) => n[k]);
+  $("cats").hidden = cats.length < 2;
+  $("cats").innerHTML = [["all", "全部"], ...cats].map(([k, nm]) => `<button data-cat="${k}">${svg(k)}${nm}${k !== "all" ? `<small>${n[k]}</small>` : ""}</button>`).join("");
+}
 $("cats").onclick = e => { const b = e.target.closest("button"); if (b) setCat(b.dataset.cat); };
 document.querySelector(".promos").onclick = e => { const b = e.target.closest("button"); if (b) { setCat(b.dataset.cat); $("listTitle").scrollIntoView({behavior: "smooth", block: "start"}); } };
 function setCat(c) { filter.cat = c; filter.q = ""; $("q").value = ""; renderList(); }
@@ -322,7 +338,8 @@ $("grid").onclick = e => { const b = e.target.closest(".pcard"); if (b) openProd
 
 /* ── 短影音 ── */
 function renderReels() {
-  const vs = (catalog && catalog.videos) || [];
+  if (!catalog) return; // 還沒拿到資料：保留骨架
+  const vs = catalog.videos || [];
   $("reelSec").hidden = !vs.length;
   $("reels").innerHTML = vs.map(v => {
     const info = videoInfo(v.src), poster = v.poster ? imgUrl(v.poster, 400) : info.thumb;
@@ -672,7 +689,7 @@ async function submitOrder() {
 /* ── 載入 ── */
 function renderAll() {
   $("notice").textContent = (catalog && catalog.settings.notice) || "";
-  renderReels(); renderList(); saveCart();
+  renderCats(); renderReels(); renderList(); saveCart();
 }
 renderAll();
 api(null, {tries: 3, timeout: 45000}).then(d => {
