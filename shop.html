@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>赤貧軍團｜RC 玩車商城</title>
+<meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
+<meta property="og:title" content="赤貧軍團｜RC 玩車商城">
+<meta property="og:description" content="RC 鋰電池、遙控車、改裝配件。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="赤貧軍團">
+<meta property="og:image" content="https://linpoyes.github.io/lipo-guide/shop-hero.jpg?v=1">
+<meta name="theme-color" content="#F3ECDF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C1424" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="favicon.png?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<style>
+/* 視覺沿用 index.html（浮世繪：和紙米色／北齋藍／朱紅／墨黑）；版型依使用者給的「RC 玩車商城首頁」 */
+:root{
+  color-scheme:light dark;
+  --bg:#F3ECDF; --card:#FFFCF5; --line:#E2D6C0; --text:#1A2130; --dim:#4A5163; --faint:#6E7383;
+  --accent:#1C3F7C; --red:#D7261E; --ink:#17181D; --ok:#1F7A4A; --bad:#B3261E;
+  --sel:rgba(28,63,124,.10); --wash:rgba(26,33,48,.055); --gold:#94701F; --gray:#5F6472;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0C1424; --card:#142039; --line:#26355A; --text:#F3ECDF; --dim:#CBC4B6; --faint:#9A968C;
+    --accent:#7FA8EC; --red:#E5372E; --ink:#17181D; --ok:#5BD69B; --bad:#FF7B72;
+    --sel:rgba(127,168,236,.17); --wash:rgba(243,236,223,.06); --gold:#DDBB72; --gray:#A9A79F;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;font-feature-settings:"tnum"}
+button{font:inherit;cursor:pointer}
+button:disabled{filter:grayscale(.6) opacity(.6);cursor:default}
+a{color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:0 14px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ── 頁首 ── */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:10px;padding-top:8px;padding-bottom:8px}
+.brand{display:flex;align-items:center;gap:8px;text-decoration:none;flex:none}
+.brand img{width:40px;height:40px;border-radius:10px}
+.brand b{display:block;font-size:20px;font-weight:900;color:var(--red);letter-spacing:.04em;line-height:1.1}
+.brand small{display:block;font-size:11px;color:var(--dim);font-weight:700;letter-spacing:.02em}
+.search{flex:1;min-width:0;display:flex;background:var(--card);border:1.5px solid var(--line);border-radius:12px;overflow:hidden}
+.search input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:inherit;padding:8px 10px}
+.search input:focus{outline:none}
+.search button{flex:none;width:44px;border:0;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center}
+.cartbtn{position:relative;flex:none;margin-left:auto;width:44px;height:44px;border:0;background:var(--ink);color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.cartbtn i{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:800;font-style:normal;line-height:20px;text-align:center;border:2px solid var(--bg)}
+.cartbtn i:empty{display:none}
+svg{width:22px;height:22px}
+@media (max-width:520px){.brand small{display:none}.brand b{font-size:17px}.top .wrap{flex-wrap:wrap}.search{order:3;flex-basis:100%}}
+
+/* ── 主視覺 ── */
+.hero{display:block;width:100%;height:auto;aspect-ratio:1619/370;object-fit:cover;border-radius:16px;border:3px solid var(--ink);margin-top:12px;background:#E9DFC9}
+/* 手機：窗口取「貧」徽章到「玩車不貧」那一段 */
+@media (max-width:640px){.hero{aspect-ratio:2.4/1;object-position:88% 50%}}
+.notice{margin-top:10px;background:var(--ink);color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;font-weight:700;box-shadow:inset 3px 0 0 var(--red)}
+.notice:empty{display:none}
+
+/* ── 分類列 ── */
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:12px -14px 0;padding:2px 14px 4px}
+.cats::-webkit-scrollbar{display:none}
+.cats button{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:74px;padding:8px 6px;border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;font-size:13px;font-weight:800}
+.cats button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
+.cats svg{width:24px;height:24px}
+
+/* ── 段落標題（同 index.html 的墨色筆刷條） ── */
+h2{display:flex;align-items:center;gap:10px;width:fit-content;max-width:100%;font-size:18px;line-height:1.3;margin:22px 0 10px;
+  background:var(--ink);color:#fff;padding:6px 22px 6px 10px;border-radius:10px 4px 4px 10px;clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px #fff}
+@media (prefers-color-scheme: dark){h2{background:#262A35}.cartbtn{background:#262A35}.btn.ink{background:#262A35}}
+.h2row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.h2row a{font-size:14px;font-weight:700;color:var(--dim);text-decoration:none;margin-top:12px}
+
+/* ── 短影音 ── */
+.reels{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px 4px;scroll-snap-type:x mandatory}
+.reels::-webkit-scrollbar{display:none}
+.reel{position:relative;flex:none;width:150px;aspect-ratio:9/16;border-radius:14px;overflow:hidden;border:2px solid var(--ink);background:#000;scroll-snap-align:start;padding:0;color:#fff}
+.reel img,.reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.reel::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 55%,rgba(0,0,0,.75))}
+.reel .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:rgba(215,38,30,.92);display:flex;align-items:center;justify-content:center;z-index:1}
+.reel .play svg{width:22px;height:22px;margin-left:3px}
+.reel b{position:absolute;left:8px;right:8px;bottom:8px;z-index:1;font-size:13px;line-height:1.35;text-align:left;font-weight:800}
+
+/* ── 專區橫幅 ── */
+.promos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.promos{grid-template-columns:1fr;}}
+.promos button{padding:0;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:#000}
+.promos img{display:block;width:100%;height:auto;aspect-ratio:520/195;object-fit:cover}
+
+/* ── 商品 ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,9.4em),1fr));gap:10px}
+.pcard{position:relative;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-align:left;padding:0;color:var(--text)}
+.pcard .img{aspect-ratio:1;background:var(--wash);display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.pcard .img img{width:100%;height:100%;object-fit:cover}
+.pcard .body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px;flex:1}
+.pcard .name{font-size:15px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.price{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.price b{font-size:19px;font-weight:900;color:var(--red)}
+.price s{font-size:13px;color:var(--faint)}
+.tierhint{font-size:12px;font-weight:800;color:var(--ok)}
+.badge{position:absolute;top:8px;left:8px;z-index:1;font-size:11px;font-weight:900;color:#fff;background:var(--red);border-radius:6px;padding:1px 7px;letter-spacing:.06em}
+.badge.out{background:#555}
+.empty{padding:28px 10px;text-align:center;color:var(--faint);font-weight:700}
+.skel{background:linear-gradient(90deg,var(--wash),var(--line),var(--wash));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:14px;aspect-ratio:3/4}
+@keyframes sk{to{background-position:-200% 0}}
+
+/* ── 浮層（商品、購物車、影片） ── */
+.sheet{position:fixed;inset:0;z-index:50;display:none;background:rgba(0,0,0,.55)}
+.sheet.open{display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:700px){.sheet.open{align-items:center}}
+.panel{position:relative;width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--bg);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+@media (min-width:700px){.panel{border-radius:18px}}
+.close{position:sticky;top:0;float:right;z-index:2;width:36px;height:36px;border:0;border-radius:50%;background:var(--ink);color:#fff;font-size:20px;line-height:1}
+.gallery{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.gallery::-webkit-scrollbar{display:none}
+.noimg{flex:none;width:100%;aspect-ratio:16/9;border-radius:14px;background:var(--wash);display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.noimg svg{width:56px;height:56px}
+.gallery img{flex:none;width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px;scroll-snap-align:center;background:var(--wash)}
+.ptitle{font-size:20px;font-weight:900;margin:12px 0 4px;line-height:1.35}
+.tiers{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
+.tiers th{background:var(--ink);color:#fff;font-size:13px;padding:6px 10px;text-align:left}
+.tiers td{padding:7px 10px;border-top:1px solid var(--line)}
+.tiers td:last-child,.tiers th:last-child{text-align:right}
+.tiers tr.on td{background:var(--sel);font-weight:800}
+.desc{white-space:pre-wrap;color:var(--dim);font-size:15px}
+.buyrow{position:sticky;bottom:calc(-16px - env(safe-area-inset-bottom));padding-bottom:calc(16px + env(safe-area-inset-bottom)) !important;display:flex;gap:10px;align-items:center;background:var(--bg);padding:10px 0 0;margin-top:10px;border-top:1px solid var(--line)}
+.stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.stepper button{width:40px;height:44px;border:0;background:transparent;color:var(--text);font-size:20px;font-weight:700}
+.stepper span{min-width:36px;text-align:center;font-weight:800;font-size:17px}
+.btn{flex:1;height:48px;border:0;border-radius:12px;background:var(--red);color:#fff;font-size:17px;font-weight:900;letter-spacing:.06em}
+.btn.ink{background:var(--ink)}
+.btn.ghost{background:transparent;color:var(--text);border:1.5px solid var(--line)}
+
+.line{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.line img,.line .ph{flex:none;width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--wash)}
+.line .info{flex:1;min-width:0}
+.line .info b{display:block;font-size:15px;line-height:1.35}
+.line .info small{display:block;color:var(--dim);font-size:13px}
+.line .info .save{color:var(--ok);font-weight:700}
+.line .right{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:6px}
+.line .stepper button{width:32px;height:32px;font-size:17px}
+.line .stepper span{min-width:28px;font-size:15px}
+.coupon{display:flex;gap:8px;margin:12px 0 4px}
+.coupon input,.field input,.field select,.field textarea{flex:1;min-width:0;font:inherit;color:var(--text);background:var(--card);border:1.5px solid var(--faint);border-radius:10px;padding:9px 10px}
+.coupon input{text-transform:uppercase}
+.coupon button{flex:none;width:84px;border:0;border-radius:10px;background:var(--text);color:var(--bg);font-weight:800}
+.msg{font-size:13px;font-weight:700;min-height:1.2em}
+.msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
+.sum{margin:8px 0}
+.sum div{display:flex;justify-content:space-between;padding:3px 0;font-size:15px}
+.sum .minus{color:var(--ok);font-weight:700}
+.sum .total{border-top:1.5px solid var(--text);margin-top:6px;padding-top:8px;font-size:19px;font-weight:900}
+.sum .total b{color:var(--red)}
+.hint{font-size:13px;color:var(--dim)}
+.field{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+.field label{font-size:14px;font-weight:800;color:var(--dim)}
+.field textarea{min-height:64px;resize:vertical}
+.ships{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ships button{padding:9px 4px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-weight:800;font-size:14px}
+.ships button[aria-pressed=true]{border-color:var(--red);background:var(--red);color:#fff}
+.done{text-align:center;padding:10px 0}
+.done .no{display:inline-block;margin:8px 0;font-size:22px;font-weight:900;letter-spacing:.06em;background:var(--ink);color:#fff;padding:4px 14px;border-radius:10px}
+.vplayer{width:100%;aspect-ratio:9/16;max-height:72vh;border:0;border-radius:14px;background:#000;display:block;margin:0 auto}
+
+footer{margin:40px 0 0;padding:28px 0 calc(28px + env(safe-area-inset-bottom));border-top:1px solid var(--line);text-align:center}
+footer img{width:72px;height:72px;border-radius:16px}
+footer .team{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px;font-size:24px;font-weight:900;letter-spacing:.3em}
+footer .team span{margin-right:-.3em;white-space:nowrap}
+footer .team::before,footer .team::after{content:"";flex:0 1 40px;min-width:0;height:2px;background:var(--red)}
+footer .brandline{margin-top:8px;font-size:14px;letter-spacing:.12em}
+footer .g{color:var(--gold);font-weight:700} footer .s{color:var(--gray);font-weight:600}
+footer i{display:inline-block;width:1px;height:12px;background:var(--line);margin:0 12px;vertical-align:-1px}
+footer nav{display:flex;justify-content:center;gap:18px;margin-top:16px;font-size:13px;font-weight:700}
+footer nav a{color:var(--faint);text-decoration:none}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./shop.html"><img src="badge.png?v=1" alt=""><span><b>赤貧軍團</b><small>RC 鋰電池 × 車種買賣 × 改裝教學</small></span></a>
+  <form class="search" id="searchForm" role="search">
+    <input id="q" type="search" placeholder="搜尋商品、車種、電池規格" aria-label="搜尋商品">
+    <button aria-label="搜尋"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+  </form>
+  <button class="cartbtn" id="cartBtn" aria-label="購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg><i id="cartCount"></i></button>
+</div></header>
+
+<main class="wrap">
+  <h1 class="sr">赤貧軍團 RC 玩車商城</h1>
+  <img class="hero" src="shop-hero.jpg?v=1" alt="赤貧軍團 玩車不貧" width="1619" height="370">
+  <div class="notice" id="notice"></div>
+
+  <div class="cats" id="cats"></div>
+
+  <section id="reelSec" hidden>
+    <h2>短影音</h2>
+    <div class="reels" id="reels"></div>
+  </section>
+
+  <section id="promoSec">
+    <h2>精選專區</h2>
+    <div class="promos">
+      <button data-cat="battery"><img src="promo-1.jpg?v=1" alt="鋰電池專區" width="520" height="195"></button>
+      <button data-cat="car"><img src="promo-2.jpg?v=1" alt="車種買賣" width="500" height="195"></button>
+      <button data-cat="parts"><img src="promo-3.jpg?v=1" alt="改裝配件" width="507" height="195"></button>
+    </div>
+  </section>
+
+  <section>
+    <div class="h2row"><h2 id="listTitle">全部商品</h2><a href="./">鋰電池充電計算 ›</a></div>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<footer>
+  <img src="badge.png?v=1" alt="赤貧軍團" width="72" height="72">
+  <div class="team"><span>赤貧軍團</span></div>
+  <div class="brandline"><span class="g">欣群企業</span><i></i><span class="s">欣瀚資訊</span></div>
+  <nav><a href="./">鋰電池充電</a><a href="admin.html">管理後台</a></nav>
+</footer>
+
+<!-- 商品 -->
+<div class="sheet" id="pSheet" role="dialog" aria-modal="true"><div class="panel" id="pPanel"></div></div>
+<!-- 購物車／結帳 -->
+<div class="sheet" id="cSheet" role="dialog" aria-modal="true"><div class="panel" id="cPanel"></div></div>
+<!-- 影片 -->
+<div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
+
+<script src="shop-core.js?v=1"></script>
+<script>
+const $ = id => document.getElementById(id);
+const ICON = {
+  all: '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',
+  battery: '<rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M10 2.5h4M13 8l-3 5h3l-1 4 3-5h-3z"/>',
+  car: '<path d="M3 15l2-5h11l3 4h2v3H3z"/><circle cx="7.5" cy="17.5" r="2"/><circle cx="16.5" cy="17.5" r="2"/>',
+  parts: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+  wheel: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>',
+  motor: '<rect x="4" y="7" width="12" height="10" rx="2"/><path d="M16 10h3v4h-3M8 4v3M12 4v3"/>',
+  radio: '<rect x="3" y="9" width="18" height="10" rx="3"/><path d="M8 9V4M7 14h2M8 13v2M15 14h.01M17 13h.01"/>',
+  tool: '<path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.5-7.5zM5 5l4 4"/>',
+  body: '<path d="M4 16c0-5 3-9 8-9s8 4 8 9H4z"/><path d="M9 11h6"/>',
+  charger: '<path d="M13 2 5 14h6l-1 8 8-12h-6z"/>',
+};
+const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+
+let catalog = lsGet("cp-catalog", null);
+let cart = lsGet("cp-cart", []);          // [{id, qty}]
+let code = lsGet("cp-code", "");
+let filter = {cat: "all", q: ""};
+
+/* ── 分類列 ── */
+$("cats").innerHTML = [["all", "全部"], ...CATEGORIES].map(([k, n]) => `<button data-cat="${k}">${svg(k)}${n}</button>`).join("");
+$("cats").onclick = e => { const b = e.target.closest("button"); if (b) setCat(b.dataset.cat); };
+document.querySelector(".promos").onclick = e => { const b = e.target.closest("button"); if (b) { setCat(b.dataset.cat); $("listTitle").scrollIntoView({behavior: "smooth", block: "start"}); } };
+function setCat(c) { filter.cat = c; filter.q = ""; $("q").value = ""; renderList(); }
+$("searchForm").onsubmit = e => { e.preventDefault(); filter.q = $("q").value.trim(); filter.cat = "all"; renderList(); $("listTitle").scrollIntoView({behavior: "smooth"}); };
+
+/* ── 列表 ── */
+function renderList() {
+  for (const b of $("cats").children) b.setAttribute("aria-pressed", b.dataset.cat === filter.cat);
+  $("listTitle").textContent = filter.q ? `搜尋：${filter.q}` : filter.cat === "all" ? "全部商品" : catName(filter.cat);
+  if (!catalog) { $("grid").innerHTML = '<div class="skel"></div>'.repeat(4); return; }
+  const q = filter.q.toLowerCase();
+  const list = catalog.products.filter(p => (filter.cat === "all" || p.category === filter.cat) && (!q || (p.name + p.desc).toLowerCase().includes(q)));
+  $("grid").innerHTML = list.length ? list.map(card).join("") : '<div class="empty">尚無商品</div>';
+}
+function card(p) {
+  const out = p.stock === 0, best = (p.tiers || []).slice(-1)[0];
+  return `<button class="pcard" data-id="${esc(p.id)}">
+    ${out ? '<span class="badge out">售完</span>' : p.hot ? '<span class="badge">熱銷</span>' : ""}
+    <div class="img">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 500))}" alt="" loading="lazy">` : svg(p.category || "all")}</div>
+    <div class="body"><span class="name">${esc(p.name)}</span>
+      <span class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}</span>
+      ${best ? `<span class="tierhint">${best.qty} 件起 每件 ${money(best.price)}</span>` : ""}
+    </div></button>`;
+}
+$("grid").onclick = e => { const b = e.target.closest(".pcard"); if (b) openProduct(b.dataset.id); };
+
+/* ── 短影音 ── */
+function renderReels() {
+  const vs = (catalog && catalog.videos) || [];
+  $("reelSec").hidden = !vs.length;
+  $("reels").innerHTML = vs.map(v => {
+    const info = videoInfo(v.src), poster = v.poster ? imgUrl(v.poster, 400) : info.thumb;
+    const media = poster ? `<img src="${esc(poster)}" alt="" loading="lazy">`
+      : info.kind === "file" ? `<video src="${esc(info.url)}#t=0.1" muted playsinline preload="metadata"></video>` : "";
+    return `<button class="reel" data-id="${esc(v.id)}">${media}<span class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg></span><b>${esc(v.title)}</b></button>`;
+  }).join("");
+}
+$("reels").onclick = e => {
+  const b = e.target.closest(".reel"); if (!b) return;
+  const v = catalog.videos.find(x => x.id === b.dataset.id), info = videoInfo(v.src);
+  const player = info.kind === "youtube" ? `<iframe class="vplayer" src="https://www.youtube.com/embed/${info.id}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`
+    : info.kind === "drive" ? `<iframe class="vplayer" src="${info.url}" allow="autoplay; fullscreen" allowfullscreen></iframe>`
+    : `<video class="vplayer" src="${esc(info.url)}" controls autoplay playsinline></video>`;
+  const p = v.productId && catalog.products.find(x => x.id === v.productId);
+  $("vPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
+    <div class="ptitle">${esc(v.title)}</div>${player}
+    ${p ? `<div class="buyrow"><button class="btn" data-open="${esc(p.id)}">查看商品　${money(p.price)}</button></div>` : ""}`;
+  open("vSheet");
+};
+$("vPanel").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) { close("vSheet"); openProduct(b.dataset.open); } });
+
+/* ── 浮層開關 ── */
+function open(id) { $(id).classList.add("open"); document.body.style.overflow = "hidden"; }
+function close(id) {
+  $(id).classList.remove("open");
+  if (id === "vSheet") $("vPanel").innerHTML = ""; // 停止播放
+  if (!document.querySelector(".sheet.open")) document.body.style.overflow = "";
+}
+document.querySelectorAll(".sheet").forEach(s => s.addEventListener("click", e => {
+  if (e.target === s || e.target.closest("[data-close]")) close(s.id);
+}));
+addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".sheet.open").forEach(s => close(s.id)); });
+
+/* ── 商品詳情 ── */
+let pQty = 1;
+function openProduct(id) {
+  const p = catalog.products.find(x => x.id === id); if (!p) return;
+  pQty = 1;
+  const imgs = p.images.length ? p.images.map(s => `<img src="${esc(imgUrl(s, 1000))}" alt="">`).join("") : `<div class="noimg">${svg(p.category || "all")}</div>`;
+  const draw = () => {
+    const u = unitPrice(p, pQty), out = p.stock === 0;
+    $("pPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
+      <div class="gallery">${imgs}</div>
+      <div class="ptitle">${esc(p.name)}</div>
+      <div class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}<span class="hint">${esc(catName(p.category))}${p.stock > 0 ? `・庫存 ${p.stock}` : ""}</span></div>
+      ${p.tiers.length ? `<table class="tiers"><tr><th>多件優惠</th><th>每件</th></tr>
+        <tr class="${u === p.price ? "on" : ""}"><td>1 件</td><td>${money(p.price)}</td></tr>
+        ${p.tiers.map(t => `<tr class="${u === t.price && pQty >= t.qty ? "on" : ""}"><td>${t.qty} 件以上</td><td>${money(t.price)}　<span class="tierhint">${zhe(t.price, p.price)}</span></td></tr>`).join("")}</table>` : ""}
+      ${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ""}
+      <div class="buyrow">
+        <div class="stepper"><button data-q="-1" aria-label="減少">−</button><span>${pQty}</span><button data-q="1" aria-label="增加">＋</button></div>
+        <button class="btn" data-add ${out ? "disabled" : ""}>${out ? "已售完" : `加入購物車　${money(u * pQty)}`}</button>
+      </div>`;
+  };
+  draw();
+  $("pPanel").onclick = e => {
+    const q = e.target.closest("[data-q]");
+    if (q) { const max = p.stock > 0 ? p.stock : 99; pQty = Math.min(max, Math.max(1, pQty + Number(q.dataset.q))); draw(); }
+    if (e.target.closest("[data-add]")) { addToCart(p.id, pQty); close("pSheet"); openCart(); }
+  };
+  open("pSheet");
+}
+
+/* ── 購物車 ── */
+function saveCart() { lsSet("cp-cart", cart); $("cartCount").textContent = cart.reduce((s, l) => s + l.qty, 0) || ""; }
+function addToCart(id, qty) {
+  const l = cart.find(x => x.id === id);
+  if (l) l.qty += qty; else cart.push({id, qty});
+  saveCart();
+}
+// 前台預覽計價（不含折扣碼；折扣碼要問後端才知道有效與否）
+function localQuote() {
+  let subtotal = 0, tierSaving = 0;
+  const lines = cart.map(l => {
+    const p = catalog && catalog.products.find(x => x.id === l.id);
+    if (!p) return null;
+    const u = unitPrice(p, l.qty);
+    subtotal += u * l.qty; tierSaving += (p.price - u) * l.qty;
+    return {p, qty: l.qty, unit: u};
+  }).filter(Boolean);
+  return {lines, subtotal, tierSaving};
+}
+let serverQuote = null, step = "cart", ship = "";
+
+function openCart() { step = "cart"; drawCart(); open("cSheet"); refreshQuote(); }
+$("cartBtn").onclick = openCart;
+
+async function refreshQuote() {
+  if (!cart.length) { serverQuote = null; drawCart(); return; }
+  const key = JSON.stringify([cart, code]);
+  try {
+    const r = await api({action: "quote", items: cart, code}, {tries: 3});
+    if (key === JSON.stringify([cart, code])) { serverQuote = r.quote; drawCart(); }
+  } catch (e) { /* 連不上時維持前台預覽 */ }
+}
+
+function totals() {
+  const lq = localQuote();
+  const s = (catalog && catalog.settings) || {shipFee: 0, freeShipOver: 0};
+  const sq = serverQuote;
+  const codeDiscount = sq && sq.code ? sq.codeDiscount : 0;
+  const after = lq.subtotal - codeDiscount;
+  const shipping = !lq.lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : s.shipFee;
+  return {...lq, codeDiscount, shipping, total: after + shipping, freeShipOver: s.freeShipOver};
+}
+
+function drawCart() {
+  const t = totals();
+  if (step === "done") return;
+  if (!t.lines.length) {
+    $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">購物車</div><div class="empty">購物車是空的</div>`;
+    return;
+  }
+  const codeMsg = !code ? "" : !serverQuote ? '<div class="msg">確認中…</div>'
+    : serverQuote.code ? `<div class="msg ok">已套用 ${esc(serverQuote.code)}，折抵 ${money(serverQuote.codeDiscount)}</div>`
+    : `<div class="msg bad">${esc(serverQuote.codeError || "折扣碼無效")}</div>`;
+  const freeGap = t.freeShipOver > 0 && t.shipping > 0 ? `<div class="hint">再買 ${money(t.freeShipOver - (t.subtotal - t.codeDiscount))} 免運</div>` : "";
+  const summary = `<div class="sum">
+      <div><span>商品小計</span><span>${money(t.subtotal + t.tierSaving)}</span></div>
+      ${t.tierSaving ? `<div class="minus"><span>多件優惠</span><span>−${money(t.tierSaving)}</span></div>` : ""}
+      ${t.codeDiscount ? `<div class="minus"><span>折扣碼</span><span>−${money(t.codeDiscount)}</span></div>` : ""}
+      <div><span>運費</span><span>${t.shipping ? money(t.shipping) : "免運"}</span></div>
+      <div class="total"><span>應付金額</span><b>${money(t.total)}</b></div>${freeGap}</div>`;
+
+  if (step === "cart") {
+    $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">購物車</div>
+      ${t.lines.map(({p, qty, unit}) => `<div class="line">
+        ${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 200))}" alt="">` : '<div class="ph"></div>'}
+        <div class="info"><b>${esc(p.name)}</b><small>${money(unit)} × ${qty}${unit < p.price ? `　<span class="save">多件優惠 ${zhe(unit, p.price)}</span>` : ""}</small></div>
+        <div class="right"><b>${money(unit * qty)}</b>
+          <div class="stepper"><button data-cq="-1" data-id="${esc(p.id)}" aria-label="減少">−</button><span>${qty}</span><button data-cq="1" data-id="${esc(p.id)}" aria-label="增加">＋</button></div></div>
+      </div>`).join("")}
+      <form class="coupon" id="couponForm"><input id="codeIn" placeholder="折扣碼" value="${esc(code)}" autocapitalize="characters" aria-label="折扣碼"><button>${code ? "更新" : "套用"}</button></form>
+      ${codeMsg}${summary}
+      <div class="buyrow"><button class="btn" data-step="form">前往結帳</button></div>`;
+  } else {
+    $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">填寫訂購資料</div>
+      <form id="orderForm">
+        <div class="field"><label for="oName">姓名</label><input id="oName" autocomplete="name" required></div>
+        <div class="field"><label for="oPhone">手機</label><input id="oPhone" type="tel" inputmode="tel" autocomplete="tel" required></div>
+        <div class="field"><label for="oLine">LINE ID（選填）</label><input id="oLine"></div>
+        <div class="field"><label>取貨方式</label><div class="ships" id="ships">
+          ${["宅配", "超商取貨", "面交"].map(m => `<button type="button" aria-pressed="${ship === m}">${m}</button>`).join("")}</div></div>
+        <div class="field" id="addrField" ${ship && ship !== "面交" ? "" : "hidden"}><label for="oAddr">${ship === "超商取貨" ? "超商門市（店名或店號）" : "收件地址"}</label><input id="oAddr"></div>
+        <div class="field"><label for="oNote">備註（選填）</label><textarea id="oNote"></textarea></div>
+        ${summary}
+        <div class="hint">送出後由專人以電話或 LINE 確認付款方式</div>
+        <div class="msg bad" id="orderErr"></div>
+        <div class="buyrow"><button type="button" class="btn ghost" data-step="cart" style="flex:none;width:96px">返回</button><button class="btn" id="submitBtn">送出訂單</button></div>
+      </form>`;
+    const saved = lsGet("cp-customer", {});
+    $("oName").value = saved.name || ""; $("oPhone").value = saved.phone || ""; $("oLine").value = saved.line || ""; $("oAddr").value = saved.address || "";
+  }
+}
+
+$("cPanel").addEventListener("click", e => {
+  const cq = e.target.closest("[data-cq]");
+  if (cq) {
+    const l = cart.find(x => x.id === cq.dataset.id), p = catalog.products.find(x => x.id === cq.dataset.id);
+    l.qty += Number(cq.dataset.cq);
+    if (p && p.stock > 0) l.qty = Math.min(l.qty, p.stock);
+    if (l.qty <= 0) cart = cart.filter(x => x !== l);
+    saveCart(); serverQuote = null; drawCart(); refreshQuote();
+  }
+  const st = e.target.closest("[data-step]");
+  if (st) { step = st.dataset.step; drawCart(); $("cPanel").scrollTop = 0; }
+  const sb = e.target.closest("#ships button");
+  if (sb) {
+    ship = sb.textContent;
+    for (const b of $("ships").children) b.setAttribute("aria-pressed", b === sb);
+    $("addrField").hidden = ship === "面交";
+    $("addrField").querySelector("label").textContent = ship === "超商取貨" ? "超商門市（店名或店號）" : "收件地址";
+  }
+});
+$("cPanel").addEventListener("submit", e => {
+  e.preventDefault();
+  if (e.target.id === "couponForm") {
+    code = $("codeIn").value.trim().toUpperCase(); lsSet("cp-code", code);
+    serverQuote = null; drawCart(); refreshQuote();
+  }
+  if (e.target.id === "orderForm") submitOrder();
+});
+
+async function submitOrder() {
+  const c = {name: $("oName").value.trim(), phone: $("oPhone").value.trim(), line: $("oLine").value.trim(),
+             shipMethod: ship, address: $("oAddr").value.trim(), note: $("oNote").value.trim()};
+  const err = $("orderErr");
+  if (!c.name || !c.phone) { err.textContent = "請填寫姓名與手機"; return; }
+  if (!/^09\d{8}$/.test(c.phone.replace(/[-\s]/g, ""))) { err.textContent = "手機格式為 09 開頭 10 碼"; return; }
+  if (!ship) { err.textContent = "請選擇取貨方式"; return; }
+  if (ship !== "面交" && !c.address) { err.textContent = ship === "超商取貨" ? "請填寫超商門市" : "請填寫收件地址"; return; }
+  lsSet("cp-customer", {name: c.name, phone: c.phone, line: c.line, address: c.address});
+  // clientId 讓重送不會重複下單（後端依它去重），所以這個動作可以安全重試
+  const clientId = lsGet("cp-pending", null) || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  lsSet("cp-pending", clientId);
+  await busy($("submitBtn"), async () => {
+    err.textContent = "";
+    try {
+      const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : ""}, {tries: 3});
+      cart = []; code = ""; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); serverQuote = null;
+      step = "done";
+      const lineUrl = catalog.settings.lineUrl;
+      $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
+        <div class="done"><div class="ptitle">訂單已送出</div><div class="no">${esc(r.orderNo)}</div>
+        <div>應付金額 <b style="color:var(--red);font-size:20px">${money(r.total)}</b></div>
+        <p class="hint">專人將以電話或 LINE 與您確認付款與出貨</p>
+        ${lineUrl ? `<div class="buyrow" style="position:static;border:0"><a class="btn ink" href="${esc(lineUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">LINE 聯絡</a></div>` : ""}</div>`;
+    } catch (e) { err.textContent = e.message; }
+  });
+}
+
+/* ── 載入 ── */
+function renderAll() {
+  $("notice").textContent = (catalog && catalog.settings.notice) || "";
+  renderReels(); renderList(); saveCart();
+}
+renderAll();
+api(null, {tries: 3, timeout: 45000}).then(d => {
+  catalog = d; lsSet("cp-catalog", d);
+  cart = cart.filter(l => d.products.some(p => p.id === l.id));
+  renderAll();
+}).catch(() => { if (!catalog) $("grid").innerHTML = '<div class="empty">連線失敗，請重新整理</div>'; });
+</script>
+</body>
+</html>

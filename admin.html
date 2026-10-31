@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>赤貧軍團｜管理後台</title>
+<link rel="icon" type="image/png" href="favicon.png?v=2">
+<style>
+:root{
+  color-scheme:light dark;
+  --bg:#F3ECDF; --card:#FFFCF5; --line:#E2D6C0; --text:#1A2130; --dim:#4A5163; --faint:#6E7383;
+  --accent:#1C3F7C; --red:#D7261E; --ink:#17181D; --ok:#1F7A4A; --warn:#A85A00; --bad:#B3261E;
+  --sel:rgba(28,63,124,.10); --wash:rgba(26,33,48,.055);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0C1424; --card:#142039; --line:#26355A; --text:#F3ECDF; --dim:#CBC4B6; --faint:#9A968C;
+    --accent:#7FA8EC; --red:#E5372E; --ok:#5BD69B; --warn:#FFB650; --bad:#FF7B72;
+    --sel:rgba(127,168,236,.17); --wash:rgba(243,236,223,.06);
+  }
+}
+@media (prefers-color-scheme: dark){.btn.ink,.x{background:#2A3048}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;font-feature-settings:"tnum"}
+button{font:inherit;cursor:pointer}
+button:disabled,button[aria-busy]{filter:grayscale(.6) opacity(.55);cursor:default}
+.wrap{max-width:980px;margin:0 auto;padding:0 14px}
+svg{width:20px;height:20px}
+
+.top{position:sticky;top:0;z-index:10;background:var(--ink);color:#fff}
+.top .wrap{display:flex;align-items:center;gap:10px;height:54px}
+.top img{width:32px;height:32px;border-radius:8px}
+.top b{font-size:17px;font-weight:900;letter-spacing:.06em}
+.top span{flex:1;color:#C9CBD2;font-size:13px;font-weight:700}
+.top a,.top button{color:#fff;background:transparent;border:1px solid #444;border-radius:8px;padding:4px 10px;font-size:13px;text-decoration:none}
+.tabs{position:sticky;top:54px;z-index:9;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}
+.tabs .wrap{display:flex;gap:4px}
+.tabs button{flex:1 1 0;min-width:0;border:0;border-radius:10px;padding:8px 0;background:var(--card);color:var(--dim);font-weight:800;white-space:nowrap}
+.tabs button[aria-pressed=true]{background:var(--red);color:#fff}
+
+h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.list{display:grid;gap:8px}
+.row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:left;color:var(--text);width:100%}
+.row img,.row .ph{flex:none;width:52px;height:52px;border-radius:9px;object-fit:cover;background:var(--wash)}
+.row .info{flex:1;min-width:0}
+.row .info b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .info small{display:block;color:var(--dim);font-size:13px}
+.row .right{text-align:right;flex:none}
+.pill{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:1px 9px;white-space:nowrap}
+.pill.on{background:rgba(31,122,74,.14);color:var(--ok)} .pill.off{background:var(--wash);color:var(--faint)}
+.pill.new{background:var(--red);color:#fff} .pill.warn{background:rgba(168,90,0,.14);color:var(--warn)}
+.btn{border:0;border-radius:10px;background:var(--red);color:#fff;font-weight:800;padding:9px 16px;white-space:nowrap}
+.btn.ink{background:var(--ink)} .btn.ghost{background:transparent;color:var(--text);border:1.5px solid var(--line)} .btn.danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btns .btn{flex:1}
+.empty{padding:26px;text-align:center;color:var(--faint);font-weight:700}
+
+.f{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+.f label{font-size:13px;font-weight:800;color:var(--dim)}
+.f input,.f select,.f textarea{font:inherit;color:var(--text);background:var(--bg);border:1.5px solid var(--faint);border-radius:10px;padding:8px 10px;width:100%}
+.f textarea{min-height:90px;resize:vertical}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--accent)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f2 .f{margin:0}
+.f .note{font-size:12px;color:var(--faint);font-weight:600}
+.check{display:flex;align-items:center;gap:8px;font-weight:800;margin:10px 0}
+.check input{width:20px;height:20px;accent-color:var(--red)}
+
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumb{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:var(--wash)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:14px;line-height:1}
+.thumb .first{position:absolute;left:0;right:0;bottom:0;background:var(--red);color:#fff;font-size:11px;font-weight:800;text-align:center}
+.addimg{width:76px;height:76px;border-radius:10px;border:2px dashed var(--faint);background:transparent;color:var(--dim);font-weight:800;font-size:13px}
+.tierrow{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:center;margin-bottom:6px}
+.tierrow input{font:inherit;color:var(--text);background:var(--bg);border:1.5px solid var(--faint);border-radius:10px;padding:7px 9px;width:100%;min-width:0}
+.tierrow span{font-size:13px;font-weight:800;color:var(--ok);min-width:42px}
+.tierrow button{border:0;background:transparent;color:var(--bad);font-size:20px;width:30px}
+
+.login{max-width:360px;margin:12vh auto 0;text-align:center}
+.login img{width:84px;height:84px;border-radius:18px}
+.login h1{font-size:22px;margin:10px 0 2px;letter-spacing:.1em}
+.login .card{text-align:left;margin-top:16px}
+.err{color:var(--bad);font-weight:700;font-size:13px;min-height:1.3em}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;background:var(--ink);color:#fff;font-weight:700;padding:9px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.modal{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center}
+.modal.open{display:flex}
+@media (min-width:700px){.modal.open{align-items:center}}
+.modal .panel{width:100%;max-width:620px;max-height:94vh;overflow:auto;background:var(--card);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+@media (min-width:700px){.modal .panel{border-radius:18px}}
+.panel h3{margin:0 0 6px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
+.x{width:34px;height:34px;border:0;border-radius:50%;background:var(--ink);color:#fff;font-size:18px}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
+.filters button{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--dim);border-radius:999px;padding:4px 12px;font-weight:800;font-size:13px}
+.filters button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.otable{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}
+.otable td{padding:5px 0;border-bottom:1px solid var(--line)}
+.otable td:last-child{text-align:right}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv dt{color:var(--dim);font-weight:700} .kv dd{margin:0}
+.statusbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:12px}
+.statusbar button{border:1.5px solid var(--line);background:var(--bg);color:var(--text);border-radius:10px;padding:8px 0;font-weight:800;font-size:13px}
+.statusbar button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.stats div{background:var(--ink);color:#fff;border-radius:12px;padding:10px;box-shadow:inset 0 -3px 0 var(--red)}
+.stats small{display:block;color:#C9CBD2;font-size:12px;font-weight:700}
+.stats b{font-size:20px;font-weight:900}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="modal" id="modal"><div class="panel" id="mPanel"></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileIn" hidden>
+
+<script src="shop-core.js?v=1"></script>
+<script>
+const $ = id => document.getElementById(id);
+let token = sessionStorage.getItem("cp-admin") || "";
+let data = null, orders = null, tab = sessionStorage.getItem("cp-tab") || "orders", orderFilter = "新訂單";
+const STATUSES = ["新訂單", "已確認", "已出貨", "已完成", "已取消"];
+
+function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200); }
+async function admin(action, body = {}, opts) {
+  try { return await api({action, token, ...body}, opts); }
+  catch (e) { if (e.message === "auth") { logout(); throw new Error("登入已逾時，請重新登入"); } throw e; }
+}
+function logout() { token = ""; sessionStorage.removeItem("cp-admin"); drawLogin(); }
+
+/* ── 登入 ── */
+function drawLogin() {
+  $("app").innerHTML = `<div class="wrap login"><img src="badge.png?v=1" alt=""><h1>管理後台</h1><div style="color:var(--dim);font-weight:700">赤貧軍團</div>
+    <form class="card" id="loginForm">
+      <div class="f"><label for="lu">帳號</label><input id="lu" autocomplete="username" required></div>
+      <div class="f"><label for="lp">密碼</label><input id="lp" type="password" autocomplete="current-password" required></div>
+      <div class="err" id="lerr"></div>
+      <button class="btn" style="width:100%" id="lbtn">登入</button>
+    </form><p><a href="shop.html" style="color:var(--dim);font-size:13px">返回賣場</a></p></div>`;
+  $("loginForm").onsubmit = e => {
+    e.preventDefault();
+    busy($("lbtn"), async () => {
+      $("lerr").textContent = "";
+      try {
+        const r = await api({action: "login", user: $("lu").value.trim(), pass: $("lp").value});
+        token = r.token; sessionStorage.setItem("cp-admin", token);
+        if (r.isDefault) sessionStorage.setItem("cp-default-pw", "1");
+        await loadAll(); drawApp();
+      } catch (err) { $("lerr").textContent = err.message; }
+    });
+  };
+}
+
+/* ── 主畫面 ── */
+async function loadAll() { data = await admin("admin_all", {}, {tries: 3}); }
+async function loadOrders() { orders = (await admin("admin_orders", {}, {tries: 3})).orders; }
+
+function drawApp() {
+  $("app").innerHTML = `<header class="top"><div class="wrap"><img src="badge.png?v=1" alt=""><b>赤貧軍團</b><span>管理後台</span>
+      <a href="shop.html" target="_blank" rel="noopener">賣場</a><button id="outBtn">登出</button></div></header>
+    <nav class="tabs"><div class="wrap">
+      ${[["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["settings", "設定"]]
+        .map(([k, n]) => `<button data-tab="${k}" aria-pressed="${tab === k}">${n}</button>`).join("")}</div></nav>
+    <main class="wrap" id="main"></main>`;
+  $("outBtn").onclick = logout;
+  document.querySelector(".tabs").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; sessionStorage.setItem("cp-tab", tab); drawApp(); } };
+  ({orders: drawOrders, products: drawProducts, videos: drawVideos, codes: drawCodes, settings: drawSettings})[tab]();
+}
+
+/* ── 訂單 ── */
+async function drawOrders() {
+  const main = $("main");
+  if (!orders) { main.innerHTML = '<div class="empty">載入訂單中…</div>'; try { await loadOrders(); } catch (e) { main.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; } }
+  const today = new Date().toLocaleDateString("sv-SE", {timeZone: "Asia/Taipei"});
+  const valid = orders.filter(o => o.status !== "已取消");
+  const todayOrders = valid.filter(o => o.createdAt.startsWith(today));
+  const list = orderFilter === "全部" ? orders : orders.filter(o => o.status === orderFilter);
+  main.innerHTML = `<h2>訂單 <button class="btn ghost" id="reload">重新整理</button></h2>
+    <div class="stats"><div><small>待處理</small><b>${orders.filter(o => o.status === "新訂單").length}</b></div>
+      <div><small>今日訂單</small><b>${todayOrders.length}</b></div><div><small>今日營業額</small><b>${money(todayOrders.reduce((s, o) => s + o.total, 0))}</b></div></div>
+    <div class="filters">${["新訂單", "已確認", "已出貨", "已完成", "已取消", "全部"].map(s => `<button data-f="${s}" aria-pressed="${orderFilter === s}">${s} ${s === "全部" ? orders.length : orders.filter(o => o.status === s).length}</button>`).join("")}</div>
+    <div class="list">${list.length ? list.map(o => `<button class="row" data-o="${esc(o.orderNo)}">
+      <div class="info"><b>${esc(o.name)}　${esc(o.phone)}</b><small>${esc(o.orderNo)}・${esc(o.createdAt)}・${esc(o.shipMethod)}</small></div>
+      <div class="right"><b>${money(o.total)}</b><br><span class="pill ${o.status === "新訂單" ? "new" : o.status === "已取消" ? "off" : "on"}">${esc(o.status)}</span></div></button>`).join("") : '<div class="empty">尚無訂單</div>'}</div>`;
+  $("reload").onclick = e => busy(e.target, async () => { await loadOrders(); drawOrders(); });
+  main.querySelector(".filters").onclick = e => { const b = e.target.closest("[data-f]"); if (b) { orderFilter = b.dataset.f; drawOrders(); } };
+  main.querySelector(".list").onclick = e => { const b = e.target.closest("[data-o]"); if (b) openOrder(b.dataset.o); };
+}
+function openOrder(no) {
+  const o = orders.find(x => x.orderNo === no);
+  $("mPanel").innerHTML = `<h3>${esc(o.orderNo)}<button class="x" data-x>×</button></h3>
+    <dl class="kv"><dt>下單時間</dt><dd>${esc(o.createdAt)}</dd><dt>姓名</dt><dd>${esc(o.name)}</dd>
+      <dt>手機</dt><dd><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></dd>${o.line ? `<dt>LINE</dt><dd>${esc(o.line)}</dd>` : ""}
+      <dt>取貨</dt><dd>${esc(o.shipMethod)}${o.address ? `　${esc(o.address)}` : ""}</dd>${o.note ? `<dt>備註</dt><dd>${esc(o.note)}</dd>` : ""}
+      <dt>付款</dt><dd>${o.payStatus === "paid" ? "已付款" : "未付款"}</dd></dl>
+    <table class="otable">${o.items.map(i => `<tr><td>${esc(i.name)}<br><small style="color:var(--dim)">${money(i.unit)} × ${i.qty}</small></td><td>${money(i.total)}</td></tr>`).join("")}
+      ${o.tierSaving ? `<tr><td>多件優惠（已含於單價）</td><td>−${money(o.tierSaving)}</td></tr>` : ""}
+      ${o.codeDiscount ? `<tr><td>折扣碼 ${esc(o.code)}</td><td>−${money(o.codeDiscount)}</td></tr>` : ""}
+      <tr><td>運費</td><td>${o.shipping ? money(o.shipping) : "免運"}</td></tr>
+      <tr><td><b>應付金額</b></td><td><b style="color:var(--red);font-size:18px">${money(o.total)}</b></td></tr></table>
+    <div class="statusbar">${STATUSES.map(s => `<button data-s="${s}" aria-pressed="${o.status === s}">${s}</button>`).join("")}</div>
+    <div class="btns"><button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button></div>`;
+  openModal();
+  $("mPanel").onclick = e => {
+    if (e.target.closest("[data-x]")) return closeModal();
+    const s = e.target.closest("[data-s]");
+    if (s && s.dataset.s !== o.status) busy(s, async () => {
+      await admin("admin_orderStatus", {orderNos: [o.orderNo], value: s.dataset.s}, {tries: 2});
+      o.status = s.dataset.s; toast("已更新為「" + o.status + "」"); openOrder(no); drawOrders();
+    }).catch(err => toast(err.message));
+    const p = e.target.closest("[data-pay]");
+    if (p) busy(p, async () => {
+      const v = o.payStatus === "paid" ? "unpaid" : "paid";
+      await admin("admin_orderStatus", {orderNos: [o.orderNo], field: "payStatus", value: v}, {tries: 2});
+      o.payStatus = v; toast(v === "paid" ? "已標記付款" : "已改為未付款"); openOrder(no);
+    }).catch(err => toast(err.message));
+  };
+}
+
+/* ── 商品 ── */
+function drawProducts() {
+  const ps = data.products;
+  $("main").innerHTML = `<h2>商品 ${ps.length} 項 <button class="btn" id="newP">新增商品</button></h2>
+    <div class="list">${ps.length ? ps.map(p => `<button class="row" data-p="${esc(p.id)}">
+      ${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 150))}" alt="">` : '<div class="ph"></div>'}
+      <div class="info"><b>${esc(p.name)}</b><small>${esc(catName(p.category))}・${money(p.price)}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}</small></div>
+      <div class="right"><span class="pill ${p.active ? "on" : "off"}">${p.active ? "上架" : "下架"}</span>${p.hot ? '<br><span class="pill new">熱銷</span>' : ""}</div></button>`).join("") : '<div class="empty">尚無商品</div>'}</div>`;
+  $("newP").onclick = () => editProduct(null);
+  $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-p]"); if (b) editProduct(b.dataset.p); };
+}
+function editProduct(id) {
+  const src = id ? data.products.find(p => p.id === id) : null;
+  const p = src ? JSON.parse(JSON.stringify(src)) : {name: "", category: "battery", price: "", listPrice: "", desc: "", images: [], tiers: [], stock: -1, active: true, hot: false,
+    sort: Math.min(0, ...data.products.map(x => x.sort)) - 1};
+  const draw = () => {
+    $("mPanel").innerHTML = `<h3>${id ? "編輯商品" : "新增商品"}<button class="x" data-x>×</button></h3>
+      <div class="f"><label>商品圖片（第一張為封面）</label><div class="thumbs">
+        ${p.images.map((s, i) => `<div class="thumb"><img src="${esc(imgUrl(s, 200))}" alt=""><button data-rm="${i}" aria-label="移除">×</button>${i === 0 ? '<span class="first">封面</span>' : ""}</div>`).join("")}
+        <button class="addimg" data-addimg>＋ 圖片</button></div></div>
+      <div class="f"><label for="pn">商品名稱</label><input id="pn" value="${esc(p.name)}"></div>
+      <div class="f2"><div class="f"><label for="pc">分類</label><select id="pc">${CATEGORIES.map(([k, n]) => `<option value="${k}" ${p.category === k ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+        <div class="f"><label for="ps">庫存</label><input id="ps" type="number" inputmode="numeric" placeholder="不限" value="${p.stock < 0 ? "" : p.stock}"><span class="note">空白＝不限量；0＝售完</span></div></div>
+      <div class="f2"><div class="f"><label for="pp">售價</label><input id="pp" type="number" inputmode="numeric" value="${p.price}"></div>
+        <div class="f"><label for="pl">原價（選填）</label><input id="pl" type="number" inputmode="numeric" value="${p.listPrice || ""}"><span class="note">高於售價時顯示刪除線</span></div></div>
+      <div class="f"><label>多件優惠</label><div id="tiers">${p.tiers.map((t, i) => `<div class="tierrow">
+          <input type="number" inputmode="numeric" data-tq="${i}" value="${t.qty}" placeholder="件數" aria-label="件數">
+          <input type="number" inputmode="numeric" data-tp="${i}" value="${t.price}" placeholder="每件價格" aria-label="每件價格">
+          <span>${zhe(t.price, Number(p.price)) || ""}</span><button data-trm="${i}" aria-label="刪除">×</button></div>`).join("")}</div>
+        <button class="btn ghost" data-tadd style="align-self:flex-start">＋ 新增級距</button><span class="note">例：2 件以上每件 $900、3 件以上每件 $850</span></div>
+      <div class="f"><label for="pd">商品介紹</label><textarea id="pd">${esc(p.desc)}</textarea></div>
+      <label class="check"><input type="checkbox" id="pa" ${p.active ? "checked" : ""}>上架</label>
+      <label class="check"><input type="checkbox" id="ph" ${p.hot ? "checked" : ""}>標示熱銷</label>
+      <div class="err" id="perr"></div>
+      <div class="btns">${id ? '<button class="btn danger" data-del style="flex:none">刪除</button>' : ""}<button class="btn" data-save>儲存</button></div>`;
+  };
+  const read = () => {
+    p.name = $("pn").value.trim(); p.category = $("pc").value; p.price = Number($("pp").value) || 0; p.listPrice = Number($("pl").value) || 0;
+    p.stock = $("ps").value === "" ? -1 : Number($("ps").value); p.desc = $("pd").value; p.active = $("pa").checked; p.hot = $("ph").checked;
+    p.tiers = [...document.querySelectorAll("[data-tq]")].map((el, i) => ({qty: Number(el.value) || 0, price: Number(document.querySelector(`[data-tp="${i}"]`).value) || 0}));
+  };
+  draw(); openModal();
+  $("mPanel").oninput = e => { if (e.target.matches("[data-tp],[data-tq],#pp")) { read(); [...document.querySelectorAll(".tierrow span")].forEach((s, i) => s.textContent = zhe(p.tiers[i].price, p.price)); } };
+  $("mPanel").onclick = async e => {
+    if (e.target.closest("[data-x]")) return closeModal();
+    if (e.target.closest("[data-tadd]")) { read(); const last = p.tiers.slice(-1)[0]; p.tiers.push({qty: last ? last.qty + 1 : 2, price: ""}); draw(); return; }
+    const trm = e.target.closest("[data-trm]"); if (trm) { read(); p.tiers.splice(Number(trm.dataset.trm), 1); draw(); return; }
+    const rm = e.target.closest("[data-rm]"); if (rm) { read(); p.images.splice(Number(rm.dataset.rm), 1); draw(); return; }
+    const add = e.target.closest("[data-addimg]");
+    if (add) { read(); const files = await pickFiles("image/*", true); if (!files.length) return;
+      await busy(add, async () => { for (const f of files) { add.textContent = "上傳中"; p.images.push(await uploadImage(f)); } }).catch(err => toast(err.message)); draw(); return; }
+    const save = e.target.closest("[data-save]");
+    if (save) { read();
+      if (!p.name) return $("perr").textContent = "請填寫商品名稱";
+      if (!(p.price > 0)) return $("perr").textContent = "請填寫售價";
+      const bad = p.tiers.find(t => !(t.qty >= 2) || !(t.price > 0) || t.price >= p.price);
+      if (bad) return $("perr").textContent = "多件優惠：件數需 2 以上，每件價格需低於售價";
+      busy(save, async () => { await admin("admin_saveProduct", {product: {...p, id}}); await loadAll(); closeModal(); drawProducts(); toast("已儲存"); })
+        .catch(err => $("perr").textContent = err.message); }
+    const del = e.target.closest("[data-del]");
+    if (del) { if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "確認刪除"; return; }
+      busy(del, async () => { await admin("admin_deleteProduct", {id}); await loadAll(); closeModal(); drawProducts(); toast("已刪除"); }).catch(err => toast(err.message)); }
+  };
+}
+
+/* ── 短影音 ── */
+function drawVideos() {
+  const vs = data.videos;
+  $("main").innerHTML = `<h2>短影音 ${vs.length} 支 <button class="btn" id="newV">新增影片</button></h2>
+    <div class="list">${vs.length ? vs.map(v => { const info = videoInfo(v.src), th = v.poster ? imgUrl(v.poster, 150) : info.thumb;
+      return `<button class="row" data-v="${esc(v.id)}">${th ? `<img src="${esc(th)}" alt="">` : '<div class="ph"></div>'}
+      <div class="info"><b>${esc(v.title || "（未命名）")}</b><small>${info.kind === "youtube" ? "YouTube" : info.kind === "drive" ? "上傳檔案" : "影片連結"}${v.productId ? "・連結商品" : ""}</small></div>
+      <div class="right"><span class="pill ${v.active ? "on" : "off"}">${v.active ? "上架" : "下架"}</span></div></button>`; }).join("") : '<div class="empty">尚無影片</div>'}</div>`;
+  $("newV").onclick = () => editVideo(null);
+  $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-v]"); if (b) editVideo(b.dataset.v); };
+}
+function editVideo(id) {
+  const src = id ? data.videos.find(v => v.id === id) : null;
+  const v = src ? {...src} : {title: "", src: "", poster: "", productId: "", active: true, sort: Math.min(0, ...data.videos.map(x => x.sort)) - 1};
+  const draw = () => {
+    const info = videoInfo(v.src);
+    $("mPanel").innerHTML = `<h3>${id ? "編輯影片" : "新增影片"}<button class="x" data-x>×</button></h3>
+      <div class="f"><label for="vt">標題</label><input id="vt" value="${esc(v.title)}" placeholder="例：3S 2700mAh 實測"></div>
+      <div class="f"><label>影片</label>
+        <div class="btns" style="margin:0"><button class="btn ink" data-upv>上傳影片檔</button></div>
+        <span class="note">直式短片為佳，單支 40MB 以內；或貼上 YouTube Shorts 連結</span>
+        <input id="vs" value="${esc(v.src.startsWith("drive:") ? "" : v.src)}" placeholder="${v.src.startsWith("drive:") ? "已上傳影片檔" : "https://youtube.com/shorts/…"}">
+        ${info ? `<span class="note" style="color:var(--ok)">${info.kind === "drive" ? "已上傳影片檔" : info.kind === "youtube" ? "YouTube 影片" : "影片連結"}</span>` : ""}</div>
+      <div class="f"><label>封面（選填）</label><div class="thumbs">
+        ${v.poster ? `<div class="thumb"><img src="${esc(imgUrl(v.poster, 200))}" alt=""><button data-rmp aria-label="移除">×</button></div>` : ""}
+        <button class="addimg" data-upp>＋ 封面</button></div><span class="note">未設定時自動使用影片畫面</span></div>
+      <div class="f"><label for="vp">連結商品（選填）</label><select id="vp"><option value="">不連結</option>
+        ${data.products.map(p => `<option value="${esc(p.id)}" ${v.productId === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div>
+      <label class="check"><input type="checkbox" id="va" ${v.active ? "checked" : ""}>上架</label>
+      <div class="err" id="verr"></div>
+      <div class="btns">${id ? '<button class="btn danger" data-del style="flex:none">刪除</button>' : ""}<button class="btn" data-save>儲存</button></div>`;
+  };
+  const read = () => { v.title = $("vt").value.trim(); const s = $("vs").value.trim(); if (s || !v.src.startsWith("drive:")) v.src = s || v.src; v.productId = $("vp").value; v.active = $("va").checked; };
+  draw(); openModal();
+  $("mPanel").onclick = async e => {
+    if (e.target.closest("[data-x]")) return closeModal();
+    const upv = e.target.closest("[data-upv]");
+    if (upv) { read(); const [f] = await pickFiles("video/*"); if (!f) return;
+      if (f.size > 40 * 1024 * 1024) return toast("影片超過 40MB，請先壓縮");
+      await busy(upv, async () => { upv.textContent = "上傳中，請勿關閉"; v.src = await uploadFile(f); }).catch(err => toast(err.message)); draw(); return; }
+    const upp = e.target.closest("[data-upp]");
+    if (upp) { read(); const [f] = await pickFiles("image/*"); if (!f) return; await busy(upp, async () => { upp.textContent = "上傳中"; v.poster = await uploadImage(f); }).catch(err => toast(err.message)); draw(); return; }
+    if (e.target.closest("[data-rmp]")) { read(); v.poster = ""; draw(); return; }
+    const save = e.target.closest("[data-save]");
+    if (save) { read(); if (!v.src) return $("verr").textContent = "請上傳影片或貼上連結";
+      busy(save, async () => { await admin("admin_saveVideo", {video: {...v, id}}); await loadAll(); closeModal(); drawVideos(); toast("已儲存"); }).catch(err => $("verr").textContent = err.message); }
+    const del = e.target.closest("[data-del]");
+    if (del) { if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "確認刪除"; return; }
+      busy(del, async () => { await admin("admin_deleteVideo", {id}); await loadAll(); closeModal(); drawVideos(); toast("已刪除"); }).catch(err => toast(err.message)); }
+  };
+}
+
+/* ── 折扣碼 ── */
+function codeLabel(c) { return c.type === "amount" ? `折抵 ${money(c.value)}` : `${zhe(100 - c.value, 100)}（${c.value}% off）`; }
+function drawCodes() {
+  const cs = data.codes, today = new Date().toLocaleDateString("sv-SE", {timeZone: "Asia/Taipei"});
+  $("main").innerHTML = `<h2>折扣碼 ${cs.length} 組 <button class="btn" id="newC">新增折扣碼</button></h2>
+    <div class="list">${cs.length ? cs.map(c => { const expired = c.endAt && today > c.endAt, full = c.limit > 0 && c.used >= c.limit;
+      return `<button class="row" data-c="${esc(c.code)}"><div class="info"><b>${esc(c.code)}</b>
+      <small>${codeLabel(c)}${c.minSpend ? `・滿 ${money(c.minSpend)}` : ""}・已用 ${c.used}${c.limit ? ` / ${c.limit}` : ""}${c.endAt ? `・至 ${esc(c.endAt)}` : ""}</small></div>
+      <div class="right"><span class="pill ${!c.active ? "off" : expired || full ? "warn" : "on"}">${!c.active ? "停用" : expired ? "已過期" : full ? "已用完" : "啟用"}</span></div></button>`; }).join("") : '<div class="empty">尚無折扣碼</div>'}</div>`;
+  $("newC").onclick = () => editCode(null);
+  $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-c]"); if (b) editCode(b.dataset.c); };
+}
+function editCode(code) {
+  const src = code ? data.codes.find(c => c.code === code) : null;
+  const c = src ? {...src} : {code: "", type: "percent", value: 10, minSpend: 0, startAt: "", endAt: "", limit: 0, active: true, note: ""};
+  $("mPanel").innerHTML = `<h3>${code ? "編輯折扣碼" : "新增折扣碼"}<button class="x" data-x>×</button></h3>
+    <div class="f"><label for="cc">折扣碼</label><input id="cc" value="${esc(c.code)}" placeholder="例：RC2026" style="text-transform:uppercase"><span class="note">英數字 2–20 碼，客人輸入不分大小寫</span></div>
+    <div class="f2"><div class="f"><label for="ct">類型</label><select id="ct"><option value="percent" ${c.type === "percent" ? "selected" : ""}>打折（%）</option><option value="amount" ${c.type === "amount" ? "selected" : ""}>折抵金額</option></select></div>
+      <div class="f"><label for="cv" id="cvl">${c.type === "amount" ? "折抵金額" : "折扣 %"}</label><input id="cv" type="number" inputmode="numeric" value="${c.value}"><span class="note" id="cvn"></span></div></div>
+    <div class="f2"><div class="f"><label for="cm">最低消費</label><input id="cm" type="number" inputmode="numeric" value="${c.minSpend || ""}" placeholder="不限"></div>
+      <div class="f"><label for="cl">可用次數</label><input id="cl" type="number" inputmode="numeric" value="${c.limit || ""}" placeholder="不限"></div></div>
+    <div class="f2"><div class="f"><label for="cs">開始日期</label><input id="cs" type="date" value="${esc(c.startAt)}"></div>
+      <div class="f"><label for="ce">結束日期</label><input id="ce" type="date" value="${esc(c.endAt)}"></div></div>
+    <div class="f"><label for="cn">備註（選填）</label><input id="cn" value="${esc(c.note)}"></div>
+    <label class="check"><input type="checkbox" id="ca" ${c.active ? "checked" : ""}>啟用</label>
+    ${code ? `<div class="note" style="color:var(--dim)">已使用 ${c.used} 次</div>` : ""}
+    <div class="err" id="cerr"></div>
+    <div class="btns">${code ? '<button class="btn danger" data-del style="flex:none">刪除</button>' : ""}<button class="btn" data-save>儲存</button></div>`;
+  const hint = () => { const t = $("ct").value, val = Number($("cv").value) || 0;
+    $("cvl").textContent = t === "amount" ? "折抵金額" : "折扣 %";
+    $("cvn").textContent = t === "amount" ? (val ? `結帳折抵 ${money(val)}` : "") : (val > 0 && val < 100 ? `＝ ${zhe(100 - val, 100)}` : "1–99"); };
+  hint(); openModal();
+  $("mPanel").oninput = hint;
+  $("mPanel").onclick = e => {
+    if (e.target.closest("[data-x]")) return closeModal();
+    const save = e.target.closest("[data-save]");
+    if (save) {
+      const o = {code: $("cc").value.trim().toUpperCase(), type: $("ct").value, value: Number($("cv").value) || 0, minSpend: Number($("cm").value) || 0,
+        limit: Number($("cl").value) || 0, startAt: $("cs").value, endAt: $("ce").value, note: $("cn").value.trim(), active: $("ca").checked, renamedFrom: code || ""};
+      if (o.startAt && o.endAt && o.startAt > o.endAt) return $("cerr").textContent = "結束日期需晚於開始日期";
+      busy(save, async () => { await admin("admin_saveCode", {codeObj: o}); await loadAll(); closeModal(); drawCodes(); toast("已儲存"); }).catch(err => $("cerr").textContent = err.message);
+    }
+    const del = e.target.closest("[data-del]");
+    if (del) { if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "確認刪除"; return; }
+      busy(del, async () => { await admin("admin_deleteCode", {code}); await loadAll(); closeModal(); drawCodes(); toast("已刪除"); }).catch(err => toast(err.message)); }
+  };
+}
+
+/* ── 設定 ── */
+function drawSettings() {
+  const s = data.settings, isDefault = sessionStorage.getItem("cp-default-pw") === "1";
+  $("main").innerHTML = `<h2>賣場設定</h2><div class="card">
+      <div class="f2"><div class="f"><label for="sf">運費</label><input id="sf" type="number" inputmode="numeric" value="${s.shipFee}"></div>
+        <div class="f"><label for="so">免運門檻</label><input id="so" type="number" inputmode="numeric" value="${s.freeShipOver || ""}" placeholder="不設"><span class="note">折扣後金額達門檻即免運</span></div></div>
+      <div class="f"><label for="sl">LINE 聯絡網址（選填）</label><input id="sl" value="${esc(s.lineUrl)}" placeholder="https://lin.ee/…"><span class="note">訂單完成頁顯示「LINE 聯絡」按鈕</span></div>
+      <div class="f"><label for="sn">賣場公告（選填）</label><input id="sn" value="${esc(s.notice)}" placeholder="例：全館滿 $2,000 免運"></div>
+      <div class="err" id="serr"></div><div class="btns"><button class="btn" id="sSave">儲存設定</button></div></div>
+    <h2>登入帳號</h2><div class="card">
+      ${isDefault ? '<div class="err">目前為初始密碼，請立即變更</div>' : ""}
+      <div class="f"><label for="ou">帳號</label><input id="ou" value="${esc(data.user)}" autocomplete="username"></div>
+      <div class="f"><label for="op">目前密碼</label><input id="op" type="password" autocomplete="current-password"></div>
+      <div class="f"><label for="np">新密碼</label><input id="np" type="password" autocomplete="new-password"><span class="note">至少 4 碼</span></div>
+      <div class="err" id="aerr"></div><div class="btns"><button class="btn ink" id="aSave">變更帳號密碼</button></div></div>`;
+  $("sSave").onclick = e => busy(e.target, async () => {
+    await admin("admin_saveSettings", {settings: {shipFee: Number($("sf").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
+    await loadAll(); toast("已儲存");
+  }).catch(err => $("serr").textContent = err.message);
+  $("aSave").onclick = e => busy(e.target, async () => {
+    $("aerr").textContent = "";
+    await admin("admin_changeLogin", {oldPass: $("op").value, newUser: $("ou").value.trim(), newPass: $("np").value});
+    sessionStorage.removeItem("cp-default-pw"); toast("已變更，下次請用新密碼登入"); $("op").value = $("np").value = ""; drawSettings();
+  }).catch(err => $("aerr").textContent = err.message);
+}
+
+/* ── 上傳 ── */
+function pickFiles(accept, multiple) {
+  return new Promise(res => { const inp = $("fileIn"); inp.value = ""; inp.accept = accept; inp.multiple = !!multiple;
+    inp.onchange = () => res([...inp.files]); inp.click(); });
+}
+const toB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
+async function uploadFile(file) {
+  const r = await admin("admin_upload", {name: file.name, mime: file.type, data: await toB64(file)}, {timeout: 300000});
+  return "drive:" + r.fileId;
+}
+// 圖片先在瀏覽器縮到最長邊 1600、轉 JPEG，上傳快、賣場載入也快
+async function uploadImage(file) {
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise(r => c.toBlob(r, "image/jpeg", .86));
+  return uploadFile(new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", {type: "image/jpeg"}));
+}
+
+function openModal() { $("modal").classList.add("open"); document.body.style.overflow = "hidden"; $("mPanel").scrollTop = 0; }
+function closeModal() { $("modal").classList.remove("open"); document.body.style.overflow = ""; $("mPanel").onclick = $("mPanel").oninput = null; }
+$("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+
+/* ── 啟動 ── */
+if (token) { $("app").innerHTML = '<div class="empty">載入中…</div>'; loadAll().then(drawApp).catch(() => logout()); }
+else drawLogin();
+</script>
+</body>
+</html>
