@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312244">
+<meta name="build" content="202610312248">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -92,6 +92,9 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .reel.live .snd{display:flex}
 .reel .snd svg{width:14px;height:14px}
 .vplayer{object-fit:contain}
+.vwrap{position:relative}
+.vwrap .mute{position:absolute;top:10px;left:10px;z-index:2;width:40px;height:40px;border:0;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:0}
+.vwrap .mute svg{width:22px;height:22px}
 .reel .play svg{width:22px;height:22px;margin-left:3px}
 .reel b{position:absolute;left:8px;right:8px;bottom:8px;z-index:1;font-size:13px;line-height:1.35;text-align:left;font-weight:800}
 
@@ -258,8 +261,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202610312244"></script>
-<script src="tw-zip.js?v=202610312244"></script>
+<script src="shop-core.js?v=202610312248"></script>
+<script src="tw-zip.js?v=202610312248"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -344,16 +347,29 @@ $("reels").onclick = e => {
   const b = e.target.closest(".reel"); if (!b) return;
   const v = catalog.videos.find(x => x.id === b.dataset.id), info = videoInfo(v.src);
   const player = info.kind === "youtube" ? `<iframe class="vplayer" src="https://www.youtube.com/embed/${info.id}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`
-    : `<video class="vplayer" src="${esc(info.url)}" crossorigin="anonymous" controls autoplay playsinline ${v.poster ? `poster="${esc(imgUrl(v.poster, 720))}"` : ""}
-        ${info.preview ? `onerror="this.outerHTML='<iframe class=&quot;vplayer&quot; src=&quot;${info.preview}&quot; allow=&quot;autoplay; fullscreen&quot; allowfullscreen></iframe>'"` : ""}></video>`;
+    // 不顯示播放控制列（使用者 2026-10-31）：循環播放，左上角只留音效開關；點畫面暫停／繼續
+    : `<div class="vwrap"><button class="mute" data-mute aria-label="關閉音效">${SND_ON}</button><video class="vplayer" src="${esc(info.url)}" crossorigin="anonymous" autoplay loop playsinline ${v.poster ? `poster="${esc(imgUrl(v.poster, 720))}"` : ""}
+        ${info.preview ? `onerror="this.outerHTML='<iframe class=&quot;vplayer&quot; src=&quot;${info.preview}&quot; allow=&quot;autoplay; fullscreen&quot; allowfullscreen></iframe>'"` : ""}></video></div>`;
   const p = v.productId && catalog.products.find(x => x.id === v.productId);
   $("vPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
     <div class="ptitle">${esc(v.title)}</div>${player}
     ${p ? `<div class="buyrow"><button class="btn" data-open="${esc(p.id)}">查看商品　${money(p.price)}</button></div>` : ""}`;
   open("vSheet");
   // 點開後直接有聲音播放（使用者點擊算互動，瀏覽器允許）
-  const vp = $("vPanel").querySelector("video"); if (vp) { vp.muted = false; vp.play().catch(() => { vp.muted = true; vp.play().catch(() => {}); }); }
+  const vp = $("vPanel").querySelector("video");
+  if (vp) { vp.muted = false; vp.play().catch(() => { vp.muted = true; vp.play().catch(() => {}); }).finally(syncMute); }
 };
+const SND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="#fff"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const SND_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="#fff"/><path d="M16 9l5 6M21 9l-5 6"/></svg>';
+function syncMute() {
+  const v = $("vPanel").querySelector("video"), b = $("vPanel").querySelector("[data-mute]"); if (!v || !b) return;
+  b.innerHTML = v.muted ? SND_OFF : SND_ON; b.setAttribute("aria-label", v.muted ? "開啟音效" : "關閉音效");
+}
+$("vPanel").addEventListener("click", e => {
+  const m = e.target.closest("[data-mute]");
+  if (m) { const v = $("vPanel").querySelector("video"); v.muted = !v.muted; if (!v.muted) v.play().catch(() => {}); syncMute(); return; }
+  if (e.target.matches(".vwrap video")) { const v = e.target; v.paused ? v.play() : v.pause(); return; }
+});
 $("vPanel").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) { close("vSheet"); openProduct(b.dataset.open); } });
 
 /* ── 浮層開關 ── */
