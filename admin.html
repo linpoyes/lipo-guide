@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312254">
+<meta name="build" content="202610312302">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -128,7 +128,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202610312254"></script>
+<script src="shop-core.js?v=202610312302"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -267,7 +267,7 @@ function drawProducts() {
   $("main").innerHTML = `<h2>商品 ${ps.length} 項 <button class="btn" id="newP">新增商品</button></h2>
     <div class="list">${ps.length ? ps.map(p => `<button class="row" data-p="${esc(p.id)}">
       ${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 150))}" alt="">` : '<div class="ph"></div>'}
-      <div class="info"><b>${esc(p.name)}</b><small>${esc(catName(p.category))}・${money(p.price)}・${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}・已售 ${p.sold || 0}</small></div>
+      <div class="info"><b>${esc(p.name)}</b><small>${p.brand ? esc(p.brand) + "・" : ""}${esc(catName(p.category))}・${money(p.price)}・${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}・已售 ${p.sold || 0}</small></div>
       <div class="right"><span class="pill ${p.active ? "on" : "off"}">${p.active ? "上架" : "下架"}</span>${p.hot ? '<br><span class="pill new">熱銷</span>' : ""}</div></button>`).join("") : '<div class="empty">尚無商品</div>'}</div>`;
   $("newP").onclick = () => editProduct(null);
   $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-p]"); if (b) editProduct(b.dataset.p); };
@@ -282,6 +282,9 @@ function editProduct(id) {
         ${p.images.map((s, i) => `<div class="thumb"><img src="${esc(imgUrl(s, 200))}" alt=""><button data-rm="${i}" aria-label="移除">×</button>${i === 0 ? '<span class="first">封面</span>' : `<button class="setfirst" data-first="${i}">設為封面</button>`}</div>`).join("")}
         <button class="addimg" data-addimg>＋ 圖片</button></div></div>
       <div class="f"><label for="pn">商品名稱</label><input id="pn" value="${esc(p.name)}"></div>
+      <div class="f"><label for="pb">品牌（選填）</label><input id="pb" list="brandList" value="${esc(p.brand || "")}" placeholder="例：MJX、Gens Ace">
+        <datalist id="brandList">${[...new Set(data.products.map(x => x.brand).filter(Boolean))].map(b => `<option value="${esc(b)}">`).join("")}</datalist>
+        <span class="note">賣場「品牌」區依此分組；已用過的品牌可直接選，名稱要一致才會歸在同一個品牌</span></div>
       <div class="f2"><div class="f"><label for="pc">分類</label><select id="pc">${CATEGORIES.map(([k, n]) => `<option value="${k}" ${p.category === k ? "selected" : ""}>${n}</option>`).join("")}</select></div>
         <div class="f"><label for="ps">庫存</label><input id="ps" type="number" inputmode="numeric" placeholder="不限" value="${p.stock < 0 ? "" : p.stock}"><span class="note">空白＝不限量；0＝售完</span></div></div>
       <div class="f2"><div class="f"><label for="pp">售價</label><input id="pp" type="number" inputmode="numeric" value="${p.price}"></div>
@@ -301,7 +304,7 @@ function editProduct(id) {
   };
   const read = () => {
     p.name = $("pn").value.trim(); p.category = $("pc").value; p.price = Number($("pp").value) || 0; p.listPrice = Number($("pl").value) || 0;
-    p.stock = $("ps").value === "" ? -1 : Number($("ps").value); p.desc = $("pd").value; p.active = $("pa").checked; p.hot = $("ph").checked; p.cvsOk = $("pv").checked;
+    p.stock = $("ps").value === "" ? -1 : Number($("ps").value); p.desc = $("pd").value; p.active = $("pa").checked; p.hot = $("ph").checked; p.cvsOk = $("pv").checked; p.brand = $("pb").value.trim();
     p.tiers = [...document.querySelectorAll("[data-tq]")].map((el, i) => ({qty: Number(el.value) || 0, price: Number(document.querySelector(`[data-tp="${i}"]`).value) || 0}));
   };
   draw(); openModal();
