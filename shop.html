@@ -36,6 +36,7 @@ button{font:inherit;cursor:pointer}
 button:disabled{filter:grayscale(.6) opacity(.6);cursor:default}
 a{color:inherit}
 .wrap{max-width:1100px;margin:0 auto;padding:0 14px}
+[hidden]{display:none!important}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 /* ── 頁首 ── */
@@ -161,9 +162,19 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .field{display:flex;flex-direction:column;gap:4px;margin:10px 0}
 .field label{font-size:14px;font-weight:800;color:var(--dim)}
 .field textarea{min-height:64px;resize:vertical}
-.ships{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.ships button{padding:9px 4px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-weight:800;font-size:14px}
+.addr3{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.addr3 input{grid-column:1/-1}
+.zip{font-size:13px;font-weight:800;color:var(--ok)}
+.ships{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ships button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:9px 4px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font-weight:800;font-size:15px}
+.ships button small{font-size:12px;font-weight:700;opacity:.8}
 .ships button[aria-pressed=true]{border-color:var(--red);background:var(--red);color:#fff}
+.store{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--ok);border-radius:12px;padding:10px 12px}
+.store div{flex:1;min-width:0}
+.store b{display:block;font-size:15px}
+.store small{display:block;color:var(--dim);font-size:13px}
+.store button,.pickstore{flex:none;border:0;border-radius:10px;background:var(--text);color:var(--bg);font-weight:800;padding:8px 12px}
+.pickstore{width:100%;padding:12px;font-size:16px;background:#00754A;color:#fff}
 .done{text-align:center;padding:10px 0}
 .done .no{display:inline-block;margin:8px 0;font-size:22px;font-weight:900;letter-spacing:.06em;background:var(--ink);color:#fff;padding:4px 14px;border-radius:10px}
 .vplayer{width:100%;aspect-ratio:9/16;max-height:72vh;border:0;border-radius:14px;background:#000;display:block;margin:0 auto}
@@ -232,6 +243,7 @@ footer nav a{color:var(--faint);text-decoration:none}
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
 <script src="shop-core.js?v=1"></script>
+<script src="tw-zip.js?v=1"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -367,17 +379,23 @@ function localQuote() {
   }).filter(Boolean);
   return {lines, subtotal, tierSaving};
 }
-let serverQuote = null, step = "cart", ship = "";
+// 寄送：黑貓宅配（大件）／7-11 店到店（全部商品都勾「可超商寄送」才能選）
+const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
+let serverQuote = null, step = "cart", ship = lsGet("cp-ship", SHIP_HOME), store = lsGet("cp-store", null);
+const cvsAllowed = () => cart.length > 0 && cart.every(l => { const p = catalog && catalog.products.find(x => x.id === l.id); return p && p.cvsOk; });
+const shipNow = () => ship === SHIP_CVS && cvsAllowed() ? SHIP_CVS : SHIP_HOME;
+// 7-11 交貨便電子地圖：選完門市 POST 回 Apps Script（?cb=711），再帶 #store=… 回到本頁
+const storeMapUrl = () => "https://emap.presco.com.tw/c2cemap.ashx?eshopid=870&servicetype=1&url=" + encodeURIComponent(API + "?cb=711");
 
 function openCart() { step = "cart"; drawCart(); open("cSheet"); refreshQuote(); }
 $("cartBtn").onclick = openCart;
 
 async function refreshQuote() {
   if (!cart.length) { serverQuote = null; drawCart(); return; }
-  const key = JSON.stringify([cart, code]);
+  const key = JSON.stringify([cart, code, shipNow()]);
   try {
-    const r = await api({action: "quote", items: cart, code}, {tries: 3});
-    if (key === JSON.stringify([cart, code])) { serverQuote = r.quote; drawCart(); }
+    const r = await api({action: "quote", items: cart, code, shipMethod: shipNow()}, {tries: 3});
+    if (key === JSON.stringify([cart, code, shipNow()])) { serverQuote = r.quote; drawCart(); }
   } catch (e) { /* 連不上時維持前台預覽 */ }
 }
 
@@ -387,7 +405,7 @@ function totals() {
   const sq = serverQuote;
   const codeDiscount = sq && sq.code ? sq.codeDiscount : 0;
   const after = lq.subtotal - codeDiscount;
-  const shipping = !lq.lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : s.shipFee;
+  const shipping = !lq.lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : shipNow() === SHIP_CVS ? s.shipFeeCvs : s.shipFee;
   return {...lq, codeDiscount, shipping, total: after + shipping, freeShipOver: s.freeShipOver};
 }
 
@@ -426,17 +444,26 @@ function drawCart() {
         <div class="field"><label for="oName">姓名</label><input id="oName" autocomplete="name" required></div>
         <div class="field"><label for="oPhone">手機</label><input id="oPhone" type="tel" inputmode="tel" autocomplete="tel" required></div>
         <div class="field"><label for="oLine">LINE ID（選填）</label><input id="oLine"></div>
-        <div class="field"><label>取貨方式</label><div class="ships" id="ships">
-          ${["宅配", "超商取貨", "面交"].map(m => `<button type="button" aria-pressed="${ship === m}">${m}</button>`).join("")}</div></div>
-        <div class="field" id="addrField" ${ship && ship !== "面交" ? "" : "hidden"}><label for="oAddr">${ship === "超商取貨" ? "超商門市（店名或店號）" : "收件地址"}</label><input id="oAddr"></div>
+        <div class="field"><label>寄送方式</label><div class="ships" id="ships">
+          <button type="button" data-ship="${SHIP_HOME}" aria-pressed="${shipNow() === SHIP_HOME}">黑貓宅配<small>${money(catalog.settings.shipFee)}</small></button>
+          <button type="button" data-ship="${SHIP_CVS}" aria-pressed="${shipNow() === SHIP_CVS}" ${cvsAllowed() ? "" : "disabled"}>7-11 店到店<small>${money(catalog.settings.shipFeeCvs)}</small></button></div>
+          ${cvsAllowed() ? "" : '<span class="hint">購物車含大件商品，僅限黑貓宅配</span>'}</div>
+        <div class="field" ${shipNow() === SHIP_HOME ? "" : "hidden"}><label for="oCounty">收件地址 <span class="zip" id="oZip"></span></label>
+          <div class="addr3"><select id="oCounty" aria-label="縣市"><option value="">縣市</option>${Object.keys(TW_ZIP).map(c => `<option>${c}</option>`).join("")}</select>
+            <select id="oDist" aria-label="鄉鎮市區"><option value="">鄉鎮市區</option></select>
+            <input id="oAddr" placeholder="路名、巷弄、門牌、樓層" autocomplete="address-line1"></div></div>
+        <div class="field" ${shipNow() === SHIP_CVS ? "" : "hidden"}><label>取貨門市</label>
+          ${store ? `<div class="store"><div><b>7-11 ${esc(store.name)}門市</b><small>${esc(store.addr)}${store.id ? `　店號 ${esc(store.id)}` : ""}</small></div><button type="button" data-pickstore>重選</button></div>`
+            : '<button type="button" class="pickstore" data-pickstore>選擇 7-11 門市</button>'}</div>
         <div class="field"><label for="oNote">備註（選填）</label><textarea id="oNote"></textarea></div>
         ${summary}
         <div class="hint">送出後由專人以電話或 LINE 確認付款方式</div>
         <div class="msg bad" id="orderErr"></div>
         <div class="buyrow"><button type="button" class="btn ghost" data-step="cart" style="flex:none;width:96px">返回</button><button class="btn" id="submitBtn">送出訂單</button></div>
       </form>`;
-    const saved = lsGet("cp-customer", {});
-    $("oName").value = saved.name || ""; $("oPhone").value = saved.phone || ""; $("oLine").value = saved.line || ""; $("oAddr").value = saved.address || "";
+    const saved = {...lsGet("cp-customer", {}), ...lsGet("cp-draft", {})};
+    $("oName").value = saved.name || ""; $("oPhone").value = saved.phone || ""; $("oLine").value = saved.line || "";
+    $("oCounty").value = saved.county || ""; fillDist(saved.dist || ""); $("oAddr").value = saved.street || ""; $("oNote").value = saved.note || "";
   }
 }
 
@@ -451,13 +478,9 @@ $("cPanel").addEventListener("click", e => {
   }
   const st = e.target.closest("[data-step]");
   if (st) { step = st.dataset.step; drawCart(); $("cPanel").scrollTop = 0; }
-  const sb = e.target.closest("#ships button");
-  if (sb) {
-    ship = sb.textContent;
-    for (const b of $("ships").children) b.setAttribute("aria-pressed", b === sb);
-    $("addrField").hidden = ship === "面交";
-    $("addrField").querySelector("label").textContent = ship === "超商取貨" ? "超商門市（店名或店號）" : "收件地址";
-  }
+  const sb = e.target.closest("[data-ship]");
+  if (sb && !sb.disabled) { saveDraft(); ship = sb.dataset.ship; lsSet("cp-ship", ship); serverQuote = null; drawCart(); refreshQuote(); }
+  if (e.target.closest("[data-pickstore]")) { saveDraft(); location.href = storeMapUrl(); }
 });
 $("cPanel").addEventListener("submit", e => {
   e.preventDefault();
@@ -468,15 +491,41 @@ $("cPanel").addEventListener("submit", e => {
   if (e.target.id === "orderForm") submitOrder();
 });
 
+// 去選門市前先把填到一半的資料存起來，回來時還原
+function saveDraft() {
+  if (!$("oName")) return;
+  lsSet("cp-draft", {name: $("oName").value, phone: $("oPhone").value, line: $("oLine").value,
+    county: $("oCounty").value, dist: $("oDist").value, street: $("oAddr").value, note: $("oNote").value});
+}
+// 縣市 → 區域下拉，並顯示 3 碼郵遞區號
+function fillDist(sel) {
+  const list = TW_ZIP[$("oCounty").value] || [];
+  $("oDist").innerHTML = '<option value="">鄉鎮市區</option>' + list.map(([d]) => `<option ${d === sel ? "selected" : ""}>${d}</option>`).join("");
+  showZip();
+}
+function showZip() {
+  const z = (TW_ZIP[$("oCounty").value] || []).find(([d]) => d === $("oDist").value);
+  $("oZip").textContent = z ? "郵遞區號 " + z[1] : "";
+  return z ? z[1] : "";
+}
+$("cPanel").addEventListener("change", e => { if (e.target.id === "oCounty") fillDist(""); if (e.target.id === "oDist") showZip(); });
+// 地址固定成「郵遞區號＋縣市＋區＋路名」，後台複製後可直接貼進黑貓寄件
+function homeAddress() {
+  const zip = showZip(), street = $("oAddr").value.trim().normalize("NFKC");
+  return zip && street ? `${zip}${$("oCounty").value}${$("oDist").value}${street}` : "";
+}
 async function submitOrder() {
-  const c = {name: $("oName").value.trim(), phone: $("oPhone").value.trim(), line: $("oLine").value.trim(),
-             shipMethod: ship, address: $("oAddr").value.trim(), note: $("oNote").value.trim()};
+  const sm = shipNow();
+  const c = {name: $("oName").value.trim(), phone: $("oPhone").value.trim(), line: $("oLine").value.trim(), shipMethod: sm,
+             address: sm === SHIP_CVS ? (store ? `7-11 ${store.name}門市（店號 ${store.id}）${store.addr}` : "") : homeAddress(),
+             note: $("oNote").value.trim()};
   const err = $("orderErr");
   if (!c.name || !c.phone) { err.textContent = "請填寫姓名與手機"; return; }
   if (!/^09\d{8}$/.test(c.phone.replace(/[-\s]/g, ""))) { err.textContent = "手機格式為 09 開頭 10 碼"; return; }
-  if (!ship) { err.textContent = "請選擇取貨方式"; return; }
-  if (ship !== "面交" && !c.address) { err.textContent = ship === "超商取貨" ? "請填寫超商門市" : "請填寫收件地址"; return; }
-  lsSet("cp-customer", {name: c.name, phone: c.phone, line: c.line, address: c.address});
+  if (!c.address) { err.textContent = sm === SHIP_CVS ? "請選擇 7-11 門市" : !$("oCounty").value || !$("oDist").value ? "請選擇縣市與區域" : "請填寫路名門牌"; return; }
+  c.phone = c.phone.replace(/[-\s]/g, "");
+  const prev = lsGet("cp-customer", {});
+  lsSet("cp-customer", {name: c.name, phone: c.phone, line: c.line, ...(sm === SHIP_HOME ? {county: $("oCounty").value, dist: $("oDist").value, street: $("oAddr").value.trim()} : {county: prev.county, dist: prev.dist, street: prev.street})});
   // clientId 讓重送不會重複下單（後端依它去重），所以這個動作可以安全重試
   const clientId = lsGet("cp-pending", null) || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
   lsSet("cp-pending", clientId);
@@ -484,7 +533,7 @@ async function submitOrder() {
     err.textContent = "";
     try {
       const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : ""}, {tries: 3});
-      cart = []; code = ""; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); serverQuote = null;
+      cart = []; code = ""; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); serverQuote = null;
       step = "done";
       const lineUrl = catalog.settings.lineUrl;
       $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
@@ -513,6 +562,12 @@ api(null, {tries: 3, timeout: 45000}).then(d => {
   catalog = d; lsSet("cp-catalog", d);
   cart = cart.filter(l => d.products.some(p => p.id === l.id));
   renderAll();
+  // 從 7-11 電子地圖回來：#store={id,name,addr} → 存起來、回到填寫資料那一步
+  if (location.hash.startsWith("#store=")) {
+    try { store = JSON.parse(decodeURIComponent(location.hash.slice(7))); lsSet("cp-store", store); ship = SHIP_CVS; lsSet("cp-ship", ship); } catch (e) {}
+    history.replaceState(null, "", location.pathname);
+    if (cart.length) { step = "form"; drawCart(); open("cSheet"); refreshQuote(); }
+  }
 }).catch(() => { if (!catalog) $("grid").innerHTML = '<div class="empty">連線失敗，請重新整理</div>'; });
 </script>
 </body>

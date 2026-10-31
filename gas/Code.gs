@@ -12,7 +12,7 @@
  */
 
 const SHEETS = {
-  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt"],
+  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note"],
   orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId"],
@@ -20,7 +20,9 @@ const SHEETS = {
 };
 // 試算表分頁的中文名稱（給使用者自己打開試算表時看得懂）
 const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定" };
-const DEFAULT_SETTINGS = { shipFee: 100, freeShipOver: 2000, lineUrl: "", notice: "" };
+// 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
+const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
+const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "" };
 const SESSION_HOURS = 6;
 
 /* ───────────── 初始化（第一次在編輯器手動執行一次，順便完成授權） ───────────── */
@@ -53,11 +55,13 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  // 7-11 電子地圖選完門市後，會把門市資料以表單 POST 回這裡（?cb=711），轉交回賣場
+  if (e.parameter && e.parameter.cb === "711") return storeReturn_(e.parameter);
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "格式錯誤" }); }
   try {
     const a = req.action;
-    if (a === "quote") return out_({ ok: true, quote: quote_(req.items, req.code) });
+    if (a === "quote") return out_({ ok: true, quote: quote_(req.items, req.code, req.shipMethod) });
     if (a === "order") return out_(placeOrder_(req));
     if (a === "login") return out_(login_(req.user, req.pass));
     if (a && a.indexOf("admin_") === 0) {
@@ -82,6 +86,7 @@ function sheet_(k) {
 }
 function rows_(k) {
   const sh = sheet_(k), n = sh.getLastRow() - 1, cols = SHEETS[k];
+  if (sh.getLastColumn() < cols.length) sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight("bold"); // 新增欄位時補表頭
   if (n < 1) return [];
   return sh.getRange(2, 1, n, cols.length).getValues().map((r, i) => {
     const o = { _row: i + 2 };
@@ -117,6 +122,7 @@ function getSettings_() {
   const s = Object.assign({}, DEFAULT_SETTINGS);
   rows_("settings").forEach(r => s[r.key] = r.value);
   s.shipFee = Number(s.shipFee) || 0;
+  s.shipFeeCvs = Number(s.shipFeeCvs) || 0;
   s.freeShipOver = Number(s.freeShipOver) || 0;
   return s;
 }
@@ -130,7 +136,7 @@ function product_(r) {
     price: Number(r.price) || 0, listPrice: Number(r.listPrice) || 0, desc: String(r.desc || ""),
     images: json_(r.images, []), tiers: json_(r.tiers, []),
     stock: r.stock === "" || r.stock === null ? -1 : Number(r.stock),
-    active: bool_(r.active), hot: bool_(r.hot), sort: Number(r.sort) || 0,
+    active: bool_(r.active), hot: bool_(r.hot), sort: Number(r.sort) || 0, cvsOk: bool_(r.cvsOk),
   };
 }
 function video_(r) {
@@ -152,7 +158,7 @@ function catalog_() {
     ok: true,
     products: rows_("products").map(product_).filter(p => p.active).sort(bySort),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
-    settings: { shipFee: s.shipFee, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
+    settings: { shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
   };
 }
 
@@ -173,7 +179,7 @@ function codeCheck_(c, subtotal) {
   if (subtotal < c.minSpend) return "未達最低消費 $" + c.minSpend;
   return "";
 }
-function quote_(items, codeStr) {
+function quote_(items, codeStr, shipMethod) {
   const prods = {};
   rows_("products").map(product_).forEach(p => prods[p.id] = p);
   const lines = [], errors = [];
@@ -198,8 +204,10 @@ function quote_(items, codeStr) {
     }
   }
   const s = getSettings_();
+  const cvs = shipMethod === SHIP_CVS;
+  if (cvs) lines.forEach(l => { if (!prods[l.id].cvsOk) errors.push(l.name + " 僅限黑貓宅配"); });
   const after = subtotal - codeDiscount;
-  const shipping = !lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : s.shipFee;
+  const shipping = !lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : cvs ? s.shipFeeCvs : s.shipFee;
   return { lines: lines, subtotal: subtotal, tierSaving: tierSaving, code: code, codeDiscount: codeDiscount,
            codeError: codeError, shipping: shipping, total: after + shipping, errors: errors };
 }
@@ -208,14 +216,15 @@ function quote_(items, codeStr) {
 function placeOrder_(req) {
   const c = req.customer || {};
   if (!c.name || !c.phone) return { ok: false, error: "請填寫姓名與電話" };
-  if (!c.shipMethod) return { ok: false, error: "請選擇取貨方式" };
+  if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
+  if (!c.address) return { ok: false, error: c.shipMethod === SHIP_CVS ? "請選擇 7-11 門市" : "請填寫收件地址" };
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     // 冪等：同一個 clientId 只成立一張單（前端重送不會重複下單）
     const dup = req.clientId && rows_("orders").find(o => String(o.clientId) === String(req.clientId));
     if (dup) return { ok: true, orderNo: String(dup.orderNo), total: Number(dup.total) };
-    const q = quote_(req.items, req.code);
+    const q = quote_(req.items, req.code, c.shipMethod);
     if (!q.lines.length) return { ok: false, error: "購物車是空的" };
     if (q.errors.length) return { ok: false, error: q.errors.join("；") };
     if (req.code && q.codeError) return { ok: false, error: q.codeError };
@@ -297,7 +306,7 @@ const ADMIN = {
         .map(t => ({ qty: Number(t.qty), price: Number(t.price) })).sort((a, b) => a.qty - b.qty)),
       stock: p.stock === "" || p.stock === null || p.stock === undefined ? "-1" : String(Number(p.stock)),
       active: p.active ? "TRUE" : "FALSE", hot: p.hot ? "TRUE" : "FALSE", sort: String(Number(p.sort) || 0),
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(), cvsOk: p.cvsOk ? "TRUE" : "FALSE",
     });
     return { id: id };
   },
@@ -340,7 +349,7 @@ const ADMIN = {
   },
   admin_saveSettings: r => {
     const s = r.settings || {};
-    ["shipFee", "freeShipOver", "lineUrl", "notice"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const p = PropertiesService.getScriptProperties();
@@ -358,3 +367,22 @@ const ADMIN = {
     return { fileId: f.getId() };
   },
 };
+
+/* ───────────── 7-11 電子地圖回傳 ───────────── */
+// 7-11 交貨便電子地圖（emap.presco.com.tw/c2cemap.ashx）選完門市會 POST：storeid／storename／storeaddress（大小寫不一，全部容錯）。
+// 回一個小頁面把門市帶回賣場網址的 #store=…；Apps Script 頁面在 iframe 裡，跳轉要用使用者點擊（target=_top），自動跳轉當備援。
+const SHOP_PAGE = "https://linpoyes.github.io/lipo-guide/shop.html";
+function storeReturn_(p) {
+  const pick = keys => { for (const k in p) if (keys.indexOf(k.toLowerCase()) >= 0 && p[k]) return String(p[k]); return ""; };
+  const store = { id: pick(["storeid", "cvsstoreid"]), name: pick(["storename", "cvsstorename"]), addr: pick(["storeaddress", "cvsaddress"]) };
+  const url = SHOP_PAGE + "#store=" + encodeURIComponent(JSON.stringify(store));
+  const safe = url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  const label = (store.name ? "7-11 " + store.name + "門市" : "門市").replace(/[<>&]/g, "");
+  return HtmlService.createHtmlOutput(
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<div style="font-family:-apple-system,sans-serif;text-align:center;padding:40px 16px">' +
+    '<p style="font-size:18px;font-weight:700">已選擇 ' + label + '</p>' +
+    '<a href="' + safe + '" target="_top" style="display:inline-block;margin-top:12px;padding:12px 28px;border-radius:12px;background:#D7261E;color:#fff;font-weight:800;text-decoration:none;font-size:17px">回到賣場</a></div>' +
+    '<script>try{window.top.location.href=' + JSON.stringify(url) + '}catch(e){}</script>'
+  ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
