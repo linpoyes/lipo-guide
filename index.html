@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="202610312116">
+<meta name="build" content="202610312138">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 鋰電池充電</title>
 <meta name="description" content="鋰電池充電計算、電壓對照、保養與安全知識。">
@@ -675,7 +675,7 @@ render();
 // 三大格分工（2026-10-31）：鋰電池＝本頁（電池計算與知識）；車種買賣＝外部賣場；
 // 完整教學＝整個遙控車玩法的教學（新手、保養、改裝），不是本頁知識段落的捷徑。
 // 網址有了就填進來，那一格會直接開該頁（另開分頁），並拿掉「敬請期待」。
-const SHOP_URL = "", TEACH_URL = ""; // 賣場後端授權完成、驗證可下單後改成 "shop.html"
+const SHOP_URL = "shop.html", TEACH_URL = "";
 for (const [id, url] of [["shopLink", SHOP_URL], ["teachLink", TEACH_URL]]) {
   if (!url) continue;
   const a = $(id);

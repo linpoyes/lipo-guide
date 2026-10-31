@@ -202,7 +202,7 @@ function openOrder(no) {
       <tr><td>運費</td><td>${o.shipping ? money(o.shipping) : "免運"}</td></tr>
       <tr><td><b>應付金額</b></td><td><b style="color:var(--red);font-size:18px">${money(o.total)}</b></td></tr></table>
     <div class="statusbar">${STATUSES.map(s => `<button data-s="${s}" aria-pressed="${o.status === s}">${s}</button>`).join("")}</div>
-    <div class="btns"><button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button></div>`;
+    <div class="btns"><button class="btn danger" data-odel style="flex:none">刪除</button><button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button></div>`;
   openModal();
   $("mPanel").onclick = e => {
     if (e.target.closest("[data-x]")) return closeModal();
@@ -211,6 +211,9 @@ function openOrder(no) {
       await admin("admin_orderStatus", {orderNos: [o.orderNo], value: s.dataset.s}, {tries: 2});
       o.status = s.dataset.s; toast("已更新為「" + o.status + "」"); openOrder(no); drawOrders();
     }).catch(err => toast(err.message));
+    const od = e.target.closest("[data-odel]");
+    if (od) { if (od.dataset.confirm !== "1") { od.dataset.confirm = "1"; od.textContent = "確認刪除"; return; }
+      busy(od, async () => { await admin("admin_deleteOrder", {orderNo: o.orderNo}); orders = orders.filter(x => x !== o); closeModal(); drawOrders(); toast("已刪除訂單"); }).catch(err => toast(err.message)); return; }
     const p = e.target.closest("[data-pay]");
     if (p) busy(p, async () => {
       const v = o.payStatus === "paid" ? "unpaid" : "paid";

@@ -85,17 +85,29 @@ function rows_(k) {
   if (n < 1) return [];
   return sh.getRange(2, 1, n, cols.length).getValues().map((r, i) => {
     const o = { _row: i + 2 };
-    cols.forEach((c, j) => o[c] = r[j]);
+    cols.forEach((c, j) => o[c] = cell_(r[j]));
     return o;
   });
 }
 // 依主鍵寫入一列（有就覆蓋、沒有就新增）。只寫 SHEETS 定義的欄位，多送的欄位不會被靜靜丟掉以外的方式處理。
+// 寫入前先把那一列設成純文字再 setValues，並一律轉成字串：
+// appendRow 會自行解析，曾把「0912345678」吃掉前導 0、把「2020-01-01」變成日期物件（2026-10-31 實測）。
 function upsert_(k, keyCol, obj) {
   const cols = SHEETS[k], sh = sheet_(k);
   const found = rows_(k).find(r => String(r[keyCol]) === String(obj[keyCol]));
-  const vals = [cols.map(c => obj[c] === undefined ? (found ? found[c] : "") : obj[c])];
-  if (found) sh.getRange(found._row, 1, 1, cols.length).setValues(vals);
-  else sh.appendRow(vals[0]);
+  const vals = [cols.map(c => String(obj[c] === undefined ? (found ? found[c] : "") : obj[c] === null ? "" : obj[c]))];
+  const row = found ? found._row : sh.getLastRow() + 1;
+  const rg = sh.getRange(row, 1, 1, cols.length);
+  rg.setNumberFormat("@");
+  rg.setValues(vals);
+}
+// 讀出時把已被轉成日期／數字的舊資料還原成文字
+function cell_(v) {
+  if (v instanceof Date) {
+    const t = Utilities.formatDate(v, "Asia/Taipei", "HH:mm");
+    return Utilities.formatDate(v, "Asia/Taipei", t === "00:00" ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm");
+  }
+  return v;
 }
 function remove_(k, keyCol, key) {
   const r = rows_(k).find(x => String(x[keyCol]) === String(key));
@@ -218,11 +230,11 @@ function placeOrder_(req) {
     const sh = sheet_("products"), stockCol = SHEETS.products.indexOf("stock") + 1;
     rows_("products").forEach(r => {
       const l = q.lines.find(x => x.id === String(r.id));
-      if (l && r.stock !== "" && Number(r.stock) >= 0) sh.getRange(r._row, stockCol).setValue(String(Number(r.stock) - l.qty));
+      if (l && r.stock !== "" && Number(r.stock) >= 0) sh.getRange(r._row, stockCol).setNumberFormat("@").setValue(String(Number(r.stock) - l.qty));
     });
     if (q.code) {
       const cr = rows_("codes").find(x => String(x.code) === q.code);
-      if (cr) sheet_("codes").getRange(cr._row, SHEETS.codes.indexOf("used") + 1).setValue(String((Number(cr.used) || 0) + 1));
+      if (cr) sheet_("codes").getRange(cr._row, SHEETS.codes.indexOf("used") + 1).setNumberFormat("@").setValue(String((Number(cr.used) || 0) + 1));
     }
     return { ok: true, orderNo: orderNo, total: q.total };
   } finally {
@@ -314,7 +326,16 @@ const ADMIN = {
   admin_orderStatus: r => {
     const nos = r.orderNos || [r.orderNo];
     const sh = sheet_("orders"), col = SHEETS.orders.indexOf(r.field === "payStatus" ? "payStatus" : "status") + 1;
-    rows_("orders").forEach(o => { if (nos.indexOf(String(o.orderNo)) >= 0) sh.getRange(o._row, col).setValue(r.value); });
+    rows_("orders").forEach(o => { if (nos.indexOf(String(o.orderNo)) >= 0) sh.getRange(o._row, col).setNumberFormat("@").setValue(String(r.value)); });
+  },
+  admin_deleteOrder: r => { remove_("orders", "orderNo", r.orderNo); },
+  // 只刪媒體資料夾裡的檔案（避免拿 token 刪到雲端硬碟其他東西）
+  admin_trashFile: r => {
+    const folder = PropertiesService.getScriptProperties().getProperty("MEDIA_FOLDER");
+    const f = DriveApp.getFileById(r.fileId);
+    const parents = f.getParents();
+    while (parents.hasNext()) if (parents.next().getId() === folder) { f.setTrashed(true); return; }
+    throw new Error("非賣場媒體檔案");
   },
   admin_saveSettings: r => {
     const s = r.settings || {};
