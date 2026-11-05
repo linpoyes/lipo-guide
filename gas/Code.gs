@@ -87,8 +87,10 @@ function out_(o) {
 }
 
 /* ───────────── 試算表存取 ───────────── */
+let SS_ = null;
 function sheet_(k) {
-  return SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty("SHEET_ID")).getSheetByName(TAB[k]);
+  SS_ = SS_ || SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty("SHEET_ID"));
+  return SS_.getSheetByName(TAB[k]);
 }
 function rows_(k) {
   const sh = sheet_(k), n = sh.getLastRow() - 1, cols = SHEETS[k];
@@ -106,12 +108,14 @@ function rows_(k) {
 function upsert_(k, keyCol, obj) {
   const cols = SHEETS[k], sh = sheet_(k);
   const found = rows_(k).find(r => String(r[keyCol]) === String(obj[keyCol]));
-  const vals = [cols.map(c => String(obj[c] === undefined ? (found ? found[c] : "") : obj[c] === null ? "" : obj[c]))];
+  const vals = [cols.map(c => safeCell_(String(obj[c] === undefined ? (found ? found[c] : "") : obj[c] === null ? "" : obj[c])))];
   const row = found ? found._row : sh.getLastRow() + 1;
   const rg = sh.getRange(row, 1, 1, cols.length);
   rg.setNumberFormat("@");
   rg.setValues(vals);
 }
+// 弱掃 2026-11-06：以 = + - @ 開頭的字串會被試算表當公式（公式注入），一律加 ' 前綴存成文字（讀出時 ' 不會出現）
+function safeCell_(v) { return /^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v) ? "'" + v : v; }
 // 讀出時把已被轉成日期／數字的舊資料還原成文字
 function cell_(v) {
   if (v instanceof Date) {
@@ -244,6 +248,14 @@ function placeOrder_(req) {
   const nameErr = checkName_(c.name);
   if (nameErr) return { ok: false, error: nameErr };
   if (!/^09\d{8}$/.test(c.phone)) return { ok: false, error: "手機格式為 09 開頭 10 碼" };
+  c.line = String(c.line || "").slice(0, 40); c.address = String(c.address || "").slice(0, 150); c.note = String(c.note || "").slice(0, 300);
+  if (!Array.isArray(req.items) || req.items.length > 50) return { ok: false, error: "購物車內容有誤" };
+  const cache = CacheService.getScriptCache();
+  const nPhone = Number(cache.get("ord:" + c.phone) || 0), nAll = Number(cache.get("ord:all") || 0);
+  if (!req.clientId || !cache.get("ordc:" + req.clientId)) { // 重送同一張不算
+    if (nPhone >= 5) return { ok: false, error: "下單次數過多，請稍後再試或與我們聯絡" };
+    if (nAll >= 30) return { ok: false, error: "目前訂單量較大，請稍後再試" };
+  }
   if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
   if (!c.address) return { ok: false, error: c.shipMethod === SHIP_CVS ? "請選擇 7-11 門市" : "請填寫收件地址" };
   const lock = LockService.getScriptLock();
@@ -273,6 +285,9 @@ function placeOrder_(req) {
       const cr = rows_("codes").find(x => String(x.code) === q.code);
       if (cr) sheet_("codes").getRange(cr._row, SHEETS.codes.indexOf("used") + 1).setNumberFormat("@").setValue(String((Number(cr.used) || 0) + 1));
     }
+    cache.put("ord:" + c.phone, String(nPhone + 1), 3600);
+    cache.put("ord:all", String(nAll + 1), 600);
+    if (req.clientId) cache.put("ordc:" + req.clientId, "1", 3600);
     return { ok: true, orderNo: orderNo, total: q.total };
   } finally {
     lock.releaseLock();
@@ -442,7 +457,8 @@ const SHOP_PAGE = "https://linpoyes.github.io/lipo-guide/shop.html";
 const GH_REPO = "linpoyes/lipo-guide";
 function storeReturn_(p) {
   const pick = keys => { for (const k in p) if (keys.indexOf(k.toLowerCase()) >= 0 && p[k]) return String(p[k]); return ""; };
-  const store = { id: pick(["storeid", "cvsstoreid"]), name: pick(["storename", "cvsstorename"]), addr: pick(["storeaddress", "cvsaddress"]) };
+  const clean = (v, n) => v.replace(/[<>"'`\\]/g, "").slice(0, n);
+  const store = { id: clean(pick(["storeid", "cvsstoreid"]), 10).replace(/\D/g, ""), name: clean(pick(["storename", "cvsstorename"]), 20), addr: clean(pick(["storeaddress", "cvsaddress"]), 80) };
   const url = SHOP_PAGE + "#store=" + encodeURIComponent(JSON.stringify(store));
   if (p.sk && /^\d{8,60}$/.test(String(p.sk))) CacheService.getScriptCache().put("store:" + p.sk, JSON.stringify(store), 1800);
   const safe = url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
