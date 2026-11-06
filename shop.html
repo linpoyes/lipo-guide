@@ -2,8 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-rlLbW/If1wynRk58mQgjhmehSO1r2TEVLeh2jKOlsJ8='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611060047">
+<meta name="build" content="202611061606">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -281,8 +282,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611060047"></script>
-<script src="tw-zip.js?v=202611060047"></script>
+<script src="shop-core.js?v=202611061606"></script>
+<script src="tw-zip.js?v=202611061606"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -409,7 +410,7 @@ $("reels").onclick = e => {
   const player = info.kind === "youtube" ? `<iframe class="vplayer" src="https://www.youtube.com/embed/${info.id}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`
     // 不顯示播放控制列（使用者 2026-10-31）：循環播放，左上角只留音效開關；點畫面暫停／繼續
     : `<div class="vwrap"><button class="mute" data-mute aria-label="關閉音效">${SND_ON}</button><video class="vplayer" src="${esc(info.url)}" crossorigin="anonymous" autoplay loop playsinline ${v.poster ? `poster="${esc(imgUrl(v.poster, 720))}"` : ""}
-        ${info.preview ? `onerror="this.outerHTML='<iframe class=&quot;vplayer&quot; src=&quot;${info.preview}&quot; allow=&quot;autoplay; fullscreen&quot; allowfullscreen></iframe>'"` : ""}></video></div>`;
+        ></video></div>`;
   const p = v.productId && catalog.products.find(x => x.id === v.productId);
   $("vPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
     <div class="ptitle">${esc(v.title)}</div>${player}
@@ -417,6 +418,11 @@ $("reels").onclick = e => {
   open("vSheet");
   // 點開後直接有聲音播放（使用者點擊算互動，瀏覽器允許）
   const vp = $("vPanel").querySelector("video");
+  // 直連失敗（舊的 Drive 影片）退回 Drive 播放器；用事件不用 inline onerror（CSP 不允許 inline 事件）
+  if (vp && info.preview) vp.addEventListener("error", () => {
+    const f = document.createElement("iframe"); f.className = "vplayer"; f.src = info.preview; f.allow = "autoplay; fullscreen"; f.allowFullscreen = true;
+    vp.closest(".vwrap").replaceWith(f);
+  }, {once: true});
   if (vp) { vp.muted = false; vp.play().catch(() => { vp.muted = true; vp.play().catch(() => {}); }).finally(syncMute); }
 };
 const SND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="#fff"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
