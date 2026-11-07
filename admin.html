@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-M1WF3upwUjCjIwa0Jqtn+PRHjRr7PeHoIhH9z58EYSQ='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-+vqIbk3gAloj/G7ALnKtmLnz2TpYKL73kYjdxM+Hwbw='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072123">
+<meta name="build" content="202611072125">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -127,6 +127,8 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .stats b{font-size:20px;font-weight:900}
 
 .rcard{margin-bottom:12px}
+.subtabs{position:sticky;top:110px;z-index:5;background:var(--bg);padding:6px 0}
+.subtabs button{flex:1}
 .rh{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;font-size:17px}
 .rgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px}
 @media (min-width:640px){.rgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -163,7 +165,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072123"></script>
+<script src="shop-core.js?v=202611072125"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -616,10 +618,13 @@ async function drawUsers() {
     toast("已新增帳號"); drawUsers();
   }).catch(err => $("uerr").textContent = err.message);
 }
+let setTab = sessionStorage.getItem("cp-settab") || "shop";
 function drawSettings() {
   const s = data.settings, isDefault = lsGet("cp-default-pw", "") === "1";
   if (role() !== "owner") { $("main").innerHTML = accountCard(isDefault); bindAccount(); return; }
-  $("main").innerHTML = `<h2>賣場設定</h2><div class="card">
+  const st = setTab;
+  $("main").innerHTML = `<div class="filters subtabs" style="margin-top:14px">${[["shop", "賣場"], ["pay", "金流"], ["acct", "帳號"]].map(([k, n]) => `<button data-st="${k}" aria-pressed="${st === k}">${n}</button>`).join("")}</div>
+    <section data-sec="shop" ${st === "shop" ? "" : "hidden"}><h2>賣場設定</h2><div class="card">
       <label class="check" style="margin-top:0"><input type="checkbox" id="sopen" ${s.ordersOpen ? "checked" : ""}>開放下單</label>
       <span class="note" style="display:block;margin:-6px 0 8px 28px">未勾選＝商品照常展示，購物車與結帳顯示「尚未開放下單」</span>
       <div class="f2"><div class="f"><label for="sf">黑貓宅配運費</label><input id="sf" type="number" inputmode="numeric" value="${s.shipFee}"></div>
@@ -630,7 +635,8 @@ function drawSettings() {
       <div class="f"><label for="sb">免運公告文字</label><input id="sb" value="${esc(s.shipBar)}" placeholder="空白＝自動顯示「全站滿 $${Number(s.freeShipOver || 0).toLocaleString()} 免運」"><span class="note">賣場上方那一條；空白會依免運門檻自動產生</span></div>
       <div class="f"><label for="sn">賣場公告（選填）</label><input id="sn" value="${esc(s.notice)}" placeholder="例：全館滿 $2,000 免運"></div>
       <div class="err" id="serr"></div><div class="btns"><button class="btn" id="sSave">儲存設定</button></div></div>
-    <h2>綠界金流</h2><div class="card" id="ecCard">
+    </section><section data-sec="pay" ${st === "pay" ? "" : "hidden"}>
+    <h2>綠界金流</h2><div class="card" id="ecStatus"><div class="note">讀取中…</div></div><div class="card" id="ecCard" hidden>
       <label class="check" style="margin-top:0"><input type="checkbox" id="ecOn">啟用線上付款（信用卡、ATM 虛擬帳號）</label>
       <label class="check"><input type="checkbox" id="ecStage">測試模式（綠界測試環境，不會真的扣款）</label>
       <div class="f"><label for="ecMid">商店代號 MerchantID</label><input id="ecMid" autocomplete="off" placeholder="與欣瀚資訊同一組"></div>
@@ -648,15 +654,24 @@ function drawSettings() {
           <option value="ratio" ${s.feeSplit === "ratio" ? "selected" : ""}>依分潤比例分攤</option><option value="us" ${s.feeSplit === "us" ? "selected" : ""}>我方全額負擔</option><option value="owner" ${s.feeSplit === "owner" ? "selected" : ""}>貨主全額負擔</option></select></div></div>
       <span class="note">費率未稅，計算時自動加 5% 營業稅。預設為綠界一般會員公告費率；特約會員請依合約修改。</span>
       <div class="err" id="ferr"></div><div class="btns" id="fBtns" hidden><button class="btn ghost" id="fReset" style="flex:none">恢復綠界預設</button><button class="btn ink" id="fSave">儲存手續費設定</button></div></div>
+    </section><section data-sec="acct" ${st === "acct" ? "" : "hidden"}>
     ${accountCard(isDefault)}
-    <h2>帳號管理</h2><div class="card" id="usersBox"><div class="note">載入中…</div></div>`;
+    <h2>帳號管理</h2><div class="card" id="usersBox"><div class="note">載入中…</div></div></section>`;
+  $("main").querySelector(".subtabs").onclick = e => { const b = e.target.closest("[data-st]"); if (b) { setTab = b.dataset.st; sessionStorage.setItem("cp-settab", setTab); drawSettings(); } };
   bindAccount(); drawUsers();
   $("sSave").onclick = e => busy(e.target, async () => {
     await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
   admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {
-    const e = r.ecpay; $("ecOn").checked = e.enabled; $("ecStage").checked = e.stage; $("ecMid").value = e.mid;
+    const e = r.ecpay, live = e.enabled && !e.stage && e.keySet && e.ivSet;
+    $("ecStatus").innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div><b style="font-size:17px">${!e.enabled ? "未啟用" : live ? "已連接（正式）" : e.stage ? "已啟用（測試模式）" : "缺少金鑰"}</b>
+        <span class="note" style="display:block">${e.mid ? "商店代號 " + esc(e.mid.slice(0, 3)) + "•••" + esc(e.mid.slice(-2)) : "尚未設定商店代號"}・信用卡＋ATM 虛擬帳號</span></div>
+      <span class="pill ${live ? "on" : e.enabled ? "warn" : "off"}">${live ? "收款中" : e.enabled ? "測試" : "關閉"}</span></div>
+      <button class="btn ghost" id="ecEdit" style="margin-top:12px;width:100%">重新設定金鑰</button>`;
+    $("ecEdit").onclick = ev => { const b = ev.target; if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "確認要修改金流設定？再按一次"; return; } $("ecCard").hidden = false; b.hidden = true; };
+    $("ecOn").checked = e.enabled; $("ecStage").checked = e.stage; $("ecMid").value = e.mid;
     $("ecKey").placeholder = e.keySet ? "已設定（留空不變更）" : "未設定"; $("ecIv").placeholder = e.ivSet ? "已設定（留空不變更）" : "未設定";
   }).catch(() => {});
   $("ecSave").onclick = e => busy(e.target, async () => {
