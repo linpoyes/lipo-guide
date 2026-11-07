@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-9SWoZN8kSNfD/G6g4AdSrJ7+D0I1x0mJNjS7DxD43qI='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-kHuj4TAyWImgjT5bv+qtYGx5dA5uzCn06Ho6kg42THA='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080120">
+<meta name="build" content="202611080142">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -214,6 +214,12 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .store button,.pickstore{flex:none;border:0;border-radius:10px;background:var(--text);color:var(--bg);font-weight:800;padding:8px 12px}
 .pickstore{width:100%;padding:12px;font-size:16px;background:#00754A;color:#fff}
 .done{text-align:center;padding:10px 0}
+.npop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px}
+.npanel{width:100%;max-width:380px;background:var(--card);border-radius:18px;padding:22px 20px 18px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.npanel img{width:64px;height:64px;border-radius:14px}
+.npanel b{display:block;font-size:19px;margin-top:8px}
+.npanel p{white-space:pre-wrap;text-align:left;font-size:16px;line-height:1.7;margin:12px 0 16px;color:var(--text)}
+.npanel .btn{width:100%}
 .mem{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin:6px 0 12px}
 .mem.ok{border-color:#06C755}
 .mem img{width:40px;height:40px;border-radius:50%}
@@ -400,8 +406,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611080120"></script>
-<script src="tw-zip.js?v=202611080120"></script>
+<script src="shop-core.js?v=202611080142"></script>
+<script src="tw-zip.js?v=202611080142"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -531,6 +537,16 @@ function renderLatest() {
   el.innerHTML = `<i>最新上架</i>${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 120))}" alt="">` : ""}<span>${esc(p.name)}</span><b>${money(p.price)}</b>`;
 }
 $("latest").onclick = () => openProduct($("latest").dataset.id);
+// 賣場公告：開頁跳出一次（同一則公告看過就不再跳；內容改了會再跳）；空白＝不顯示（2026-11-08 使用者要求，比照排班表公告）
+function showNotice(text) {
+  text = String(text || "").trim(); if (!text) return;
+  const key = "cp-notice-seen", sig = text.length + ":" + text.slice(0, 60);
+  if (lsGet(key, "") === sig || $("noticePop")) return;
+  const d = document.createElement("div"); d.id = "noticePop"; d.className = "npop";
+  d.innerHTML = `<div class="npanel" role="dialog" aria-modal="true"><img src="badge.png?v=1" alt=""><b>赤貧軍團公告</b><p>${esc(text)}</p><button class="btn" data-nok>我知道了</button></div>`;
+  document.body.appendChild(d);
+  d.onclick = e => { if (e.target === d || e.target.closest("[data-nok]")) { lsSet(key, sig); d.remove(); } };
+}
 function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 1800); }
 $("grid").onclick = e => {
   const q = e.target.closest("[data-qadd]");
@@ -962,7 +978,8 @@ async function submitOrder() {
 function renderAll() {
   const st = catalog && catalog.settings;
   // 免運公告：後台可關閉或自訂文字；空白時依免運門檻自動產生
-  $("shipbar").textContent = st && st.shipBarOn !== false ? [st.shipBar || (st.freeShipOver > 0 && `全站滿 ${money(st.freeShipOver)} 免運`), st.notice].filter(Boolean).join("　｜　") : "";
+  $("shipbar").textContent = st && st.shipBarOn !== false ? (st.shipBar || (st.freeShipOver > 0 ? `全站滿 ${money(st.freeShipOver)} 免運` : "")) : "";
+  showNotice(st && st.notice);
   renderReels(); refilter(); saveCart();
 }
 renderAll();
