@@ -92,3 +92,13 @@ async function busy(btn, fn) {
     location.replace(location.pathname + "?v=" + live + location.hash);
   } catch (e) {}
 })();
+
+// 雲端硬碟圖片偶爾載入失敗（lh3 一次抓太多張會被擋）：失敗就改走 Drive 縮圖網址重試一次
+document.addEventListener("error", e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || img.dataset.retry) return;
+  const m = img.src.match(/lh3\.googleusercontent\.com\/d\/([\w-]+)=w(\d+)/);
+  if (!m) return;
+  img.dataset.retry = "1";
+  img.src = `https://drive.google.com/thumbnail?id=${m[1]}&sz=w${m[2]}`;
+}, true);
