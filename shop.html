@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-CE2JNX0VKl/oxvlNkn67ZHvfECrhYeJSZejtUZAPuJU='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072045">
+<meta name="build" content="202611072047">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -287,6 +287,10 @@ footer nav a{color:var(--faint);text-decoration:none}
 .t.deal{color:var(--ok);background:transparent;box-shadow:inset 0 0 0 1px currentColor}
 .t{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 @media (prefers-color-scheme: dark){.t.hot{color:var(--red)}.t.new{color:var(--accent)}.t.deal{color:var(--ok)}h2{background:#262A33}}
+
+/* 商品圖改「完整顯示」：廣告圖多為橫式，裁成正方形會切掉車名與賣點 */
+.pcard .img img{object-fit:contain}
+.gallery img{object-fit:contain;background:#111}
 </style>
 </head>
 <body>
@@ -350,8 +354,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611072045"></script>
-<script src="tw-zip.js?v=202611072045"></script>
+<script src="shop-core.js?v=202611072047"></script>
+<script src="tw-zip.js?v=202611072047"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
