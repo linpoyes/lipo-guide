@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-kHuj4TAyWImgjT5bv+qtYGx5dA5uzCn06Ho6kg42THA='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-E2tetQkg/Hthe5d+X9XTewB3I8/IvxFWE709TmYC3Q4='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080142">
+<meta name="build" content="202611080147">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -215,11 +215,12 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .pickstore{width:100%;padding:12px;font-size:16px;background:#00754A;color:#fff}
 .done{text-align:center;padding:10px 0}
 .npop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px}
-.npanel{width:100%;max-width:380px;background:var(--card);border-radius:18px;padding:22px 20px 18px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
-.npanel img{width:64px;height:64px;border-radius:14px}
-.npanel b{display:block;font-size:19px;margin-top:8px}
-.npanel p{white-space:pre-wrap;text-align:left;font-size:16px;line-height:1.7;margin:12px 0 16px;color:var(--text)}
-.npanel .btn{width:100%}
+.npanel{position:relative;width:100%;max-width:400px;background:var(--card);border-radius:16px;padding:18px 20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.npanel .nhead{display:flex;align-items:center;gap:10px;padding-right:36px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.npanel .nhead img{width:36px;height:36px;border-radius:9px}
+.npanel .nhead b{font-size:17px;letter-spacing:.02em}
+.npanel p{white-space:pre-wrap;font-size:16px;line-height:1.75;margin:14px 0 0;color:var(--text)}
+.npanel .close{position:absolute;top:14px;right:14px;float:none;margin:0}
 .mem{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin:6px 0 12px}
 .mem.ok{border-color:#06C755}
 .mem img{width:40px;height:40px;border-radius:50%}
@@ -406,8 +407,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611080142"></script>
-<script src="tw-zip.js?v=202611080142"></script>
+<script src="shop-core.js?v=202611080147"></script>
+<script src="tw-zip.js?v=202611080147"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -543,7 +544,7 @@ function showNotice(text) {
   const key = "cp-notice-seen", sig = text.length + ":" + text.slice(0, 60);
   if (lsGet(key, "") === sig || $("noticePop")) return;
   const d = document.createElement("div"); d.id = "noticePop"; d.className = "npop";
-  d.innerHTML = `<div class="npanel" role="dialog" aria-modal="true"><img src="badge.png?v=1" alt=""><b>赤貧軍團公告</b><p>${esc(text)}</p><button class="btn" data-nok>我知道了</button></div>`;
+  d.innerHTML = `<div class="npanel" role="dialog" aria-modal="true" aria-labelledby="nTitle"><button class="close" data-nok aria-label="關閉">×</button><div class="nhead"><img src="badge.png?v=1" alt=""><b id="nTitle">赤貧軍團公告</b></div><p>${esc(text)}</p></div>`;
   document.body.appendChild(d);
   d.onclick = e => { if (e.target === d || e.target.closest("[data-nok]")) { lsSet(key, sig); d.remove(); } };
 }
