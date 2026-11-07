@@ -95,6 +95,7 @@ function doPost(e) {
     if (a === "order") return out_(placeOrder_(req));
     if (a === "login") return out_(login_(req.user, req.pass));
     if (a === "track") return out_(track_(req));
+    if (a === "lineLogin") return out_(lineLoginPost_(req));
     if (a && a.indexOf("admin_") === 0) {
       const me = checkToken_(req.token);
       if (!me) return out_({ ok: false, error: "auth" });
@@ -797,23 +798,37 @@ function lineLoginReturn_(q) {
     JSON.stringify(SHOP_PAGE + "#" + frag) + '}catch(e){}</script>').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   try {
     if (!q.code) return back("lmerr=cancel");
-    const st = CacheService.getScriptCache().get("lls:" + q.state); // state 防 CSRF
-    if (!st) return back("lmerr=state");
-    const secret = PropertiesService.getScriptProperties().getProperty("LINE_LOGIN_SECRET");
-    const tok = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/token", { method: "post", muteHttpExceptions: true,
-      payload: { grant_type: "authorization_code", code: q.code, redirect_uri: LOGIN_CB, client_id: LINE_LOGIN_ID, client_secret: secret } }).getContentText());
-    if (!tok.id_token) return back("lmerr=token");
-    const idt = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/verify", { method: "post", muteHttpExceptions: true,
-      payload: { id_token: tok.id_token, client_id: LINE_LOGIN_ID, nonce: st } }).getContentText());
-    if (!idt.sub) return back("lmerr=verify");
-    const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + tok.access_token } }).getContentText());
-    const mt = Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, "");
-    const rec = { uid: idt.sub, name: idt.name || "", pic: idt.picture || "", friend: !!fr.friendFlag, at: tok.access_token, exp: Date.now() + 30 * 86400000 };
-    PropertiesService.getScriptProperties().setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
-    welcomePush_(rec);
-    memberLog_(rec, true);
-    return back("lm=" + mt);
+    const r = lineExchange_(q.code, q.state, LOGIN_CB);
+    return back(r.mt ? "lm=" + r.mt : "lmerr=" + r.err);
   } catch (e) { return back("lmerr=fail"); }
+}
+// 2026-11-08：LINE 改為直接導回賣場（shop.html?code&state），賣場在背景 POST lineLogin 換會員權杖——不再經過 Apps Script 頁面（那頁無法自動跳轉、上方還有 Google 提示列）。
+// 舊的 ?cb=linelogin 回呼保留，登入到一半的人不受影響。
+const LOGIN_SHOP = SHOP_PAGE;
+function lineLoginPost_(req) {
+  try {
+    const r = lineExchange_(String(req.code || ""), String(req.state || ""), LOGIN_SHOP);
+    return r.mt ? { ok: true, mt: r.mt } : { ok: false, error: "LINE 登入未完成，請再試一次" };
+  } catch (e) { return { ok: false, error: "LINE 登入未完成，請再試一次" }; }
+}
+function lineExchange_(code, state, redirect) {
+  const cache = CacheService.getScriptCache(), st = cache.get("lls:" + state); // state 防 CSRF（一次性）
+  if (!st) return { err: "state" };
+  cache.remove("lls:" + state);
+  const secret = PropertiesService.getScriptProperties().getProperty("LINE_LOGIN_SECRET");
+  const tok = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/token", { method: "post", muteHttpExceptions: true,
+    payload: { grant_type: "authorization_code", code: code, redirect_uri: redirect, client_id: LINE_LOGIN_ID, client_secret: secret } }).getContentText());
+  if (!tok.id_token) return { err: "token" };
+  const idt = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/verify", { method: "post", muteHttpExceptions: true,
+    payload: { id_token: tok.id_token, client_id: LINE_LOGIN_ID, nonce: st } }).getContentText());
+  if (!idt.sub) return { err: "verify" };
+  const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + tok.access_token } }).getContentText());
+  const mt = Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, "");
+  const rec = { uid: idt.sub, name: idt.name || "", pic: idt.picture || "", friend: !!fr.friendFlag, at: tok.access_token, exp: Date.now() + 30 * 86400000 };
+  PropertiesService.getScriptProperties().setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
+  welcomePush_(rec);
+  memberLog_(rec, true);
+  return { mt: mt };
 }
 function memberOf_(mt) {
   if (!mt) return null;
@@ -870,7 +885,7 @@ function welcomePush_(rec) {
 function loginUrl_() {
   const state = Utilities.getUuid().replace(/-/g, ""), nonce = Utilities.getUuid().replace(/-/g, "");
   CacheService.getScriptCache().put("lls:" + state, nonce, 900);
-  return "https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=" + LINE_LOGIN_ID + "&redirect_uri=" + encodeURIComponent(LOGIN_CB) +
+  return "https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=" + LINE_LOGIN_ID + "&redirect_uri=" + encodeURIComponent(LOGIN_SHOP) +
     "&state=" + state + "&scope=openid%20profile&nonce=" + nonce + "&bot_prompt=aggressive";
 }
 
