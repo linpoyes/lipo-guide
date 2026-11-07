@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-rx+974EJZGdg56wkR+6H731WvPKEa0ItaSxtNZK9cvs='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-lJ4WMS49INgYwfsrkYTzO7pVisy8PAE7IIrYYEqF3nI='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080148">
+<meta name="build" content="202611080153">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -165,7 +165,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611080148"></script>
+<script src="shop-core.js?v=202611080153"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -680,6 +680,8 @@ function drawSettings() {
       <label class="check"><input type="checkbox" id="sbOn" ${s.shipBarOn ? "checked" : ""}>顯示免運公告條</label>
       <div class="f"><label for="sb">免運公告文字</label><input id="sb" value="${esc(s.shipBar)}" placeholder="空白＝自動顯示「全站滿 $${Number(s.freeShipOver || 0).toLocaleString()} 免運」"><span class="note">賣場上方那一條；空白會依免運門檻自動產生</span></div>
       <div class="f"><label for="sn">賣場公告（開頁跳出）</label><textarea id="sn" rows="3" placeholder="空白＝不顯示">${esc(s.notice)}</textarea><span class="note">客人打開賣場時跳出一次；改內容會再跳</span></div>
+      <div class="f"><label for="shw">熱門搜尋</label><input id="shw" value="${esc(s.hotWords || "")}" placeholder="空白＝依品牌與分類自動產生"><span class="note">以逗號分隔，最多顯示 8 個，例：漂移車, JXC, 2S 電池</span></div>
+      <div class="f"><label for="swc">LINE 入會禮</label><select id="swc"><option value="">不送</option>${data.codes.map(c => `<option value="${esc(c.code)}" ${String(s.welcomeCode || "").toUpperCase() === c.code.toUpperCase() ? "selected" : ""}>${esc(c.code)}・${c.type === "amount" ? "折 $" + c.value : "打 " + (100 - c.value) + " 折"}${c.minSpend ? "・滿 $" + c.minSpend : ""}${c.active ? "" : "（未啟用）"}</option>`).join("")}</select><span class="note">LINE 登入＋加好友即送，自動傳到會員的 LINE；每位會員限用一次。折扣碼在「折扣碼」分頁建立</span></div>
       <div class="err" id="serr"></div><div class="btns"><button class="btn" id="sSave">儲存設定</button></div></div>
     </section><section data-sec="pay" ${st === "pay" ? "" : "hidden"}>
     <h2>綠界金流</h2><div class="card" id="ecStatus"><div class="note">讀取中…</div></div><div class="card" id="ecCard" hidden>
@@ -708,7 +710,7 @@ function drawSettings() {
   $("main").querySelector(".subtabs").onclick = e => { const b = e.target.closest("[data-st]"); if (b) { setTab = b.dataset.st; sessionStorage.setItem("cp-settab", setTab); drawSettings(); } };
   bindAccount(); drawUsers(); if (st === "line") drawLine();
   $("sSave").onclick = e => busy(e.target, async () => {
-    await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
+    await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim(), welcomeCode: $("swc").value, hotWords: $("shw").value.trim()}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
   admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {
