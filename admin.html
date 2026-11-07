@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-6x298IoG0UXFgcaC7/KlRwDA8m/oIPrrG9k5fKdcMhU='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-1GC9lu6oyZIQorbhQWjNilXaeRDzcmzWqJhAWhukRoA='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072109">
+<meta name="build" content="202611072111">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -161,7 +161,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072109"></script>
+<script src="shop-core.js?v=202611072111"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -583,7 +583,7 @@ function drawSettings() {
     <h2>金流手續費</h2><div class="card">
       <div class="f2"><div class="f"><label for="fcp">信用卡費率 %</label><input id="fcp" type="number" step="0.01" value="${s.feeCardPct}"></div>
         <div class="f"><label for="fcm">信用卡每筆最低（元）</label><input id="fcm" type="number" value="${s.feeCardMin}"></div></div>
-      <div class="f2"><div class="f"><label for="fco">信用卡處理費（元／筆，含稅）</label><input id="fco" type="number" value="${s.feeCardOrder}"></div>
+      <div class="f2"><div class="f"><label for="fco">信用卡處理費（元）</label><input id="fco" type="number" value="${s.feeCardOrder}"></div>
         <div class="f"><label for="fap">ATM 費率 %</label><input id="fap" type="number" step="0.01" value="${s.feeAtmPct}"></div></div>
       <div class="f2"><div class="f"><label for="fam">ATM 每筆最低（元）</label><input id="fam" type="number" value="${s.feeAtmMin}"></div>
         <div class="f"><label for="fsp">手續費誰負擔（報表）</label><select id="fsp">
