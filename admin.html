@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-wzcVn4w3A3yOHh+fZjOXemfGLhqhm9yAFUHNz3CHI4s='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-C+iKuOnXmZkI6lJQY+nx/4knyCuGIxNzum+EEY5JX4w='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080214">
+<meta name="build" content="202611080216">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -201,7 +201,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611080214"></script>
+<script src="shop-core.js?v=202611080216"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -399,6 +399,15 @@ function shipFields(o) {
   const m = o.address.match(/^(\d{3})(.*)$/) || [];
   return [["收件人", o.name], ["手機", o.phone], ["郵遞區號", m[1] || ""], ["地址", m[2] || o.address], ["包裹數", `${o.packages || 1} 箱宅急便`], ["品名", name], ["備註", o.note]];
 }
+// 綠界寄件單：交貨便代號（到 7-11 寄件時報給店員或用 ibon）／黑貓託運單號，可直接列印託運單
+function logiBlock(o) {
+  const list = o.shipments || [], cvs = o.shipMethod.startsWith("7-11");
+  if (!data.settings.logiOn || data.settings.logiOn === "FALSE") return "";
+  if (!list.length) return `<button class="btn ink" data-logi style="width:100%;margin-top:12px">建立綠界寄件單（${cvs ? "7-11 交貨便" : "黑貓宅急便"}・${o.packages || 1} 件）</button>`;
+  return `<div class="ship logi"><div class="hd"><span>${cvs ? "7-11 交貨便代號" : "黑貓託運單號"}${list[0].stage ? "（測試）" : ""}</span></div>
+    ${list.map((s, i) => `<button class="cp" data-cp="${esc(s.no)}"><span>${list.length > 1 ? "第 " + (i + 1) + " 件" : "單號"}</span><b>${esc(s.no)}</b><i>複製</i></button><div class="note" style="margin:-2px 0 6px 2px">${esc(s.st || "")}${s.upd ? "・" + esc(s.upd) : ""}</div>`).join("")}
+    <div class="btns" style="margin-top:6px"><button class="btn ghost" data-logi="again" style="flex:none">重新建單</button><button class="btn ink" data-lprint>列印託運單</button></div></div>`;
+}
 function shipBlock(o) {
   const f = shipFields(o).filter(([, v]) => v);
   return `<div class="ship"><div class="hd"><span>${o.shipMethod.startsWith("7-11") ? "7-11 交貨便" : "黑貓寄件"}資料</span><button data-cpall>全部複製</button></div>
@@ -445,13 +454,27 @@ function openOrder(no) {
       <tr><td>運費（${o.packages || 1} 個包裹）</td><td>${o.shipping ? money(o.shipping) : "免運"}</td></tr>
       <tr><td><b>應付金額</b></td><td><b style="color:var(--red);font-size:18px">${money(o.total)}</b></td></tr></table>
     ${shipBlock(o)}
-    <button class="btn ink" data-print style="width:100%;margin-top:12px">列印出貨單</button>
+    ${logiBlock(o)}
+    <button class="btn ghost" data-print style="width:100%;margin-top:8px">列印出貨單（撿貨用）</button>
     <div class="statusbar">${STATUSES.map(s => `<button data-s="${s}" aria-pressed="${o.status === s}">${s}</button>`).join("")}</div>
     <div class="btns">${role() === "owner" ? '<button class="btn danger" data-odel style="flex:none">刪除</button>' : ""}${/^(owner|staff)$/.test(role()) ? `<button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button>` : ""}</div>`;
   openModal();
   $("mPanel").onclick = e => {
     if (e.target.closest("[data-x]")) return closeModal();
     if (e.target.closest("[data-print]")) return printSlip(o);
+    const lc = e.target.closest("[data-logi]");
+    if (lc && lc.dataset.logi === "again" && lc.dataset.c !== "1") { lc.dataset.c = "1"; lc.textContent = "確認重新建單"; return; }
+    if (lc) return busy(lc, async () => { const r = await admin("admin_logiCreate", {orderNo: o.orderNo, again: lc.dataset.logi === "again"}); o.shipments = r.shipments; toast("已建立寄件單"); openOrder(no); }).catch(err => toast(err.message));
+    const lp = e.target.closest("[data-lprint]");
+    if (lp) { // 綠界列印頁要整頁開（不能用 iframe）：先開空白分頁，拿到簽章後送表單過去，避免被擋彈出視窗
+      const nm = "lp" + Date.now(), w = window.open("", nm);
+      return busy(lp, async () => {
+        const r = await admin("admin_logiPrint", {orderNo: o.orderNo});
+        const f = document.createElement("form"); f.method = "POST"; f.action = r.url; f.target = w ? nm : "_blank";
+        for (const [k, v] of Object.entries(r.fields)) { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v; f.appendChild(i); }
+        document.body.appendChild(f); f.submit(); f.remove();
+      }).catch(err => { if (w) w.close(); toast(err.message); });
+    }
     const cp = e.target.closest("[data-cp]");
     if (cp) { copyText(cp.dataset.cp).then(() => { cp.classList.add("done"); cp.querySelector("i").textContent = "已複製"; }); return; }
     if (e.target.closest("[data-cpall]")) { copyText(shipFields(o).filter(([, v]) => v).map(([k, v]) => `${k}：${v}`).join("\n")).then(() => toast("已複製寄件資料")); return; }
@@ -811,7 +834,7 @@ function drawSettings() {
   const s = data.settings, isDefault = lsGet("cp-default-pw", "") === "1";
   if (role() !== "owner") { $("main").innerHTML = accountCard(isDefault); bindAccount(); return; }
   const st = setTab;
-  $("main").innerHTML = `<div class="filters subtabs" style="margin-top:14px">${[["shop", "賣場"], ["pay", "金流"], ["line", "LINE 通知"], ["acct", "帳號"]].map(([k, n]) => `<button data-st="${k}" aria-pressed="${st === k}">${n}</button>`).join("")}</div>
+  $("main").innerHTML = `<div class="filters subtabs" style="margin-top:14px">${[["shop", "賣場"], ["pay", "金流"], ["logi", "物流"], ["line", "LINE 通知"], ["acct", "帳號"]].map(([k, n]) => `<button data-st="${k}" aria-pressed="${st === k}">${n}</button>`).join("")}</div>
     <section data-sec="shop" ${st === "shop" ? "" : "hidden"}><h2>賣場設定</h2><div class="card">
       <label class="check" style="margin-top:0"><input type="checkbox" id="sopen" ${s.ordersOpen ? "checked" : ""}>開放下單</label>
       <span class="note" style="display:block;margin:-6px 0 8px 28px">未勾選＝商品照常展示，購物車與結帳顯示「尚未開放下單」</span>
@@ -848,6 +871,19 @@ function drawSettings() {
           <option value="ratio" ${s.feeSplit === "ratio" ? "selected" : ""}>依分潤比例分攤</option><option value="us" ${s.feeSplit === "us" ? "selected" : ""}>我方全額負擔</option><option value="owner" ${s.feeSplit === "owner" ? "selected" : ""}>貨主全額負擔</option></select></div></div>
       <span class="note">費率未稅，計算時自動加 5% 營業稅。預設為綠界一般會員公告費率；特約會員請依合約修改。</span>
       <div class="err" id="ferr"></div><div class="btns" id="fBtns" hidden><button class="btn ghost" id="fReset" style="flex:none">恢復綠界預設</button><button class="btn ink" id="fSave">儲存手續費設定</button></div></div>
+    </section><section data-sec="logi" ${st === "logi" ? "" : "hidden"}>
+    <h2>綠界物流</h2><div class="card" id="lgStatus"><div class="note">讀取中…</div></div>
+    <div class="card">
+      <label class="check" style="margin-top:0"><input type="checkbox" id="lgOn" ${s.logiOn === "TRUE" ? "checked" : ""}>啟用綠界物流（7-11 交貨便、黑貓宅急便）</label>
+      <label class="check"><input type="checkbox" id="lgAuto" ${s.logiAuto !== "FALSE" ? "checked" : ""}>付款成功自動建立寄件單</label>
+      <label class="check"><input type="checkbox" id="lgStage" ${s.logiStage !== "FALSE" ? "checked" : ""}>測試模式（綠界測試環境，單號不能真的寄）</label>
+      <div class="f2"><div class="f"><label for="lgName">寄件人姓名</label><input id="lgName" value="${esc(s.senderName || "")}" placeholder="與證件相同"></div>
+        <div class="f"><label for="lgPhone">寄件人手機</label><input id="lgPhone" type="tel" inputmode="tel" value="${esc(s.senderPhone || "")}" placeholder="09xxxxxxxx"></div></div>
+      <div class="f2"><div class="f"><label for="lgZip">寄件郵遞區號</label><input id="lgZip" inputmode="numeric" value="${esc(s.senderZip || "")}"></div>
+        <div class="f"><label for="lgSize">黑貓預設材積</label><select id="lgSize">${[["0001", "60 cm"], ["0002", "90 cm"], ["0003", "120 cm"], ["0004", "150 cm"]].map(([v, n]) => `<option value="${v}" ${(s.logiSize || "0001") === v ? "selected" : ""}>${n}</option>`).join("")}</select></div></div>
+      <div class="f"><label for="lgAddr">寄件地址（黑貓到府收件）</label><input id="lgAddr" value="${esc(s.senderAddr || "")}" placeholder="縣市區＋路名門牌"></div>
+      <span class="note">與金流同一組綠界特店。交貨便到任一 7-11 寄件；黑貓需另外預約收件或自行送至營業所。</span>
+      <div class="err" id="lgErr"></div><div class="btns"><button class="btn ink" id="lgSave">儲存物流設定</button></div></div>
     </section><section data-sec="line" ${st === "line" ? "" : "hidden"}>
     <h2>LINE 下單通知</h2><div class="card" id="lineBox"><div class="note">讀取中…</div></div>
     </section><section data-sec="acct" ${st === "acct" ? "" : "hidden"}>
@@ -855,6 +891,19 @@ function drawSettings() {
     <h2>帳號管理</h2><div class="card" id="usersBox"><div class="note">載入中…</div></div></section>`;
   $("main").querySelector(".subtabs").onclick = e => { const b = e.target.closest("[data-st]"); if (b) { setTab = b.dataset.st; sessionStorage.setItem("cp-settab", setTab); drawSettings(); } };
   bindAccount(); drawUsers(); if (st === "line") drawLine();
+  if (st === "logi") admin("admin_logiStatus", {}, {tries: 2}).then(r => {
+    const l = r.logi, ok = l.enabled && l.senderOk && l.keySet;
+    $("lgStatus").innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div><b style="font-size:17px">${!l.enabled ? "未啟用" : !l.senderOk ? "寄件人資料不完整" : l.stage ? "已啟用（測試模式）" : "已連接（正式）"}</b>
+      <span class="note" style="display:block">${l.auto ? "付款成功自動建單" : "手動建單"}・7-11 交貨便＋黑貓宅急便</span></div><span class="pill ${ok && !l.stage ? "on" : l.enabled ? "warn" : "off"}">${ok && !l.stage ? "運作中" : l.enabled ? "測試" : "關閉"}</span></div>`;
+  }).catch(e => $("lgStatus").innerHTML = `<div class="note">${esc(e.message)}</div>`);
+  if ($("lgSave")) $("lgSave").onclick = e => busy(e.target, async () => {
+    $("lgErr").textContent = "";
+    const ph = $("lgPhone").value.replace(/\D/g, "");
+    if ($("lgOn").checked && !/^09\d{8}$/.test(ph)) throw new Error("寄件人手機為 09 開頭 10 碼");
+    await admin("admin_saveSettings", {settings: {logiOn: $("lgOn").checked ? "TRUE" : "FALSE", logiAuto: $("lgAuto").checked ? "TRUE" : "FALSE", logiStage: $("lgStage").checked ? "TRUE" : "FALSE",
+      senderName: $("lgName").value.normalize("NFKC").trim(), senderPhone: ph, senderZip: $("lgZip").value.trim(), senderAddr: $("lgAddr").value.normalize("NFKC").trim(), logiSize: $("lgSize").value}});
+    await loadAll(); toast("已儲存"); drawSettings();
+  }).catch(err => $("lgErr").textContent = err.message);
   $("sSave").onclick = e => busy(e.target, async () => {
     await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim(), welcomeCode: $("swc").value, hotWords: $("shw").value.trim(), pointsOn: $("spOn").checked ? "TRUE" : "FALSE", pointRate: Number($("spR").value) || 100, pointMaxPct: Number($("spM").value) || 50}});
     await loadAll(); toast("已儲存");

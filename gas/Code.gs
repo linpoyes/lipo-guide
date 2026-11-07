@@ -15,7 +15,7 @@ const SHEETS = {
   products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note", "member"],
-  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed"],
+  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments"],
   settings: ["key", "value"],
   // 流量（2026-11-08）：前台 track.js 送來的事件，一列一筆；ts＝台北時間 yyyy-MM-dd HH:mm:ss
   traffic:  ["ts", "vid", "sid", "type", "page", "pid", "q", "n", "src", "ref", "dev", "os"],
@@ -34,6 +34,8 @@ const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lin
   hotWords: "",
   // 會員積分（2026-11-08）：已付款訂單每消費 pointRate 元回饋 1 點；1 點折抵 1 元；單筆最多折抵商品金額的 pointMaxPct %
   pointsOn: "TRUE", pointRate: "100", pointMaxPct: "50",
+  // 綠界物流（2026-11-08）：寄件人資料、預設材積（0001=60cm…0004=150cm）、付款後自動建寄件單、測試模式
+  logiOn: "FALSE", logiStage: "TRUE", logiAuto: "TRUE", senderName: "", senderPhone: "", senderZip: "", senderAddr: "", logiSize: "0001",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
   //   信用卡一次付清 2.75%、每筆最低 5 元，另加訂單處理費 1 元（含稅）；ATM 虛擬帳號 1%、每筆最低 15 元
   feeCardPct: "2.75", feeCardMin: "5", feeCardOrder: "1", feeAtmPct: "1", feeAtmMin: "15",
@@ -89,6 +91,7 @@ function doPost(e) {
   if (e.parameter && e.parameter.cb === "line") return lineWebhook_(e);
   if (e.parameter && e.parameter.cb === "ecpayinfo") return ecpayInfo_(e.parameter);
   if (e.parameter && e.parameter.cb === "ecpayback") return ecpayBack_(e.parameter);
+  if (e.parameter && e.parameter.cb === "logi") return logiReply_(e.parameter);
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "格式錯誤" }); }
   try {
@@ -382,9 +385,9 @@ function hash_(s) {
    權限一律在後端檢查（ROLE_ACTIONS），前端只是把看不到的分頁藏起來。 */
 const ROLES = { owner: "管理者", staff: "營運", shipper: "出貨", viewer: "報表" };
 const ROLE_ACTIONS = {
-  staff: ["admin_all", "admin_dashboard", "admin_orders", "admin_orderStatus", "admin_saveProduct", "admin_deleteProduct", "admin_saveVideo", "admin_deleteVideo",
+  staff: ["admin_all", "admin_dashboard", "admin_orders", "admin_logiCreate", "admin_logiPrint", "admin_orderStatus", "admin_saveProduct", "admin_deleteProduct", "admin_saveVideo", "admin_deleteVideo",
           "admin_saveCode", "admin_deleteCode", "admin_upload", "admin_changeLogin", "admin_me"],
-  shipper: ["admin_all", "admin_orders", "admin_orderStatus", "admin_changeLogin", "admin_me"],
+  shipper: ["admin_all", "admin_orders", "admin_orderStatus", "admin_logiCreate", "admin_logiPrint", "admin_changeLogin", "admin_me"],
   viewer: ["admin_all", "admin_orders", "admin_changeLogin", "admin_me", "admin_dashboard"],
 };
 const can_ = (role, action) => role === "owner" || (ROLE_ACTIONS[role] || []).indexOf(action) >= 0;
@@ -460,6 +463,14 @@ const ADMIN = {
   }),
   admin_me: r => ({ me: r.me, roles: ROLES }),
   admin_dashboard: r => dashboard_(r),
+  admin_logiCreate: r => ({ shipments: logiCreate_(String(r.orderNo), !!r.again) }),
+  admin_logiPrint: r => logiPrint_(String(r.orderNo)),
+  admin_logiStatus: () => ({ logi: logiCfg_().public }),
+  // 用正式商店代號送一張「故意缺門市」的單：只看綠界回什麼錯（金鑰錯／未開通物流／參數錯），不會真的成立
+  admin_logiProbe: () => { const c = logiCfg_(true); const p = { MerchantID: c.mid, MerchantTradeDate: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss"),
+    LogisticsType: "CVS", LogisticsSubType: "UNIMARTC2C", GoodsAmount: "100", CollectionAmount: "100", IsCollection: "N", GoodsName: "測試", SenderName: "測試人員", SenderCellPhone: "0912345678",
+    ReceiverName: "測試人員", ReceiverCellPhone: "0912345678", ServerReplyURL: EXEC_URL + "?cb=logi" };
+    p.CheckMacValue = logiMac_(p, c); return { live: !c.stage, reply: logiPost_(c.host + "/Express/Create", p).slice(0, 200) }; },
   // 清掉某個訪客碼的流量（測試用資料）；只有管理者
   admin_trafficPurge: r => {
     const sh = sheet_("traffic"), n = sh.getLastRow() - 1, vid = String(r.vid || ""); if (n < 1 || !vid) return { removed: 0 };
@@ -493,7 +504,7 @@ const ADMIN = {
       items: json_(o.items, []), subtotal: Number(o.subtotal), tierSaving: Number(o.tierSaving), code: String(o.code),
       codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), packages: Number(o.packages) || 1, total: Number(o.total),
       status: String(o.status), payStatus: String(o.payStatus), lineName: String(o.lineName || ""), lineUid: String(o.lineUid || ""), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
-      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""), pointsUsed: Number(o.pointsUsed) || 0,
+      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""), pointsUsed: Number(o.pointsUsed) || 0, shipments: json_(o.shipments, []),
     })).reverse(),
   }),
   admin_saveProduct: r => {
@@ -577,7 +588,7 @@ const ADMIN = {
   admin_lineTest: () => { const n = linePush_("【赤貧軍團】LINE 通知測試成功"); if (!n) throw new Error("沒有已綁定的 LINE 或權杖無效"); return { sent: n }; },
   admin_saveSettings: r => {
     const s = r.settings || {};
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords", "pointsOn", "pointRate", "pointMaxPct"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
@@ -715,7 +726,10 @@ function ecpayReturn_(p) {
     const amt = Number(p.TradeAmt) || Number(o.total);
     setOrderField_(String(o.orderNo), { payStatus: "paid", payMethod: String(p.PaymentType || o.payMethod), payFee: String(payFee_(String(p.PaymentType || o.payMethod), amt)),
       paidAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm") });
-    if (String(o.payStatus) !== "paid") lineNotifyOrder_(String(o.orderNo), "已付款，請出貨");
+    if (String(o.payStatus) !== "paid") {
+      if (logiCfg_().auto) try { logiCreate_(String(o.orderNo)); } catch (err) {} // 付款成功自動建綠界寄件單，通知裡就有交貨便代號／託運單號
+      lineNotifyOrder_(String(o.orderNo), "已付款，請出貨");
+    }
   } else if (String(o.payStatus) !== "paid" && !/^ATM/.test(String(p.PaymentType))) {
     setOrderField_(String(o.orderNo), { payStatus: "failed" });
   }
@@ -775,6 +789,7 @@ function lineNotifyOrder_(orderNo, title) {
       "金額 $" + Number(o.total).toLocaleString() + "（" + pay + "）",
       "寄送：" + o.shipMethod + "・" + (Number(o.packages) || 1) + (cvs ? " 個交貨便" : " 箱宅急便"),
       "收件人：" + o.name + "　" + o.phone, (cvs ? "門市：" : "地址：") + o.address, o.note ? "備註：" + o.note : "",
+      shipLines_(o),
       "開啟訂單／列印出貨單：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo].filter(Boolean).join("\n"));
   } catch (e) {}
 }
@@ -1098,4 +1113,122 @@ function memberCenter_(req) {
   });
   return { ok: true, member: { name: m.name, pic: m.pic, friend: m.friend }, orders: orders, points: Object.assign(pts, { rate: pc.rate, maxPct: pc.maxPct, on: pc.on }),
     tier: { name: TIERS[ti][0], level: ti, spend: spend, next: next ? next[0] : "", nextAt: next ? next[1] : 0 }, coupons: coupons };
+}
+
+
+/* ───────────── 綠界物流：7-11 交貨便（UNIMARTC2C）／黑貓宅急便（TCAT）（2026-11-08）─────────────
+   與金流同一組特店（ECPAY_MID/KEY/IV）；測試模式改用綠界公開的物流測試帳號（C2C 與宅配各一組）。
+   流程：付款成功（或後台按「建立寄件單」）→ Express/Create，一個包裹一張單 → 存 shipments：
+         [{id: AllPayLogisticsID, no: 交貨便代號／託運單號, vno: 驗證碼, sub, trade, at, st: 最新貨態}]
+   列印：後台拿簽好章的表單，新分頁 POST 到綠界列印頁（綠界要求不要用 iframe）。
+   貨態：綠界 POST 到 ?cb=logi（MD5 驗章）→ 更新 st；出貨／到店／取件時自動改訂單狀態並 LINE 通知客人。
+   CheckMacValue 與金流同算法，只是雜湊用 MD5。 */
+const LOGI_STAGE = { C2C: { mid: "2000933", key: "XBERn1YOvpM9nfZc", iv: "h1ONHk4P4yqbl5LK" }, HOME: { mid: "2000132", key: "5294y06JbISpM5x9", iv: "v77hoKGq4kWxNNIS" } }; // 綠界公開測試帳號
+function logiCfg_(forceLive, kind, forceStage) {
+  const s = getSettings_(), p = PropertiesService.getScriptProperties();
+  const stage = !!forceStage || (!forceLive && s.logiStage !== "FALSE");
+  const t = LOGI_STAGE[kind === "HOME" ? "HOME" : "C2C"];
+  const mid = stage ? t.mid : p.getProperty("ECPAY_MID") || "", key = stage ? t.key : p.getProperty("ECPAY_KEY") || "", iv = stage ? t.iv : p.getProperty("ECPAY_IV") || "";
+  const sender = { name: String(s.senderName || "").trim(), phone: String(s.senderPhone || "").replace(/\D/g, ""), zip: String(s.senderZip || "").trim(), addr: String(s.senderAddr || "").trim() };
+  const senderOk = !checkName_(sender.name) && /^09\d{8}$/.test(sender.phone) && /^\d{3,6}$/.test(sender.zip) && sender.addr.length >= 6;
+  const on = s.logiOn === "TRUE" && !!(mid && key && iv) && senderOk;
+  return { on: on, auto: on && s.logiAuto !== "FALSE", stage: stage, mid: mid, key: key, iv: iv, sender: sender, size: /^000[1-4]$/.test(s.logiSize) ? s.logiSize : "0001",
+    host: stage ? "https://logistics-stage.ecpay.com.tw" : "https://logistics.ecpay.com.tw",
+    public: { enabled: s.logiOn === "TRUE", stage: stage, auto: s.logiAuto !== "FALSE", senderOk: senderOk, keySet: !!p.getProperty("ECPAY_KEY") } };
+}
+function logiMac_(params, cfg) {
+  const sorted = Object.keys(params).filter(k => k !== "CheckMacValue")
+    .sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : a.toLowerCase() > b.toLowerCase() ? 1 : 0).map(k => k + "=" + params[k]).join("&");
+  const raw = dotNetEncode_("HashKey=" + cfg.key + "&" + sorted + "&HashIV=" + cfg.iv).toLowerCase();
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, raw, Utilities.Charset.UTF_8).map(b => ((b + 256) % 256).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+function logiPost_(url, p) {
+  return UrlFetchApp.fetch(url, { method: "post", payload: p, muteHttpExceptions: true }).getContentText();
+}
+// 綠界品名不可有 ^ ' ` ! @ # % & * + \ " < > | _ [ ]，最多 50 字
+const logiText_ = (t, n) => String(t || "").replace(/[\^'`!@#%&*+\\"<>|_\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+const ISLAND_ZIP = /^(209|21[0-2]|88[0-5]|89[0-6])/;
+function logiCreate_(orderNo, again) {
+  const o = rows_("orders").find(x => String(x.orderNo) === orderNo); if (!o) throw new Error("查無訂單");
+  const old = json_(o.shipments, []);
+  if (old.length && !again) return old;
+  const cvs = String(o.shipMethod) === SHIP_CVS, kind = cvs ? "C2C" : "HOME", cfg = logiCfg_(false, kind);
+  if (!cfg.on) throw new Error("綠界物流尚未啟用或寄件人資料不完整（設定 → 物流）");
+  const n = Math.max(1, Number(o.packages) || 1), items = json_(o.items, []);
+  const amt = Math.max(1, Math.min(20000, Math.round(Number(o.total) / n)));
+  const goods = logiText_(items.map(i => String(i.name).replace(/^.*?[｜|]\s*/, "") + "x" + i.qty).join(" "), 25) || "RC 商品";
+  const base = { MerchantID: cfg.mid, MerchantTradeDate: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss"),
+    GoodsAmount: String(amt), GoodsName: goods, SenderName: cfg.sender.name, SenderCellPhone: cfg.sender.phone,
+    ReceiverName: String(o.name), ReceiverCellPhone: String(o.phone), ServerReplyURL: EXEC_URL + "?cb=logi", Remark: logiText_(orderNo, 60) };
+  if (cvs) {
+    const sid = (String(o.address).match(/店號\s*(\d{6})/) || [])[1];
+    if (!sid) throw new Error("訂單沒有 7-11 店號，無法建立交貨便");
+    Object.assign(base, { LogisticsType: "CVS", LogisticsSubType: "UNIMARTC2C", CollectionAmount: String(amt), IsCollection: "N", ReceiverStoreID: sid });
+  } else {
+    const m = String(o.address).match(/^(\d{3,6})(.+)$/);
+    if (!m || m[2].length < 6) throw new Error("收件地址缺郵遞區號或太短");
+    const city = a => a.replace(/^臺/, "台").slice(0, 3);
+    const dist = ISLAND_ZIP.test(m[1]) ? "02" : city(m[2]) === city(cfg.sender.addr) ? "00" : "01";
+    Object.assign(base, { LogisticsType: "HOME", LogisticsSubType: "TCAT", SenderZipCode: cfg.sender.zip, SenderAddress: cfg.sender.addr,
+      ReceiverZipCode: m[1], ReceiverAddress: m[2].slice(0, 60), Temperature: "0001", Distance: dist, Specification: cfg.size, ScheduledPickupTime: "4", ScheduledDeliveryTime: "4" });
+  }
+  const list = again ? [] : old.slice();
+  for (let i = list.length; i < n; i++) {
+    const p = Object.assign({}, base, { MerchantTradeNo: ("L" + orderNo.replace(/\D/g, "") + i + Utilities.getUuid().replace(/\D/g, "")).slice(0, 20) });
+    p.CheckMacValue = logiMac_(p, cfg);
+    const res = logiPost_(cfg.host + "/Express/Create", p);
+    if (res.indexOf("1|") !== 0) { if (list.length) break; throw new Error("綠界建單失敗：" + res.replace(/^0\|/, "").slice(0, 120)); }
+    const r = {}; res.slice(2).split("&").forEach(kv => { const j = kv.indexOf("="); r[kv.slice(0, j)] = kv.slice(j + 1); });
+    list.push({ id: r.AllPayLogisticsID, no: cvs ? r.CVSPaymentNo + (r.CVSValidationNo || "") : r.BookingNote, pno: r.CVSPaymentNo || "", vno: r.CVSValidationNo || "",
+      sub: cvs ? "UNIMARTC2C" : "TCAT", trade: p.MerchantTradeNo, at: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm"), st: r.RtnMsg || "", stage: cfg.stage });
+  }
+  setOrderField_(orderNo, { shipments: JSON.stringify(list) });
+  return list;
+}
+function logiPrint_(orderNo) {
+  const o = rows_("orders").find(x => String(x.orderNo) === orderNo); if (!o) throw new Error("查無訂單");
+  const list = json_(o.shipments, []); if (!list.length) throw new Error("尚未建立寄件單");
+  const cvs = list[0].sub === "UNIMARTC2C", cfg = logiCfg_(!list[0].stage, cvs ? "C2C" : "HOME", !!list[0].stage); // 依建單當時是測試或正式
+  const p = { MerchantID: cfg.mid, AllPayLogisticsID: list.map(x => x.id).join(",") };
+  if (cvs) { p.CVSPaymentNo = list.map(x => x.pno).join(","); p.CVSValidationNo = list.map(x => x.vno).join(","); }
+  p.CheckMacValue = logiMac_(p, cfg);
+  return { url: cfg.host + (cvs ? "/Express/PrintUniMartC2COrderInfo" : "/helper/printTradeDocument"), fields: p };
+}
+// 綠界貨態通知：驗章（依 MerchantID 判斷是正式或測試帳號）→ 更新 st；出貨／到店／取件時改訂單狀態並通知客人
+function logiReply_(q) {
+  const text = t => ContentService.createTextOutput(t);
+  const p = Object.assign({}, q); delete p.cb;
+  const cand = [logiCfg_(true), logiCfg_(false, "C2C", true), logiCfg_(false, "HOME", true)].find(c => c.mid === String(p.MerchantID));
+  if (!cand || String(p.CheckMacValue || "").toUpperCase() !== logiMac_(p, cand)) return text("0|CheckMacValue Error");
+  const all = rows_("orders"), o = all.find(x => json_(x.shipments, []).some(s => String(s.id) === String(p.AllPayLogisticsID)));
+  if (!o) return text("1|OK");
+  const list = json_(o.shipments, []), sh = list.find(s => String(s.id) === String(p.AllPayLogisticsID));
+  const msg = String(p.RtnMsg || ""); sh.st = msg; sh.code = String(p.RtnCode || ""); sh.upd = String(p.UpdateStatusDate || "");
+  const upd = { shipments: JSON.stringify(list) };
+  const back = /退|拒收|未取|逾期|異常|遺失|取消/.test(msg);
+  const done = !back && /取件成功|已取件|取貨成功|配達完成|已配達|順利送達|簽收/.test(msg);
+  const arrived = !back && !done && /到店|配達.*門市|抵達.*門市|已到/.test(msg);
+  const shipped = !back && !done && !arrived && /收件|已寄件|配送中|出貨|轉運|集貨|出庫/.test(msg);
+  const st = String(o.status), uid = String(o.lineUid || "");
+  const push = t => { if (uid) lineApi_("message/push", { to: uid, messages: [{ type: "text", text: t }] }); };
+  if (done && st !== "已完成" && st !== "已取消") upd.status = "已完成";
+  if ((shipped || arrived) && (st === "新訂單" || st === "已確認")) upd.status = "已出貨";
+  setOrderField_(String(o.orderNo), upd);
+  try {
+    const key = "LGN_" + sh.id + "_" + (done ? "d" : arrived ? "a" : shipped ? "s" : "");
+    const pp = PropertiesService.getScriptProperties();
+    if ((shipped || arrived || done) && !pp.getProperty(key)) {
+      pp.setProperty(key, "1");
+      const cvs = sh.sub === "UNIMARTC2C";
+      if (shipped) push("【赤貧軍團】您的訂單 " + o.orderNo + " 已出貨\n" + (cvs ? "7-11 交貨便代號：" : "黑貓託運單號：") + sh.no + (cvs ? "\n商品到店後會再通知您取貨" : "\n可至黑貓宅急便官網查詢配送進度"));
+      if (arrived) push("【赤貧軍團】您的訂單 " + o.orderNo + " 已送達取貨門市\n" + String(o.address).replace(/（店號.*?）/, "") + "\n請攜帶證件於 7 天內取貨");
+      if (done) push("【赤貧軍團】訂單 " + o.orderNo + " 已完成取件，感謝您的支持！");
+    }
+  } catch (e) {}
+  return text("1|OK");
+}
+function shipLines_(o) {
+  const list = json_(o.shipments, []); if (!list.length) return "";
+  const cvs = list[0].sub === "UNIMARTC2C";
+  return (cvs ? "交貨便代號：" : "黑貓託運單號：") + list.map(s => s.no).join("、") + (list[0].stage ? "（測試）" : "");
 }
