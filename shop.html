@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-E2tetQkg/Hthe5d+X9XTewB3I8/IvxFWE709TmYC3Q4='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-gMQCkR5OkR2EVRtGIDQBGu765dbWCFydChG90ZIQBsM='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080147">
+<meta name="build" content="202611080148">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -58,6 +58,10 @@ a{color:inherit}
 .cartbtn{position:relative;flex:none;margin-left:auto;width:44px;height:44px;border:0;background:var(--ink);color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center}
 .cartbtn i{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:800;font-style:normal;line-height:20px;text-align:center;border:2px solid var(--bg)}
 .cartbtn i:empty{display:none}
+.hacts{display:flex;gap:8px;margin-left:auto;flex:none}
+.membtn{overflow:hidden;padding:0}.membtn img{width:100%;height:100%;object-fit:cover}
+.membtn.ok{box-shadow:0 0 0 2px #06C755}
+.npanel .mem{margin:14px 0 0}
 svg{width:22px;height:22px}
 @media (max-width:520px){.brand small{display:none}.brand b{font-size:17px}.top .wrap{flex-wrap:wrap}.search{order:3;flex-basis:100%}}
 
@@ -292,6 +296,10 @@ footer nav a{color:var(--faint);text-decoration:none}
 @media (prefers-color-scheme: dark){.t.hot{color:#FF8A80}.t.new{color:#9DBCF5}.t.deal{color:#6EDCA5}}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;background:var(--ink);color:#fff;font-weight:800;padding:9px 18px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
+/* 往下滑後右下角浮動購物車（單手拇指可及）；有商品時顯示件數 */
+.cartfab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));z-index:40;width:58px;height:58px;border-radius:50%;margin:0;background:var(--red);box-shadow:0 8px 22px rgba(0,0,0,.35);transition:transform .2s,opacity .2s}
+.cartfab svg{width:27px;height:27px}.cartfab i{background:var(--ink);top:-4px;right:-4px}
+.cartfab[hidden]{display:flex;opacity:0;transform:scale(.6) translateY(20px);pointer-events:none}
 
 /* ── 護眼配色（2026-11-07）：選取狀態改墨灰、不再用大面積朱紅 ── */
 .sorts button[aria-pressed=true]{background:var(--chip);border-color:var(--chip);color:var(--bg)}
@@ -353,7 +361,8 @@ footer nav a{color:var(--faint);text-decoration:none}
     <input id="q" type="search" placeholder="搜尋商品、車種、電池規格" aria-label="搜尋商品">
     <button aria-label="搜尋"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
   </form>
-  <button class="cartbtn" id="cartBtn" aria-label="購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg><i id="cartCount"></i></button>
+  <div class="hacts"><button class="cartbtn membtn" id="memBtn" aria-label="會員登入"></button>
+  <button class="cartbtn" id="cartBtn" aria-label="購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg><i id="cartCount"></i></button></div>
 </div></header>
 
 <main class="wrap">
@@ -399,6 +408,7 @@ footer nav a{color:var(--faint);text-decoration:none}
   <nav><a href="./">鋰電池充電</a></nav>
 </footer>
 
+<button class="cartbtn cartfab" id="cartFab" aria-label="購物車" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg><i id="cartCount2"></i></button>
 <div class="toast" id="toast" role="status"></div>
 <!-- 商品 -->
 <div class="sheet" id="pSheet" role="dialog" aria-modal="true"><div class="panel" id="pPanel"></div></div>
@@ -407,8 +417,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611080147"></script>
-<script src="tw-zip.js?v=202611080147"></script>
+<script src="shop-core.js?v=202611080148"></script>
+<script src="tw-zip.js?v=202611080148"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -676,7 +686,7 @@ function openProduct(id) {
 }
 
 /* ── 購物車 ── */
-function saveCart() { lsSet("cp-cart", cart); $("cartCount").textContent = cart.reduce((s, l) => s + l.qty, 0) || ""; }
+function saveCart() { lsSet("cp-cart", cart); $("cartCount").textContent = $("cartCount2").textContent = cart.reduce((s, l) => s + l.qty, 0) || ""; }
 function addToCart(id, qty) {
   const l = cart.find(x => x.id === id);
   if (l) l.qty += qty; else cart.push({id, qty});
@@ -730,6 +740,9 @@ function pickStore() {
 
 function openCart() { step = "cart"; drawCart(); open("cSheet"); refreshQuote(); }
 $("cartBtn").onclick = openCart;
+$("memBtn").onclick = openMember;
+$("cartFab").onclick = openCart;
+addEventListener("scroll", () => { const h = scrollY < 320; if ($("cartFab").hidden !== h) $("cartFab").hidden = h; }, {passive: true});
 
 async function refreshQuote() {
   if (!cart.length) { serverQuote = null; drawCart(); return; }
@@ -828,7 +841,7 @@ $("cPanel").addEventListener("click", e => {
   const st = e.target.closest("[data-step]");
   if (st) { step = st.dataset.step; drawCart(); $("cPanel").scrollTop = 0; }
   const lg = e.target.closest("[data-login]"); if (lg) { lineLogin(lg); return; }
-  if (e.target.closest("[data-logout]")) { memTok = ""; member = null; lsSet("cp-mem", ""); drawCart(); return; }
+  if (e.target.closest("[data-logout]")) { memTok = ""; member = null; lsSet("cp-mem", ""); drawCart(); drawMemBtn(); return; }
   const rc = e.target.closest("[data-recheck]"); if (rc) { busy(rc, async () => { await loadMember(); drawCart(); if (!(member && member.friend)) toast("尚未偵測到加入好友，請稍候再試"); }); return; }
   const pb = e.target.closest("[data-pay]");
   if (pb) { payM = pb.dataset.pay; lsSet("cp-pay", payM); for (const b of $("pays").children) b.setAttribute("aria-pressed", b === pb); }
@@ -863,13 +876,35 @@ async function loadMember() {
   if (!memTok) { member = null; return; }
   try { const r = await (await fetch(API + "?action=member&mt=" + encodeURIComponent(memTok) + "&_=" + Date.now())).json(); member = r.member; if (!member) { memTok = ""; lsSet("cp-mem", ""); } } catch (e) {}
 }
-function memberBox() {
-  if (!catalog || !catalog.settings.requireLine) return "";
+function memberBox(always) {
+  if (!always && (!catalog || !catalog.settings.requireLine)) return "";
   if (member && member.friend) return `<div class="mem ok">${member.pic ? `<img src="${esc(member.pic)}" alt="">` : ""}<div><b>${esc(member.name || "LINE 會員")}</b><small>赤貧軍團會員・已加入好友</small></div><button type="button" data-logout class="memout">登出</button></div>`;
   if (member) return `<div class="mem"><div><b>${esc(member.name)}，還差一步</b><small>加入赤貧軍團官方帳號好友後即可下單</small></div>
     <a class="linebtn" href="https://line.me/R/ti/p/@552xxfur" target="_blank" rel="noopener">加入好友</a><button type="button" class="memre" data-recheck>我已加入</button></div>`;
   return `<div class="mem"><div><b>LINE 會員專屬</b><small>以 LINE 登入並加入官方帳號好友即可下單，出貨會用 LINE 通知</small></div><button type="button" class="linebtn" data-login>LINE 登入</button></div>`;
 }
+// 頁首會員鈕：未登入＝人像圖示；已登入＝LINE 大頭貼，點開看會員狀態／登出
+const ICON_USER = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+function drawMemBtn() {
+  const b = $("memBtn"), ok = member && member.friend;
+  b.classList.toggle("ok", !!ok);
+  b.setAttribute("aria-label", member ? "會員：" + (member.name || "LINE 會員") : "會員登入");
+  b.innerHTML = member && member.pic ? `<img src="${esc(member.pic)}" alt="">` : ICON_USER;
+}
+function openMember() {
+  if ($("memPop")) return;
+  const d = document.createElement("div"); d.id = "memPop"; d.className = "npop";
+  const draw = () => d.innerHTML = `<div class="npanel" role="dialog" aria-modal="true" aria-labelledby="mTitle"><button class="close" data-mx aria-label="關閉">×</button><div class="nhead"><img src="badge.png?v=1" alt=""><b id="mTitle">赤貧軍團會員</b></div>${memberBox(true)}</div>`;
+  draw(); document.body.appendChild(d);
+  d.onclick = e => {
+    if (e.target === d || e.target.closest("[data-mx]")) return d.remove();
+    const lg = e.target.closest("[data-login]"); if (lg) return lineLogin(lg);
+    if (e.target.closest("[data-logout]")) { memTok = ""; member = null; lsSet("cp-mem", ""); drawMemBtn(); d.remove(); toast("已登出"); return; }
+    const rc = e.target.closest("[data-recheck]");
+    if (rc) busy(rc, async () => { await loadMember(); drawMemBtn(); draw(); if (!(member && member.friend)) toast("尚未偵測到加入好友，請稍候再試"); });
+  };
+}
+drawMemBtn();
 async function lineLogin(btn) {
   saveDraft(); lsSet("cp-afterlogin", "1");
   await busy(btn, async () => { const r = await (await fetch(API + "?action=loginUrl&_=" + Date.now())).json(); location.href = r.url; });
@@ -993,7 +1028,7 @@ api(null, {tries: 3, timeout: 45000}).then(async d => {
     if (location.hash.startsWith("#lm=")) { memTok = location.hash.slice(4); lsSet("cp-mem", memTok); } else toast("LINE 登入未完成");
     history.replaceState(null, "", location.pathname);
   }
-  await loadMember();
+  await loadMember(); drawMemBtn();
   if (lsGet("cp-afterlogin", "") && cart.length) { lsSet("cp-afterlogin", ""); step = "form"; drawCart(); open("cSheet"); refreshQuote(); }
   if (location.hash.startsWith("#paid=")) { const no = location.hash.slice(6); history.replaceState(null, "", location.pathname); showPaid(no); }
   // 從 7-11 電子地圖回來：#store={id,name,addr} → 存起來、回到填寫資料那一步
