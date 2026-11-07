@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-KkUmcv/+vLOMF82biImT56LPBiyP+IyljrZ4GMbWynE='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-6Ow/jmDlqDv5vMAlia++vm1Ag0Xuom7gAsnjrS+npnI='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080209">
+<meta name="build" content="202611080212">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -103,6 +103,7 @@ a{color:inherit}
 .mcgrid img,.mcgrid i{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:var(--wash)}
 .mcgrid span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;font-weight:700;margin:6px 8px 2px;line-height:1.35}.mcgrid b{font-size:13px;color:var(--red);margin:0 8px}
 .perks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:4px 0 6px}
+.perks div:last-child:nth-child(odd){grid-column:1/-1}
 .perks div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.perks b{display:block;font-size:14px}.perks span{font-size:12px;color:var(--dim)}
 .ptsrow{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0}
 .ptsrow input{width:20px;height:20px;accent-color:var(--red)}.ptsrow b{display:block;font-size:15px}.ptsrow small{color:var(--dim);font-size:12px}
@@ -165,8 +166,8 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .wtile::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 45%,rgba(0,0,0,.82))}
 .wtile span{position:absolute;left:8px;right:8px;bottom:7px;z-index:1;font-size:12px;font-weight:800;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .wtile em{position:absolute;top:7px;left:7px;z-index:1;font-style:normal;font-size:11px;font-weight:900;background:var(--red);color:#fff;border-radius:6px;padding:2px 7px}
-.wtile:nth-of-type(n+5){display:none}
-@media (min-width:760px){.reels.wall{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.wtile:nth-of-type(n+5){display:block}.wtile:nth-of-type(n+9){display:none}.wtile span{font-size:14px;left:10px;right:10px;bottom:9px}}
+.wtile.m2{display:none}
+@media (min-width:760px){.reels.wall{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.wtile.m2{display:block}.wtile.m3{display:none}.wtile span{font-size:14px;left:10px;right:10px;bottom:9px}}
 .reel b{position:absolute;left:8px;right:8px;bottom:8px;z-index:1;font-size:13px;line-height:1.35;text-align:left;font-weight:800}
 
 /* ── 專區橫幅 ── */
@@ -515,9 +516,9 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611080209"></script>
-<script src="shop-core.js?v=202611080209"></script>
-<script src="tw-zip.js?v=202611080209"></script>
+<script src="track.js?v=202611080212"></script>
+<script src="shop-core.js?v=202611080212"></script>
+<script src="tw-zip.js?v=202611080212"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -735,7 +736,8 @@ function renderReels() {
 function wallTiles(nv) {
   const ps = catalog.products.filter(p => p.stock !== 0 && p.images[0]).sort((a, b) => (b.hot - a.hot) || a.sort - b.sort).slice(0, Math.max(4, 10 - nv * 2));
   const short = n => n.replace(/^.*?[｜|]\s*/, "") || n;
-  return ps.map(p => `<button type="button" class="wtile" data-pid="${esc(p.id)}"><img src="${esc(imgUrl(p.images[0], CARD_W))}" alt="" loading="lazy">${p.hot ? "<em>熱銷</em>" : isNew(p) ? "<em>新品</em>" : ""}<span>${esc(short(p.name))}　${money(p.price)}</span></button>`).join("");
+  // 手機 3 欄只放 4 格、電腦 5 欄放 8 格：多出來的用 class 藏（不能用 nth-of-type，影片也是 button 會算進去）
+  return ps.map((p, i) => `<button type="button" class="wtile${i >= 8 ? " m2 m3" : i >= 4 ? " m2" : ""}" data-pid="${esc(p.id)}"><img src="${esc(imgUrl(p.images[0], CARD_W))}" alt="" loading="lazy">${p.hot ? "<em>熱銷</em>" : isNew(p) ? "<em>新品</em>" : ""}<span>${esc(short(p.name))}　${money(p.price)}</span></button>`).join("");
 }
 let reelIO = null;
 $("reels").onclick = e => {
