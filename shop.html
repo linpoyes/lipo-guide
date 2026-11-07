@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-cmwLB47zAwr833ckLl28fvKMht14d5vAsLNzsQveaW0='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-bHBm79oLrqHC4zHTUO8+E5gEZIhBenFxRaHEP6NBnJI='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072116">
+<meta name="build" content="202611072121">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -394,8 +394,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611072116"></script>
-<script src="tw-zip.js?v=202611072116"></script>
+<script src="shop-core.js?v=202611072121"></script>
+<script src="tw-zip.js?v=202611072121"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -720,8 +720,12 @@ function totals() {
   const sq = serverQuote;
   const codeDiscount = sq && sq.code ? sq.codeDiscount : 0;
   const after = lq.subtotal - codeDiscount;
-  const shipping = !lq.lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : shipNow() === SHIP_CVS ? s.shipFeeCvs : s.shipFee;
-  return {...lq, codeDiscount, shipping, total: after + shipping, freeShipOver: s.freeShipOver};
+  // 包裹數與後端 quote_ 同一算法：每項依「每個包裹可裝幾件」換算占比、加總後無條件進位
+  const cvs = shipNow() === SHIP_CVS; let share = 0;
+  lq.lines.forEach(({p, qty}) => { const per = cvs ? p.cvsPer : p.homePer; if (per > 0) share += qty / per; });
+  const packages = lq.lines.length ? Math.max(1, Math.ceil(share - 1e-9)) : 0;
+  const shipping = !lq.lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : (cvs ? s.shipFeeCvs : s.shipFee) * packages;
+  return {...lq, codeDiscount, shipping, packages, total: after + shipping, freeShipOver: s.freeShipOver};
 }
 
 function drawCart() {
@@ -739,7 +743,7 @@ function drawCart() {
       <div><span>商品小計</span><span>${money(t.subtotal + t.tierSaving)}</span></div>
       ${t.tierSaving ? `<div class="minus"><span>多件優惠</span><span>−${money(t.tierSaving)}</span></div>` : ""}
       ${t.codeDiscount ? `<div class="minus"><span>折扣碼</span><span>−${money(t.codeDiscount)}</span></div>` : ""}
-      <div><span>運費</span><span>${t.shipping ? money(t.shipping) : "免運"}</span></div>
+      <div><span>運費${t.packages > 1 ? `（${t.packages} ${shipNow() === SHIP_CVS ? "個交貨便" : "箱宅急便"}）` : ""}</span><span>${t.shipping ? money(t.shipping) : "免運"}</span></div>
       <div class="total"><span>應付金額</span><b>${money(t.total)}</b></div>${freeGap}</div>`;
 
   if (step === "cart") {

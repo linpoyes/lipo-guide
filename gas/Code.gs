@@ -12,10 +12,10 @@
  */
 
 const SHEETS = {
-  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder"],
+  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note"],
-  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire"],
+  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire"],
   settings: ["key", "value"],
 };
 // 試算表分頁的中文名稱（給使用者自己打開試算表時看得懂）
@@ -162,6 +162,8 @@ function product_(r) {
     active: bool_(r.active), hot: bool_(r.hot), sort: Number(r.sort) || 0, cvsOk: bool_(r.cvsOk), brand: String(r.brand || "").trim(),
     // 代銷：supplier＝供貨商（空白＝自有商品）、commission＝我方抽成 %、preorder＝此商品暫不開放下單（即將開賣）
     supplier: String(r.supplier || "").trim(), commission: Number(r.commission) || 0, preorder: bool_(r.preorder),
+    // 包裝：一個 7-11 交貨便／一箱黑貓宅急便各可裝幾件（0＝不限，整單一個包裹）
+    cvsPer: Number(r.cvsPer) || 0, homePer: Number(r.homePer) || 0,
   };
 }
 function video_(r) {
@@ -244,8 +246,13 @@ function quote_(items, codeStr, shipMethod) {
   const cvs = shipMethod === SHIP_CVS;
   if (cvs) lines.forEach(l => { if (!prods[l.id].cvsOk) errors.push(l.name + " 僅限黑貓宅配"); });
   const after = subtotal - codeDiscount;
-  const shipping = !lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : cvs ? s.shipFeeCvs : s.shipFee;
-  return { lines: lines, subtotal: subtotal, tierSaving: tierSaving, code: code, codeDiscount: codeDiscount,
+  // 包裹數：每項商品依「每個包裹可裝幾件」換算成包裹占比後加總、無條件進位（有設 0＝不限的商品不另佔包裹）
+  let share = 0;
+  lines.forEach(l => { const per = cvs ? prods[l.id].cvsPer : prods[l.id].homePer; if (per > 0) share += l.qty / per; });
+  const packages = lines.length ? Math.max(1, Math.ceil(share - 1e-9)) : 0;
+  // 運費＝每包運費 × 包裹數（達免運門檻全免）
+  const shipping = !lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : (cvs ? s.shipFeeCvs : s.shipFee) * packages;
+  return { packages: packages, lines: lines, subtotal: subtotal, tierSaving: tierSaving, code: code, codeDiscount: codeDiscount,
            codeError: codeError, shipping: shipping, total: after + shipping, errors: errors };
 }
 
@@ -295,7 +302,7 @@ function placeOrder_(req) {
       orderNo: orderNo, createdAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm"),
       name: c.name, phone: c.phone, line: c.line || "", shipMethod: c.shipMethod, address: c.address || "", note: c.note || "",
       items: JSON.stringify(q.lines), subtotal: q.subtotal, tierSaving: q.tierSaving, code: q.code, codeDiscount: q.codeDiscount,
-      shipping: q.shipping, total: q.total, status: "新訂單", payStatus: pay ? "awaiting" : "unpaid", clientId: req.clientId || "",
+      shipping: q.shipping, packages: String(q.packages), total: q.total, status: "新訂單", payStatus: pay ? "awaiting" : "unpaid", clientId: req.clientId || "",
       payMethod: pay,
     });
     // 扣庫存（-1 = 不限量）
@@ -369,7 +376,7 @@ const ADMIN = {
       orderNo: String(o.orderNo), createdAt: String(o.createdAt), name: String(o.name), phone: String(o.phone),
       line: String(o.line), shipMethod: String(o.shipMethod), address: String(o.address), note: String(o.note),
       items: json_(o.items, []), subtotal: Number(o.subtotal), tierSaving: Number(o.tierSaving), code: String(o.code),
-      codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), total: Number(o.total),
+      codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), packages: Number(o.packages) || 1, total: Number(o.total),
       status: String(o.status), payStatus: String(o.payStatus), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
       paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""),
     })).reverse(),
@@ -387,7 +394,7 @@ const ADMIN = {
       active: p.active ? "TRUE" : "FALSE", hot: p.hot ? "TRUE" : "FALSE", sort: String(Number(p.sort) || 0),
       updatedAt: new Date().toISOString(), cvsOk: p.cvsOk ? "TRUE" : "FALSE", brand: String(p.brand || "").normalize("NFKC").trim(),
       supplier: String(p.supplier || "").normalize("NFKC").trim(), commission: String(Math.max(0, Math.min(100, Number(p.commission) || 0))),
-      preorder: p.preorder ? "TRUE" : "FALSE",
+      preorder: p.preorder ? "TRUE" : "FALSE", cvsPer: String(Math.max(0, Math.floor(Number(p.cvsPer) || 0))), homePer: String(Math.max(0, Math.floor(Number(p.homePer) || 0))),
     });
     return { id: id };
   },
