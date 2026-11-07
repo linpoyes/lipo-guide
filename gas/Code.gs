@@ -17,9 +17,13 @@ const SHEETS = {
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note"],
   orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire"],
   settings: ["key", "value"],
+  // 流量（2026-11-08）：前台 track.js 送來的事件，一列一筆；ts＝台北時間 yyyy-MM-dd HH:mm:ss
+  traffic:  ["ts", "vid", "sid", "type", "page", "pid", "q", "n", "src", "ref", "dev", "os"],
+  // LINE 會員名冊：登入時寫入／更新（uid＝LINE userId）
+  members:  ["uid", "name", "pic", "friend", "firstAt", "lastAt", "logins"],
 };
 // 試算表分頁的中文名稱（給使用者自己打開試算表時看得懂）
-const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定" };
+const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定", traffic: "流量", members: "會員" };
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 // ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
@@ -90,6 +94,7 @@ function doPost(e) {
     if (a === "quote") return out_({ ok: true, quote: quote_(req.items, req.code, req.shipMethod, req.code && isWelcome_(req.code) ? memberOf_(req.memberToken) : null) });
     if (a === "order") return out_(placeOrder_(req));
     if (a === "login") return out_(login_(req.user, req.pass));
+    if (a === "track") return out_(track_(req));
     if (a && a.indexOf("admin_") === 0) {
       const me = checkToken_(req.token);
       if (!me) return out_({ ok: false, error: "auth" });
@@ -113,7 +118,13 @@ function out_(o) {
 let SS_ = null;
 function sheet_(k) {
   SS_ = SS_ || SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty("SHEET_ID"));
-  return SS_.getSheetByName(TAB[k]);
+  let sh = SS_.getSheetByName(TAB[k]);
+  if (!sh) { // 後來新增的分頁：第一次用到時自動建立
+    sh = SS_.insertSheet(TAB[k]);
+    sh.getRange(1, 1, 1, SHEETS[k].length).setValues([SHEETS[k]]).setFontWeight("bold");
+    sh.setFrozenRows(1); sh.getRange("A:Z").setNumberFormat("@");
+  }
+  return sh;
 }
 function rows_(k) {
   const sh = sheet_(k), n = sh.getLastRow() - 1, cols = SHEETS[k];
@@ -358,10 +369,10 @@ function hash_(s) {
    權限一律在後端檢查（ROLE_ACTIONS），前端只是把看不到的分頁藏起來。 */
 const ROLES = { owner: "管理者", staff: "營運", shipper: "出貨", viewer: "報表" };
 const ROLE_ACTIONS = {
-  staff: ["admin_all", "admin_orders", "admin_orderStatus", "admin_saveProduct", "admin_deleteProduct", "admin_saveVideo", "admin_deleteVideo",
+  staff: ["admin_all", "admin_dashboard", "admin_orders", "admin_orderStatus", "admin_saveProduct", "admin_deleteProduct", "admin_saveVideo", "admin_deleteVideo",
           "admin_saveCode", "admin_deleteCode", "admin_upload", "admin_changeLogin", "admin_me"],
   shipper: ["admin_all", "admin_orders", "admin_orderStatus", "admin_changeLogin", "admin_me"],
-  viewer: ["admin_all", "admin_orders", "admin_changeLogin", "admin_me"],
+  viewer: ["admin_all", "admin_orders", "admin_changeLogin", "admin_me", "admin_dashboard"],
 };
 const can_ = (role, action) => role === "owner" || (ROLE_ACTIONS[role] || []).indexOf(action) >= 0;
 function users_() {
@@ -435,6 +446,7 @@ const ADMIN = {
     settings: getSettings_(), me: r.me,
   }),
   admin_me: r => ({ me: r.me, roles: ROLES }),
+  admin_dashboard: r => dashboard_(r),
   admin_users: () => ({ users: Object.keys(users_()).map(n => ({ name: n, role: users_()[n].role })), roles: ROLES }),
   admin_saveUser: r => {
     const name = String(r.name || "").normalize("NFKC").trim(), role = String(r.role || ""), pass = String(r.pass || "").normalize("NFKC").trim();
@@ -792,6 +804,7 @@ function lineLoginReturn_(q) {
     const rec = { uid: idt.sub, name: idt.name || "", pic: idt.picture || "", friend: !!fr.friendFlag, at: tok.access_token, exp: Date.now() + 30 * 86400000 };
     PropertiesService.getScriptProperties().setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
     welcomePush_(rec);
+    memberLog_(rec, true);
     return back("lm=" + mt);
   } catch (e) { return back("lmerr=fail"); }
 }
@@ -802,7 +815,7 @@ function memberOf_(mt) {
   if (!rec || rec.exp < Date.now()) return null;
   if (!rec.friend) { // 剛加好友：重查一次（access token 有效 30 天）
     try { const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + rec.at } }).getContentText());
-      if (fr.friendFlag) { rec.friend = true; p.setProperty(k, JSON.stringify(rec)); welcomePush_(rec); } } catch (e) {}
+      if (fr.friendFlag) { rec.friend = true; p.setProperty(k, JSON.stringify(rec)); welcomePush_(rec); memberLog_(rec, false); } } catch (e) {}
   }
   return rec;
 }
@@ -853,3 +866,151 @@ function loginUrl_() {
   return "https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=" + LINE_LOGIN_ID + "&redirect_uri=" + encodeURIComponent(LOGIN_CB) +
     "&state=" + state + "&scope=openid%20profile&nonce=" + nonce + "&bot_prompt=aggressive";
 }
+
+
+/* ───────────── 流量追蹤與儀表板（2026-11-08）─────────────
+   前台 track.js 把事件批次送來（action:"track"）：view 瀏覽頁面／product 看商品／cart 加購物車／checkout 前往結帳／
+   order 送出訂單／search 搜尋（n＝結果數）／video 看影片／login 按 LINE 登入。
+   不存個資：vid＝瀏覽器隨機碼（localStorage）、sid＝工作階段（30 分鐘無動作換新）。自動化瀏覽器（navigator.webdriver）前台就不送。
+   超過 TRAFFIC_KEEP_DAYS 的舊資料在寫入時順手刪掉，避免試算表越長越慢。 */
+const TRAFFIC_TYPES = ["view", "product", "cart", "checkout", "order", "search", "video", "login"];
+const TRAFFIC_KEEP_DAYS = 400;
+const ts_ = d => Utilities.formatDate(d, "Asia/Taipei", "yyyy-MM-dd HH:mm:ss");
+function track_(req) {
+  const id = v => /^[a-z0-9]{8,40}$/.test(String(v || "")) ? String(v) : "";
+  const vid = id(req.vid), sid = id(req.sid);
+  if (!vid || !sid || !Array.isArray(req.ev)) return { ok: false };
+  const cache = CacheService.getScriptCache(), rk = "trk:" + vid, n = Number(cache.get(rk) || 0);
+  if (n > 120) return { ok: true }; // 同一訪客 10 分鐘內超過 120 批＝異常，丟掉
+  cache.put(rk, String(n + 1), 600);
+  const clip = (v, k) => String(v == null ? "" : v).replace(/[\r\n\t]/g, " ").slice(0, k);
+  const now = Date.now(), sent = Number(req.sent) || now;
+  const rows = req.ev.slice(0, 40).filter(e => e && TRAFFIC_TYPES.indexOf(e.t) >= 0).map(e => {
+    const at = Math.min(now, Math.max(now - 86400000, now - (sent - (Number(e.at) || sent))));
+    return [ts_(new Date(at)), vid, sid, e.t, clip(e.page, 30), clip(e.pid, 30), clip(e.q, 40), String(Math.round(Number(e.n) || 0)),
+            clip(req.src, 20), clip(req.ref, 60), clip(req.dev, 6), clip(req.os, 10)].map(v => safeCell_(v));
+  });
+  if (!rows.length) return { ok: true };
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(8000)) return { ok: true };
+  try {
+    const sh = sheet_("traffic"), r0 = sh.getLastRow() + 1;
+    sh.getRange(r0, 1, rows.length, SHEETS.traffic.length).setNumberFormat("@").setValues(rows);
+    if (r0 % 500 < rows.length) pruneTraffic_(sh); // 大約每 500 筆檢查一次舊資料
+  } finally { lock.releaseLock(); }
+  return { ok: true };
+}
+function pruneTraffic_(sh) {
+  const n = sh.getLastRow() - 1; if (n < 1000) return;
+  const cut = ts_(new Date(Date.now() - TRAFFIC_KEEP_DAYS * 86400000));
+  const col = sh.getRange(2, 1, n, 1).getValues();
+  let k = 0; while (k < col.length && String(col[k][0]) < cut) k++;
+  if (k > 0) sh.deleteRows(2, k);
+}
+function memberLog_(rec, isLogin) {
+  try {
+    const now = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm");
+    const old = rows_("members").find(m => String(m.uid) === rec.uid);
+    upsert_("members", "uid", { uid: rec.uid, name: rec.name || "", pic: rec.pic || "", friend: rec.friend ? "TRUE" : "FALSE",
+      firstAt: old ? old.firstAt : now, lastAt: isLogin || !old ? now : old.lastAt, logins: String((old ? Number(old.logins) || 0 : 0) + (isLogin ? 1 : 0)) });
+  } catch (e) {}
+}
+// 會員名冊上線前就登入過的人：從 MEM_ 權杖補進名冊（只補一次）
+function backfillMembers_() {
+  const p = PropertiesService.getScriptProperties();
+  if (p.getProperty("MEMBERS_BACKFILLED")) return;
+  const all = p.getProperties(), seen = {};
+  Object.keys(all).filter(k => k.indexOf("MEM_") === 0).forEach(k => {
+    const r = json_(all[k], null); if (!r || !r.uid) return;
+    if (!seen[r.uid] || r.exp > seen[r.uid].exp) seen[r.uid] = r;
+  });
+  Object.keys(seen).forEach(u => { const r = seen[u], at = Utilities.formatDate(new Date(r.exp - 30 * 86400000), "Asia/Taipei", "yyyy-MM-dd HH:mm");
+    upsert_("members", "uid", { uid: u, name: r.name || "", pic: r.pic || "", friend: r.friend ? "TRUE" : "FALSE", firstAt: at, lastAt: at, logins: "1" }); });
+  p.setProperty("MEMBERS_BACKFILLED", "1");
+}
+// 儀表板：所有彙總在後端算好，前端只畫圖。days＝1（今日）/7/30/90；同時算前一段同長度期間做比較。
+function dashboard_(r) {
+  backfillMembers_();
+  const days = [1, 7, 30, 90].indexOf(Number(r.days)) >= 0 ? Number(r.days) : 7;
+  const day0 = d => Utilities.formatDate(d, "Asia/Taipei", "yyyy-MM-dd");
+  const today = day0(new Date());
+  const from = day0(new Date(Date.now() - (days - 1) * 86400000)), prevFrom = day0(new Date(Date.now() - (2 * days - 1) * 86400000));
+  // 流量：只讀需要的那一段（資料依時間排序，先讀 ts 欄找起點）
+  const sh = sheet_("traffic"), total = sh.getLastRow() - 1;
+  let ev = [];
+  if (total > 0) {
+    const tsCol = sh.getRange(2, 1, total, 1).getValues();
+    let lo = 0; while (lo < total && String(tsCol[lo][0]) < prevFrom) lo++;
+    if (lo < total) ev = sh.getRange(2 + lo, 1, total - lo, SHEETS.traffic.length).getValues().map(a => { const o = {}; SHEETS.traffic.forEach((c, j) => o[c] = String(a[j])); return o; });
+  }
+  const cur = ev.filter(e => e.ts >= from), prev = ev.filter(e => e.ts < from);
+  // 新訪客：全部資料裡第一次出現在本期間（只看保留期間內）
+  const firstSeen = {};
+  if (total > 0) { const vc = sh.getRange(2, 1, total, 2).getValues(); vc.forEach(a => { const v = String(a[1]); if (!firstSeen[v]) firstSeen[v] = String(a[0]); }); }
+  const uniq = (list, k) => { const s = {}; list.forEach(e => s[e[k]] = 1); return Object.keys(s).length; };
+  const cnt = (list, t) => list.filter(e => e.type === t).length;
+  // 訂單（排除已取消）
+  const ords = rows_("orders").filter(o => String(o.status) !== "已取消").map(o => ({ at: String(o.createdAt), total: Number(o.total) || 0, paid: String(o.payStatus) === "paid",
+    items: json_(o.items, []), uid: String(o.lineUid || ""), code: String(o.code || "") }));
+  const oCur = ords.filter(o => o.at.slice(0, 10) >= from), oPrev = ords.filter(o => o.at.slice(0, 10) >= prevFrom && o.at.slice(0, 10) < from);
+  const paidRev = list => list.filter(o => o.paid).reduce((a, o) => a + o.total, 0);
+  const mem = rows_("members");
+  const kpi = list => {
+    const sess = {}; list.forEach(e => { const s = sess[e.sid] || (sess[e.sid] = { n: 0, types: {} }); if (e.type === "view") s.n++; s.types[e.type] = 1; });
+    const sids = Object.keys(sess), bounce = sids.filter(k => sess[k].n <= 1 && Object.keys(sess[k].types).length <= 1).length;
+    return { visitors: uniq(list, "vid"), sessions: sids.length, views: cnt(list, "view"), productViews: cnt(list, "product"), carts: cnt(list, "cart"),
+      bounce: sids.length ? Math.round(bounce / sids.length * 100) : 0, ppv: sids.length ? Math.round(cnt(list, "view") / sids.length * 10) / 10 : 0 };
+  };
+  const K = kpi(cur), P = kpi(prev);
+  K.newVisitors = Object.keys(cur.reduce((s, e) => (s[e.vid] = 1, s), {})).filter(v => (firstSeen[v] || "") >= from).length;
+  K.orders = oCur.length; K.paidOrders = oCur.filter(o => o.paid).length; K.revenue = paidRev(oCur);
+  K.aov = K.paidOrders ? Math.round(K.revenue / K.paidOrders) : 0; K.conv = K.visitors ? Math.round(K.orders / K.visitors * 1000) / 10 : 0;
+  P.orders = oPrev.length; P.revenue = paidRev(oPrev); P.conv = P.visitors ? Math.round(P.orders / P.visitors * 1000) / 10 : 0;
+  K.members = mem.length; K.newMembers = mem.filter(m => String(m.firstAt).slice(0, 10) >= from).length;
+  P.newMembers = mem.filter(m => String(m.firstAt).slice(0, 10) >= prevFrom && String(m.firstAt).slice(0, 10) < from).length;
+  K.friends = mem.filter(m => bool_(m.friend)).length;
+  const nowTs = ts_(new Date(Date.now() - 5 * 60000));
+  K.online = uniq(ev.filter(e => e.ts >= nowTs), "vid");
+  // 回購：本期下單的會員中，之前也下過單的比例
+  const buyers = {}; ords.forEach(o => { if (o.uid) (buyers[o.uid] = buyers[o.uid] || []).push(o.at); });
+  const curBuyers = Object.keys(buyers).filter(u => buyers[u].some(a => a.slice(0, 10) >= from));
+  K.repeat = curBuyers.length ? Math.round(curBuyers.filter(u => buyers[u].some(a => a.slice(0, 10) < from) || buyers[u].filter(a => a.slice(0, 10) >= from).length > 1).length / curBuyers.length * 100) : 0;
+  // 每日走勢（今日＝每小時）
+  const series = [];
+  if (days === 1) {
+    for (let h = 0; h < 24; h++) { const hh = (h < 10 ? "0" : "") + h, l = cur.filter(e => e.ts.slice(11, 13) === hh);
+      series.push({ k: hh + ":00", visitors: uniq(l, "vid"), views: cnt(l, "view"), orders: oCur.filter(o => o.at.slice(11, 13) === hh).length, revenue: paidRev(oCur.filter(o => o.at.slice(11, 13) === hh)) }); }
+  } else {
+    for (let i = days - 1; i >= 0; i--) { const d = day0(new Date(Date.now() - i * 86400000)), l = cur.filter(e => e.ts.slice(0, 10) === d), od = oCur.filter(o => o.at.slice(0, 10) === d);
+      series.push({ k: d.slice(5).replace("-", "/"), visitors: uniq(l, "vid"), views: cnt(l, "view"), orders: od.length, revenue: paidRev(od) }); }
+  }
+  // 來源、裝置、系統（以工作階段計）
+  const bySess = (k) => { const first = {}; cur.forEach(e => { if (!first[e.sid]) first[e.sid] = e[k] || "其他"; }); const c = {}; Object.keys(first).forEach(s => c[first[s]] = (c[first[s]] || 0) + 1); return top_(c, 8); };
+  // 熱門商品：瀏覽、加購物車、售出件數
+  const prodName = {}; rows_("products").forEach(p => prodName[String(p.id)] = String(p.name));
+  const pv = {}; const bump = (id, k, v) => { if (!id) return; const x = pv[id] || (pv[id] = { id: id, views: 0, carts: 0, sold: 0, rev: 0 }); x[k] += v; };
+  cur.forEach(e => { if (e.type === "product") bump(e.pid, "views", 1); if (e.type === "cart") bump(e.pid, "carts", Number(e.n) || 1); });
+  oCur.forEach(o => o.items.forEach(i => { bump(String(i.id), "sold", Number(i.qty) || 0); bump(String(i.id), "rev", Number(i.total) || 0); }));
+  const products = Object.keys(pv).map(k => Object.assign(pv[k], { name: prodName[k] || k })).sort((a, b) => b.views + b.sold * 5 - (a.views + a.sold * 5)).slice(0, 10);
+  // 搜尋關鍵字＋搜不到的字（找貨源的線索）
+  const sq = {}, zero = {};
+  cur.filter(e => e.type === "search" && e.q).forEach(e => { const q = e.q.toLowerCase().trim(); sq[q] = (sq[q] || 0) + 1; if (e.n === "0") zero[q] = (zero[q] || 0) + 1; });
+  // 轉換漏斗（以工作階段計）
+  const st = {}; cur.forEach(e => (st[e.sid] = st[e.sid] || {})[e.type] = 1);
+  const sv = Object.keys(st).map(k => st[k]);
+  const funnel = [["進站", sv.length], ["看商品", sv.filter(x => x.product).length], ["加入購物車", sv.filter(x => x.cart).length], ["前往結帳", sv.filter(x => x.checkout).length], ["送出訂單", sv.filter(x => x.order).length]];
+  // 星期 × 時段熱度（瀏覽次數）
+  const heat = []; for (let i = 0; i < 7; i++) heat.push(new Array(24).fill(0));
+  cur.filter(e => e.type === "view").forEach(e => { const dd = (new Date(Date.parse(e.ts.replace(" ", "T") + "+08:00") + 8 * 3600000)).getUTCDay(); heat[dd][Number(e.ts.slice(11, 13))]++; });
+  const pages = {}; cur.filter(e => e.type === "view").forEach(e => pages[e.page] = (pages[e.page] || 0) + 1);
+  const vids = {}; cur.filter(e => e.type === "video").forEach(e => vids[e.pid] = (vids[e.pid] || 0) + 1);
+  const vName = {}; rows_("videos").forEach(v => vName[String(v.id)] = String(v.title || v.id));
+  const latestMembers = mem.slice().sort((a, b) => String(b.firstAt).localeCompare(String(a.firstAt))).slice(0, 12)
+    .map(m => ({ name: String(m.name), pic: String(m.pic), friend: bool_(m.friend), firstAt: String(m.firstAt), lastAt: String(m.lastAt), orders: (buyers[String(m.uid)] || []).length }));
+  const welcome = String(getSettings_().welcomeCode || "").toUpperCase();
+  return { days: days, from: from, to: today, kpi: K, prev: P, series: series, sources: bySess("src"), devices: bySess("dev"), os: bySess("os"),
+    products: products, searches: top_(sq, 12), zero: top_(zero, 8), funnel: funnel, heat: heat, pages: top_(pages, 6),
+    videos: top_(Object.keys(vids).reduce((o, k) => (o[vName[k] || k] = vids[k], o), {}), 6), members: latestMembers,
+    welcomeUsed: welcome ? ords.filter(o => o.code.toUpperCase() === welcome).length : null, tracked: total };
+}
+function top_(obj, n) { return Object.keys(obj).map(k => [k, obj[k]]).sort((a, b) => b[1] - a[1]).slice(0, n); }

@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-055YrnMPCEzmbAyKLajSDASJ3mUMt9XvOlNQwsy0HJ4='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-WzLmzxdNldGCs8Q7QjgztJlhBCH0zgcWOh59kjmK2dY='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080153">
+<meta name="build" content="202611080201">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -118,6 +118,17 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .reel .play svg{width:22px;height:22px;margin-left:3px}
 .reel.skel{border-color:transparent;background:linear-gradient(90deg,var(--wash),var(--line),var(--wash));background-size:200% 100%;animation:sk 1.2s infinite}
 .reel.skel::after{display:none}
+/* 廣告牆（2026-11-08）：影片直式大格（跨兩列）＋商品方格拼成一面牆；手機 3 欄、電腦 5 欄 */
+.reels.wall{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-flow:row dense;gap:8px;overflow:visible;margin:0;padding:0}
+.wall .reel{width:auto;grid-row:span 2;aspect-ratio:auto;min-height:100%}
+.wtile{position:relative;aspect-ratio:1;padding:0;border:0;border-radius:12px;overflow:hidden;background:#17181D;color:#fff;text-align:left}
+.wtile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s}
+.wtile:hover img{transform:scale(1.05)}
+.wtile::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 45%,rgba(0,0,0,.82))}
+.wtile span{position:absolute;left:8px;right:8px;bottom:7px;z-index:1;font-size:12px;font-weight:800;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wtile em{position:absolute;top:7px;left:7px;z-index:1;font-style:normal;font-size:11px;font-weight:900;background:var(--red);color:#fff;border-radius:6px;padding:2px 7px}
+.wtile:nth-of-type(n+5){display:none}
+@media (min-width:760px){.reels.wall{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.wtile:nth-of-type(n+5){display:block}.wtile:nth-of-type(n+9){display:none}.wtile span{font-size:14px;left:10px;right:10px;bottom:9px}}
 .reel b{position:absolute;left:8px;right:8px;bottom:8px;z-index:1;font-size:13px;line-height:1.35;text-align:left;font-weight:800}
 
 /* ── 專區橫幅 ── */
@@ -130,7 +141,7 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .promos i{align-self:flex-start;margin-top:6px;font-style:normal;font-size:13px;font-weight:800;background:#fff;color:#17181D;border-radius:999px;padding:3px 12px}
 .promos button::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--red);z-index:1}
 @media (max-width:760px){.promos{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -14px;padding:0 14px}
-  .promos::-webkit-scrollbar{display:none}.promos button{flex:none;width:72%;height:96px;scroll-snap-align:start}.promos i{display:none}}
+  .promos::-webkit-scrollbar{display:none}.promos button{flex:none;width:72%;height:96px;scroll-snap-align:start}.promos i{display:none}.promos span{max-width:78%}.promos small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 
 /* ── 商品 ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,9.4em),1fr));gap:10px}
@@ -148,6 +159,24 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .badge{position:absolute;top:8px;left:8px;z-index:1;font-size:11px;font-weight:900;color:#fff;background:var(--red);border-radius:6px;padding:1px 7px;letter-spacing:.06em}
 .badge.soon{background:var(--chip);color:var(--bg);top:8px;left:8px}
 .badge.out{background:#555}
+/* 角標（2026-11-08 使用者：商品要凸顯 HOT、要會動）：HOT 會輕跳＋光澤掃過，NEW 只有光澤；系統設定「減少動態」時全部靜止 */
+.rib{position:absolute;top:10px;left:10px;z-index:2;overflow:hidden;font:900 12px/1 system-ui,sans-serif;letter-spacing:.12em;color:#fff;padding:6px 10px 5px;border-radius:7px;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.rib.hot{background:linear-gradient(135deg,#FF5A1F,#D7261E);animation:ribHop 2.6s ease-in-out infinite}
+.rib.new{background:linear-gradient(135deg,#2F6BFF,#1F4FD1)}
+.rib::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-20deg);animation:ribShine 3.2s ease-in-out infinite}
+.rib.new::after{animation-delay:1.2s}
+@keyframes ribHop{0%,62%,100%{transform:translateY(0) scale(1)}70%{transform:translateY(-4px) scale(1.08)}78%{transform:translateY(0) scale(1)}84%{transform:translateY(-2px) scale(1.04)}90%{transform:translateY(0)}}
+@keyframes ribShine{0%,55%{left:-60%}85%,100%{left:130%}}
+/* HOT 卡片：火焰流動外框＋閃爍火光（使用者 2026-11-08：框框有火焰更凸顯） */
+@property --fa{syntax:"<angle>";inherits:false;initial-value:0deg}
+.pcard.ishot{border:2px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,conic-gradient(from var(--fa),#FF3D00,#FFB300,#FF6A00,#D7261E,#FFD54A,#FF3D00) border-box;animation:flameSpin 3s linear infinite,flameGlow 1.6s ease-in-out infinite alternate}
+@keyframes flameSpin{to{--fa:360deg}}
+@keyframes flameGlow{0%{box-shadow:0 0 10px rgba(255,90,20,.35),0 6px 18px rgba(215,38,30,.18)}50%{box-shadow:0 0 18px rgba(255,140,0,.5),0 8px 24px rgba(215,38,30,.25)}100%{box-shadow:0 0 12px rgba(255,61,0,.42),0 4px 16px rgba(215,38,30,.2)}}
+.rib.hot{display:inline-flex;align-items:center;gap:3px;padding-left:7px}
+.rib .fl{width:13px;height:13px;transform-origin:50% 90%;animation:flick .5s ease-in-out infinite alternate}
+@keyframes flick{0%{transform:scale(1,1) rotate(-3deg)}100%{transform:scale(.9,1.12) rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.pcard.ishot,.rib .fl{animation:none}}
+@media (prefers-reduced-motion:reduce){.rib,.rib::after{animation:none}}
 .empty{padding:28px 10px;text-align:center;color:var(--faint);font-weight:700}
 .skel{background:linear-gradient(90deg,var(--wash),var(--line),var(--wash));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:14px;aspect-ratio:3/4}
 @keyframes sk{to{background-position:-200% 0}}
@@ -279,8 +308,11 @@ footer nav a{color:var(--faint);text-decoration:none}
 .latest .lr::-webkit-scrollbar{display:none}
 .latest .li{flex:none;width:236px;scroll-snap-align:start;display:flex;align-items:center;gap:10px;padding:6px 10px 6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);text-align:left}
 .latest .li img{flex:none;width:60px;height:60px;border-radius:9px;object-fit:cover;background:var(--line)}
-.latest .li span{flex:1;min-width:0;font-size:13px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.latest .li em{display:block;font-style:normal;color:var(--red);font-weight:900;font-size:15px;margin-top:3px}
+.latest .li{position:relative}
+.latest .li div{flex:1;min-width:0}
+.latest .li span{font-size:14px;font-weight:800;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.latest .li em{display:block;font-style:normal;color:var(--red);font-weight:900;font-size:16px;margin-top:4px}
+.latest .li .nb{position:absolute;top:2px;left:2px;font:900 10px/1 system-ui,sans-serif;letter-spacing:.1em;font-style:normal;color:#fff;background:linear-gradient(135deg,#2F6BFF,#1F4FD1);border-radius:5px;padding:4px 6px}
 .latest .li:hover{border-color:var(--dim)}
 #grid{scroll-margin-top:150px}
 .moreb{grid-column:1/-1;justify-self:center;width:min(100%,360px);height:46px;margin-top:6px}
@@ -355,7 +387,7 @@ footer nav a{color:var(--faint);text-decoration:none}
   .shipbar{font-size:17px;padding:10px}
   .dd select{font-size:17px;padding:9px 38px 9px 18px}
   .sorts button{font-size:17px;padding:8px 20px}
-  .latest .li{width:300px} .latest .li img{width:72px;height:72px} .latest .li span{font-size:15px} .latest .li em{font-size:17px} .latest .lh b{font-size:17px}
+  .latest .li{width:300px} .latest .li img{width:72px;height:72px} .latest .li span{font-size:16px} .latest .li em{font-size:18px} .latest .lh b{font-size:17px}
   .shop .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
   .pcard .body{padding:14px 16px 16px;gap:8px}
   .pcard .name{font-size:18px}
@@ -378,7 +410,7 @@ footer nav a{color:var(--faint);text-decoration:none}
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <a class="brand" href="./shop.html"><img src="badge.png?v=1" alt=""><span><b>赤貧軍團</b><small>RC 鋰電池 × 車種買賣 × 改裝教學</small></span></a>
+  <a class="brand" href="./shop.html"><img src="badge.png?v=1" alt=""><span><b>赤貧軍團</b></span></a>
   <form class="search" id="searchForm" role="search">
     <input id="q" type="search" placeholder="搜尋商品、車種、電池規格" aria-label="搜尋商品">
     <button aria-label="搜尋"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
@@ -411,7 +443,7 @@ footer nav a{color:var(--faint);text-decoration:none}
       <label class="dd" id="catRow"><select id="catSel" aria-label="分類"></select></label>
       <div class="sorts" id="sorts">
         <button data-sort="rec">推薦</button><button data-sort="new">新品</button><button data-sort="hot">熱門</button>
-        <button data-sort="price">價格</button><button data-sort="stock">庫存</button>
+        <button data-sort="price">價格</button>
       </div>
     </div>
     <div class="latest" id="latest" hidden></div>
@@ -420,7 +452,7 @@ footer nav a{color:var(--faint);text-decoration:none}
 
   <!-- 短影音：先放骨架佔住高度，資料回來才換成影片，避免整頁往下跳 -->
   <section id="reelSec">
-    <h2>短影音</h2>
+    <h2>影音精選</h2>
     <div class="reels" id="reels"><div class="reel skel"></div><div class="reel skel"></div><div class="reel skel"></div></div>
   </section>
 
@@ -444,8 +476,9 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611080153"></script>
-<script src="tw-zip.js?v=202611080153"></script>
+<script src="track.js?v=202611080201"></script>
+<script src="shop-core.js?v=202611080201"></script>
+<script src="tw-zip.js?v=202611080201"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -498,7 +531,7 @@ function markPromos() {
   document.querySelectorAll(".promos button").forEach(b => b.setAttribute("aria-pressed", !filter.brand && !filter.q && b.dataset.cat === filter.cat));
 }
 // 商品格一次 12 件，其餘按「顯示更多」：商品多了也滑得到下面的短影音
-const PAGE = 12; let shown = PAGE;
+const PAGE = 12; let shown = PAGE, lastCount = 0;
 $("grid").addEventListener("click", e => { if (e.target.closest("[data-more]")) { shown += PAGE * 2; renderList(); } });
 function renderHot() {
   if (!catalog) return;
@@ -515,7 +548,7 @@ function renderHot() {
 $("hotq").onclick = e => {
   const b = e.target.closest("[data-hq]"); if (!b) return;
   const w = b.getAttribute("aria-pressed") === "true" ? "" : b.dataset.hq; // 再點一次＝取消
-  $("q").value = w; filter.q = w; filter.cat = "all"; filter.brand = ""; refilter(true);
+  $("q").value = w; filter.q = w; filter.cat = "all"; filter.brand = ""; refilter(true); if (w) cpTrack("search", {q: w, n: lastCount});
 };
 function refilter(scroll) {
   shown = PAGE;
@@ -535,7 +568,7 @@ document.querySelector(".promos").onclick = e => {
   const b = e.target.closest("button"); if (!b) return;
   filter.brand = ""; filter.q = ""; $("q").value = ""; filter.cat = b.dataset.cat; refilter(true);
 };
-$("searchForm").onsubmit = e => { e.preventDefault(); filter.q = $("q").value.trim(); filter.cat = "all"; filter.brand = ""; refilter(true); };
+$("searchForm").onsubmit = e => { e.preventDefault(); filter.q = $("q").value.trim(); filter.cat = "all"; filter.brand = ""; refilter(true); if (filter.q) cpTrack("search", {q: filter.q, n: lastCount}); };
 
 /* ── 列表 ── */
 function renderList() {
@@ -555,6 +588,7 @@ function renderList() {
     if (k === "price") b.textContent = filter.sort === "high" ? "價格 ↓" : filter.sort === "low" ? "價格 ↑" : "價格";
   }
   renderLatest();
+  lastCount = list.length;
   const more = list.length - shown;
   $("grid").innerHTML = list.length ? list.slice(0, shown).map(card).join("") + (more > 0 ? `<button type="button" class="btn ghost moreb" data-more>顯示更多商品（還有 ${more} 件）</button>` : "")
     : `<div class="empty">${filter.q ? "找不到相符的商品" : `${esc([filter.brand, filter.cat !== "all" ? catName(filter.cat) : ""].filter(Boolean).join("・"))} 尚無商品`}<br><button class="btn ghost" data-reset style="margin-top:12px;height:40px;padding:0 18px;flex:none">看全部商品</button></div>`;
@@ -567,9 +601,9 @@ function card(p) {
   const out = p.stock === 0, best = (p.tiers || []).slice(-1)[0];
   const hasVid = catalog.videos && catalog.videos.some(v => v.productId === p.id);
   const tags = [!out && !canBuy(p) && '<i class="t soon">即將開賣</i>', p.hot && '<i class="t hot">熱銷</i>', isNew(p) && '<i class="t new">新品</i>', best && `<i class="t deal">${best.qty} 件起 ${zhe(best.price, p.price)}</i>`, p.brand && `<i class="t">${esc(p.brand)}</i>`].filter(Boolean).join("");
-  return `<div class="pcard${out ? " out" : ""}" data-id="${esc(p.id)}" role="button" tabindex="0">
+  return `<div class="pcard${out ? " out" : ""}${p.hot && !out ? " ishot" : ""}" data-id="${esc(p.id)}" role="button" tabindex="0">
     <div class="img">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], CARD_W))}" alt="" loading="lazy">` : svg(p.category || "all")}
-      ${out ? '<span class="badge out">售完</span>' : ""}${hasVid ? '<span class="vbadge" aria-label="有影片">▶</span>' : ""}</div>
+      ${out ? '<span class="badge out">售完</span>' : p.hot ? '<span class="rib hot"><svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5-1.6 5.2-1.6 8 0 1.3.8 2.3 1.9 2.3 1.4 0 2-1.2 1.7-3.2 2.6 1.6 4 4.3 4 7a6 6 0 0 1-12 0c0-4.7 4.6-7.4 6-14z" fill="#FFE08A"/></svg>HOT</span>' : isNew(p) ? '<span class="rib new">NEW</span>' : ""}${hasVid ? '<span class="vbadge" aria-label="有影片">▶</span>' : ""}</div>
     <div class="body"><span class="name">${esc(p.name)}</span>
       <div class="prow"><span class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}</span>
         ${out || !canBuy(p) ? "" : `<button class="qadd" data-qadd="${esc(p.id)}" aria-label="加入購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.3" fill="currentColor"/><circle cx="17" cy="20" r="1.3" fill="currentColor"/></svg></button>`}</div>
@@ -595,7 +629,22 @@ function renderLatest() {
   el.hidden = !ps.length;
   if (!ps.length) return;
   el.innerHTML = `<div class="lh"><b>最新上架</b><button type="button" data-allnew>全部新品 ›</button></div>
-    <div class="lr">${ps.map(p => `<button type="button" class="li" data-id="${esc(p.id)}">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 200))}" alt="" loading="lazy">` : "<img alt=\"\">"}<span>${esc(p.name)}<em>${money(p.price)}</em></span></button>`).join("")}</div>`;
+    <div class="lr">${ps.map(p => `<button type="button" class="li" data-id="${esc(p.id)}">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 200))}" alt="" loading="lazy">` : "<img alt=\"\">"}<i class="nb">NEW</i><div><span>${esc(p.name.replace(/^.*?[｜|]\s*/, "") || p.name)}</span><em>${money(p.price)}</em></div></button>`).join("")}</div>`;
+  autoSlide(el.querySelector(".lr"));
+}
+// 最新上架自動輪播：每 3.5 秒往右一格、到底回頭；手指／滑鼠放上去就暫停（使用者 2026-11-08：要會動、凸顯）
+let slideT = null;
+function autoSlide(row) {
+  clearInterval(slideT);
+  if (!row || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  let hold = false;
+  ["pointerenter", "touchstart", "focusin"].forEach(t => row.addEventListener(t, () => hold = true, {passive: true}));
+  ["pointerleave", "touchend", "focusout"].forEach(t => row.addEventListener(t, () => setTimeout(() => hold = false, 2500), {passive: true}));
+  slideT = setInterval(() => {
+    if (hold || document.hidden || row.scrollWidth <= row.clientWidth + 4) return;
+    const step = (row.firstElementChild ? row.firstElementChild.offsetWidth : 240) + 10;
+    row.scrollTo({left: row.scrollLeft + row.clientWidth + 4 >= row.scrollWidth ? 0 : row.scrollLeft + step, behavior: "smooth"});
+  }, 3500);
 }
 $("latest").onclick = e => {
   const it = e.target.closest("[data-id]"); if (it) return openProduct(it.dataset.id);
@@ -632,7 +681,8 @@ function renderReels() {
       ? `<video src="${esc(info.url)}" crossorigin="anonymous" ${poster ? `poster="${esc(poster)}"` : ""} muted loop playsinline preload="none"></video>`
       : poster ? `<img src="${esc(poster)}" alt="" loading="lazy">` : "";
     return `<button class="reel" data-id="${esc(v.id)}"><span class="snd" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6" stroke="#fff" stroke-width="2"/></svg></span>${media}<span class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg></span><b>${esc(v.title)}</b></button>`;
-  }).join("");
+  }).join("") + wallTiles(vs.length);
+  $("reels").classList.add("wall");
   // 捲進畫面才播、離開就停（省流量、省電）；播得動就把播放鈕藏起來
   reelIO && reelIO.disconnect();
   reelIO = new IntersectionObserver(ents => ents.forEach(en => {
@@ -642,8 +692,15 @@ function renderReels() {
   }), {threshold: .6});
   $("reels").querySelectorAll(".reel").forEach(r => reelIO.observe(r));
 }
+// 廣告牆的商品格：熱銷優先、再依後台排序；有影片的格數多時商品格照樣補滿兩列
+function wallTiles(nv) {
+  const ps = catalog.products.filter(p => p.stock !== 0 && p.images[0]).sort((a, b) => (b.hot - a.hot) || a.sort - b.sort).slice(0, Math.max(4, 10 - nv * 2));
+  const short = n => n.replace(/^.*?[｜|]\s*/, "") || n;
+  return ps.map(p => `<button type="button" class="wtile" data-pid="${esc(p.id)}"><img src="${esc(imgUrl(p.images[0], CARD_W))}" alt="" loading="lazy">${p.hot ? "<em>熱銷</em>" : isNew(p) ? "<em>新品</em>" : ""}<span>${esc(short(p.name))}　${money(p.price)}</span></button>`).join("");
+}
 let reelIO = null;
 $("reels").onclick = e => {
+  const t = e.target.closest("[data-pid]"); if (t) return openProduct(t.dataset.pid);
   const b = e.target.closest(".reel"); if (!b) return;
   const v = catalog.videos.find(x => x.id === b.dataset.id), info = videoInfo(v.src);
   const player = info.kind === "youtube" ? `<iframe class="vplayer" src="https://www.youtube.com/embed/${info.id}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`
@@ -654,7 +711,7 @@ $("reels").onclick = e => {
   $("vPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
     <div class="ptitle">${esc(v.title)}</div>${player}
     ${p ? `<div class="buyrow"><button class="btn" data-open="${esc(p.id)}">查看商品　${money(p.price)}</button></div>` : ""}`;
-  open("vSheet");
+  open("vSheet"); cpTrack("video", {pid: v.id});
   // 點開後直接有聲音播放（使用者點擊算互動，瀏覽器允許）
   const vp = $("vPanel").querySelector("video");
   // 直連失敗（舊的 Drive 影片）退回 Drive 播放器；用事件不用 inline onerror（CSP 不允許 inline 事件）
@@ -693,6 +750,7 @@ addEventListener("keydown", e => { if (e.key === "Escape") document.querySelecto
 let pQty = 1;
 function openProduct(id) {
   const p = catalog.products.find(x => x.id === id); if (!p) return;
+  cpTrack("product", {pid: id});
   pQty = 1;
   let gi = 0;   // 目前第幾張；改數量會重畫整塊，要記住位置，不然會跳回第一張
   const nImg = p.images.length;
@@ -741,6 +799,7 @@ function openProduct(id) {
 /* ── 購物車 ── */
 function saveCart() { lsSet("cp-cart", cart); $("cartCount").textContent = $("cartCount2").textContent = cart.reduce((s, l) => s + l.qty, 0) || ""; }
 function addToCart(id, qty) {
+  cpTrack("cart", {pid: id, n: qty});
   const l = cart.find(x => x.id === id);
   if (l) l.qty += qty; else cart.push({id, qty});
   saveCart();
@@ -895,7 +954,7 @@ $("cPanel").addEventListener("click", e => {
     saveCart(); serverQuote = null; drawCart(); refreshQuote();
   }
   const st = e.target.closest("[data-step]");
-  if (st) { step = st.dataset.step; drawCart(); $("cPanel").scrollTop = 0; }
+  if (st) { step = st.dataset.step; if (step === "form") cpTrack("checkout"); drawCart(); $("cPanel").scrollTop = 0; }
   const lg = e.target.closest("[data-login]"); if (lg) { lineLogin(lg); return; }
   if (e.target.closest("[data-logout]")) { memTok = ""; member = null; lsSet("cp-mem", ""); drawCart(); drawMemBtn(); return; }
   if (e.target.closest("[data-usegift]")) { useGift(); return; }
@@ -977,7 +1036,7 @@ function openMember() {
 }
 drawMemBtn();
 async function lineLogin(btn) {
-  saveDraft(); lsSet("cp-afterlogin", "1");
+  saveDraft(); lsSet("cp-afterlogin", "1"); cpTrack("login");
   await busy(btn, async () => { const r = await (await fetch(API + "?action=loginUrl&_=" + Date.now())).json(); location.href = r.url; });
 }
 // 綠界：把後端簽好章的欄位做成表單送出（整頁跳到綠界付款頁）
@@ -1061,6 +1120,7 @@ async function submitOrder() {
     try {
       const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : "", memberToken: memTok, payMethod: catalog.settings.payReady ? payM : ""}, {tries: 3});
       lsSet("cp-last", {no: r.orderNo, cid: clientId});
+      cpTrack("order", {pid: r.orderNo, n: r.total});
       if (r.pay) { cart = []; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); goPay(r.pay); return; }
       cart = []; code = ""; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); serverQuote = null;
       step = "done";

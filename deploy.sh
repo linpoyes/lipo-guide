@@ -5,7 +5,7 @@ cd "${0:A:h}"
 b=$(date +%Y%m%d%H%M)
 sed -i '' -E "s/<meta name=\"build\" content=\"[0-9]+\">/<meta name=\"build\" content=\"$b\">/" index.html shop.html admin.html
 # 共用 js 也換版本號，避免手機拿到舊的 shop-core.js
-sed -i '' -E "s/(shop-core|tw-zip)\.js\?v=[0-9]+/\1.js?v=$b/g" shop.html admin.html
+sed -i '' -E "s/(shop-core|tw-zip|track)\.js\?v=[0-9]+/\1.js?v=$b/g" shop.html admin.html index.html
 # CSP：重新計算 inline script 雜湊（必須在蓋完 build 號之後，build 號不在 script 裡所以順序其實無妨）
 python3 tools/csp.py index.html shop.html admin.html
 # 後台上傳影片會由 Apps Script 直接 commit 到 media/，推之前先拉下來

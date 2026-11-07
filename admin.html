@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-lJ4WMS49INgYwfsrkYTzO7pVisy8PAE7IIrYYEqF3nI='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-JUMr/V+fdU95BfE9DeKfMLp4Gt2jwngOkQzecsiQXX0='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080153">
+<meta name="build" content="202611080201">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -121,6 +121,42 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .ship .cp i{flex:none;font-style:normal;font-size:12px;font-weight:800;color:var(--accent)}
 .ship .cp.done i{color:var(--ok)}
 .pwwarn{display:block;width:100%;margin-top:10px;border:0;border-radius:10px;background:var(--red);color:#fff;font-weight:800;padding:9px 12px;text-align:left}
+/* 儀表板 */
+.live{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800;margin:4px 0 10px}
+.live i{width:9px;height:9px;border-radius:50%;background:#1F9D63;box-shadow:0 0 0 0 rgba(31,157,99,.6);animation:livep 1.8s infinite}
+.live span{color:var(--faint);font-size:13px;font-weight:700;margin-left:auto}
+@keyframes livep{70%{box-shadow:0 0 0 8px rgba(31,157,99,0)}100%{box-shadow:0 0 0 0 rgba(31,157,99,0)}}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.kc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;position:relative}
+.kc small{display:block;color:var(--dim);font-size:12px;font-weight:800}
+.kc b{display:block;font-size:24px;font-weight:900;line-height:1.25;margin-top:2px}
+.kc em{position:absolute;top:11px;right:12px;font-style:normal;font-size:12px;font-weight:900;border-radius:999px;padding:1px 8px}
+.kc em.up{color:var(--ok);background:rgba(31,122,74,.12)}.kc em.down{color:var(--bad);background:rgba(179,38,30,.1)}.kc em.flat{color:var(--faint);background:var(--wash)}
+.kc span{display:block;color:var(--faint);font-size:12px;font-weight:700;margin-top:2px}
+.dgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.dc{margin:0}.dc h3{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:16px}
+.dc h4{margin:14px 0 8px;font-size:14px;color:var(--dim)}
+.chart{width:100%;height:auto;display:block}.chart .gl{stroke:var(--line);stroke-width:1}.chart .ax,.donut .ax{fill:var(--faint);font-size:11px;font-weight:700}
+.lg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}.lg i{width:10px;height:10px;border-radius:3px;margin-left:6px}
+.hb,.fun{display:grid;gap:8px}
+.hbr,.fr{display:grid;grid-template-columns:78px minmax(0,1fr) 74px;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.hbr span,.fr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbr i,.fr i{height:12px;border-radius:6px;background:var(--wash);overflow:hidden}.hbr b,.fr b{display:block;height:100%;border-radius:6px}
+.fr i{height:20px}.fr b{background:linear-gradient(90deg,#D7261E,#FF7A45)}
+.hbr em,.fr em{font-style:normal;text-align:right;font-weight:900}.hbr small,.fr small{display:block;color:var(--faint);font-size:11px}
+.donut{display:flex;align-items:center;gap:14px}.donut svg{width:120px;flex:none}.donut .dn{fill:var(--text);font-size:15px;font-weight:900}
+.donut p{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;font-weight:700}.donut p i{width:10px;height:10px;border-radius:3px}.donut p b{margin-left:auto;padding-left:10px}
+.heat{display:grid;gap:3px;overflow-x:auto}.hrow{display:grid;grid-template-columns:18px repeat(24,minmax(9px,1fr));gap:3px;align-items:center}
+.hrow span{font-size:11px;color:var(--faint);font-weight:800}.hrow i{aspect-ratio:1;border-radius:3px;background:var(--wash)}
+.hx i{background:none!important;font-size:10px;color:var(--faint);font-style:normal;aspect-ratio:auto;text-align:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips span{display:inline-flex;gap:6px;align-items:center;background:var(--wash);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700}
+.chips b{color:var(--red)}.chips.warn span{background:rgba(168,90,0,.12)}
+.dt td:not(:first-child),.dt th:not(:first-child){text-align:right;white-space:nowrap}
+.mems{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.mems div{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.mems img,.mems div>i{width:38px;height:38px;border-radius:50%;flex:none;background:var(--wash)}
+.mems p{flex:1;min-width:0;margin:0}.mems b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mems small{color:var(--faint);font-size:12px}
+@media (min-width:760px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dc.wide{grid-column:1/-1}}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
 .stats div{background:var(--ink);color:#fff;border-radius:12px;padding:10px;box-shadow:inset 0 -3px 0 var(--red)}
 .stats small{display:block;color:#C9CBD2;font-size:12px;font-weight:700}
@@ -165,17 +201,17 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611080153"></script>
+<script src="shop-core.js?v=202611080201"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
 let token = lsGet("cp-admin", "") || "";
 // 分級權限：分頁依角色顯示（後端也會擋，這裡只是不顯示用不到的）
-const TABS = [["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["report", "報表"], ["settings", "設定"]];
-const ROLE_TABS = {owner: TABS.map(t => t[0]), staff: ["orders", "products", "videos", "codes", "settings"], shipper: ["orders", "settings"], viewer: ["report", "settings"]};
+const TABS = [["dash", "儀表板"], ["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["report", "報表"], ["settings", "設定"]];
+const ROLE_TABS = {owner: TABS.map(t => t[0]), staff: ["dash", "orders", "products", "videos", "codes", "settings"], shipper: ["orders", "settings"], viewer: ["dash", "report", "settings"]};
 const ROLE_NAME = {owner: "管理者", staff: "營運", shipper: "出貨", viewer: "報表"};
 const role = () => (data && data.me && data.me.role) || "owner";
-let data = null, orders = null, tab = sessionStorage.getItem("cp-tab") || "orders", orderFilter = "新訂單";
+let data = null, orders = null, tab = sessionStorage.getItem("cp-tab") || "dash", orderFilter = "新訂單";
 const STATUSES = ["新訂單", "已確認", "已出貨", "已完成", "已取消"];
 
 function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200); }
@@ -226,7 +262,108 @@ function drawApp() {
   $("outBtn").onclick = logout;
   const gp = document.querySelector("[data-gopw]"); if (gp) gp.onclick = () => { tab = "settings"; sessionStorage.setItem("cp-tab", tab); drawApp(); };
   document.querySelector(".tabs").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; sessionStorage.setItem("cp-tab", tab); drawApp(); } };
-  ({orders: drawOrders, products: drawProducts, videos: drawVideos, codes: drawCodes, report: drawReport, settings: drawSettings})[tab]();
+  ({dash: drawDash, orders: drawOrders, products: drawProducts, videos: drawVideos, codes: drawCodes, report: drawReport, settings: drawSettings})[tab]();
+}
+
+
+/* ── 儀表板（2026-11-08）：流量、轉換、會員。彙總都在後端 dashboard_ 算好，這裡只畫圖（純 SVG，不載外部套件） ── */
+let dashDays = Number(sessionStorage.getItem("cp-dash-days")) || 7, dashData = null;
+const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0;
+function delta(cur, prev, inverse) {
+  if (prev === undefined || prev === null) return "";
+  if (!prev) return cur ? '<em class="up">新</em>' : "";
+  const d = Math.round((cur - prev) / prev * 100); if (!d) return '<em class="flat">持平</em>';
+  const good = inverse ? d < 0 : d > 0;
+  return `<em class="${good ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d)}%</em>`;
+}
+function lineChart(series, keys, colors, fmt) {
+  const W = 640, H = 200, P = {l: 34, r: 8, t: 12, b: 24}, n = series.length;
+  const max = Math.max(1, ...series.flatMap(s => keys.map(k => s[k])));
+  const nice = Math.pow(10, Math.floor(Math.log10(max))), top = Math.ceil(max / nice) * nice;
+  const x = i => P.l + (n === 1 ? (W - P.l - P.r) / 2 : i * (W - P.l - P.r) / (n - 1)), y = v => P.t + (1 - v / top) * (H - P.t - P.b);
+  const grid = [0, .5, 1].map(f => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(top * f)}" y2="${y(top * f)}" class="gl"/><text x="${P.l - 6}" y="${y(top * f) + 4}" text-anchor="end" class="ax">${fmt ? fmt(top * f) : Math.round(top * f)}</text>`).join("");
+  const every = Math.ceil(n / 8);
+  const xl = series.map((s, i) => i % every === 0 || i === n - 1 ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" class="ax">${esc(s.k)}</text>` : "").join("");
+  const paths = keys.map((k, j) => {
+    const pts = series.map((s, i) => `${x(i).toFixed(1)},${y(s[k]).toFixed(1)}`);
+    const area = j === 0 ? `<path d="M${pts[0]} L${pts.join(" L")} L${x(n - 1)},${y(0)} L${x(0)},${y(0)}Z" fill="${colors[j]}" opacity=".14"/>` : "";
+    return area + `<polyline points="${pts.join(" ")}" fill="none" stroke="${colors[j]}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>` +
+      series.map((s, i) => `<circle cx="${x(i)}" cy="${y(s[k])}" r="${n > 31 ? 0 : 3}" fill="${colors[j]}"><title>${esc(s.k)}　${s[k]}</title></circle>`).join("");
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img">${grid}${xl}${paths}</svg>`;
+}
+function barChart(series, k, color, fmt) {
+  const W = 640, H = 180, P = {l: 44, r: 8, t: 12, b: 24}, n = series.length;
+  const max = Math.max(1, ...series.map(s => s[k])), bw = (W - P.l - P.r) / n;
+  const y = v => P.t + (1 - v / max) * (H - P.t - P.b), every = Math.ceil(n / 8);
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img">
+    <line x1="${P.l}" x2="${W - P.r}" y1="${y(0)}" y2="${y(0)}" class="gl"/><text x="${P.l - 6}" y="${y(max) + 4}" text-anchor="end" class="ax">${fmt(max)}</text>
+    ${series.map((s, i) => `<rect x="${P.l + i * bw + bw * .18}" y="${y(s[k])}" width="${bw * .64}" height="${Math.max(0, y(0) - y(s[k]))}" rx="3" fill="${color}"><title>${esc(s.k)}　${fmt(s[k])}</title></rect>` +
+      (i % every === 0 || i === n - 1 ? `<text x="${P.l + i * bw + bw / 2}" y="${H - 6}" text-anchor="middle" class="ax">${esc(s.k)}</text>` : "")).join("")}</svg>`;
+}
+function hbars(list, unit = "", color = "var(--accent)") {
+  if (!list.length) return '<div class="note">尚無資料</div>';
+  const tot = list.reduce((a, x) => a + x[1], 0), max = Math.max(...list.map(x => x[1]));
+  return `<div class="hb">${list.map(([k, v]) => `<div class="hbr"><span>${esc(k)}</span><i><b style="width:${v / max * 100}%;background:${color}"></b></i><em>${v.toLocaleString()}${unit}<small>${pct(v, tot)}%</small></em></div>`).join("")}</div>`;
+}
+function donut(list) {
+  if (!list.length) return '<div class="note">尚無資料</div>';
+  const tot = list.reduce((a, x) => a + x[1], 0), C = 2 * Math.PI * 38, cols = ["#D7261E", "#2F6BFF", "#1F9D63", "#F0A020", "#8A5CF6", "#888"];
+  let off = 0;
+  const arcs = list.map(([k, v], i) => { const len = v / tot * C, a = `<circle r="38" cx="50" cy="50" fill="none" stroke="${cols[i % 6]}" stroke-width="16" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"><title>${esc(k)} ${v}</title></circle>`; off += len; return a; }).join("");
+  return `<div class="donut"><svg viewBox="0 0 100 100">${arcs}<text x="50" y="48" text-anchor="middle" class="dn">${tot.toLocaleString()}</text><text x="50" y="62" text-anchor="middle" class="ax">工作階段</text></svg>
+    <div>${list.map(([k, v], i) => `<p><i style="background:${cols[i % 6]}"></i>${esc(k)}<b>${pct(v, tot)}%</b></p>`).join("")}</div></div>`;
+}
+function heatmap(h) {
+  const max = Math.max(1, ...h.flat()), days = ["日", "一", "二", "三", "四", "五", "六"];
+  return `<div class="heat"><div class="hrow hx"><span></span>${Array.from({length: 24}, (_, i) => `<i>${i % 3 === 0 ? i : ""}</i>`).join("")}</div>
+    ${[1, 2, 3, 4, 5, 6, 0].map(d => `<div class="hrow"><span>${days[d]}</span>${h[d].map((v, i) => `<i style="background:rgba(215,38,30,${v ? .12 + v / max * .88 : 0})" title="週${days[d]} ${i}:00　${v} 次瀏覽"></i>`).join("")}</div>`).join("")}</div>`;
+}
+async function drawDash() {
+  const main = $("main");
+  main.innerHTML = `<h2>儀表板 <button class="btn ghost" id="dReload">重新整理</button></h2>
+    <div class="filters">${[[1, "今日"], [7, "近 7 天"], [30, "近 30 天"], [90, "近 90 天"]].map(([k, n]) => `<button data-d="${k}" aria-pressed="${dashDays === k}">${n}</button>`).join("")}</div>
+    <div id="dBody">${dashData && dashData.days === dashDays ? "" : '<div class="empty">統計中…</div>'}</div>`;
+  main.querySelector(".filters").onclick = e => { const b = e.target.closest("[data-d]"); if (b) { dashDays = Number(b.dataset.d); sessionStorage.setItem("cp-dash-days", dashDays); dashData = null; drawDash(); } };
+  $("dReload").onclick = e => busy(e.target, async () => { dashData = null; await drawDash(); });
+  if (!dashData || dashData.days !== dashDays) {
+    try { dashData = await admin("admin_dashboard", {days: dashDays}, {tries: 2, timeout: 90000}); }
+    catch (err) { if ($("dBody")) $("dBody").innerHTML = `<div class="empty">${esc(err.message)}</div>`; return; }
+  }
+  if (!$("dBody")) return;
+  const d = dashData, K = d.kpi, P = d.prev, cmp = d.days === 1 ? "較昨日" : `較前 ${d.days} 天`;
+  const card = (label, val, dl, sub) => `<div class="kc"><small>${label}</small><b>${val}</b>${dl || ""}${sub ? `<span>${sub}</span>` : ""}</div>`;
+  const f0 = d.funnel[0][1] || 1;
+  $("dBody").innerHTML = `
+    <div class="live"><i></i>目前線上 <b>${K.online}</b> 人<span>${esc(d.from)} ～ ${esc(d.to)}・${cmp}</span></div>
+    <div class="kpis">
+      ${card("訪客數", K.visitors.toLocaleString(), delta(K.visitors, P.visitors), `新訪客 ${K.newVisitors}・回訪 ${Math.max(0, K.visitors - K.newVisitors)}`)}
+      ${card("瀏覽次數", K.views.toLocaleString(), delta(K.views, P.views), `每次造訪 ${K.ppv} 頁`)}
+      ${card("工作階段", K.sessions.toLocaleString(), delta(K.sessions, P.sessions), `跳出率 ${K.bounce}%`)}
+      ${card("商品瀏覽", K.productViews.toLocaleString(), delta(K.productViews, P.productViews), `加入購物車 ${K.carts} 次`)}
+      ${card("訂單", K.orders, delta(K.orders, P.orders), `已付款 ${K.paidOrders} 筆`)}
+      ${card("營業額（已付款）", money(K.revenue), delta(K.revenue, P.revenue), `客單價 ${money(K.aov)}`)}
+      ${card("轉換率", K.conv + "%", delta(K.conv, P.conv), "訂單 ÷ 訪客")}
+      ${card("LINE 會員", K.members, delta(K.newMembers, P.newMembers), `本期新增 ${K.newMembers}・好友 ${K.friends}`)}
+    </div>
+    <div class="dgrid">
+      <div class="card dc wide"><h3>流量走勢 <span class="lg"><i style="background:#D7261E"></i>訪客<i style="background:#2F6BFF"></i>瀏覽</span></h3>${lineChart(d.series, ["visitors", "views"], ["#D7261E", "#2F6BFF"])}</div>
+      <div class="card dc wide"><h3>營業額走勢</h3>${barChart(d.series, "revenue", "#1F9D63", v => v >= 10000 ? Math.round(v / 1000) + "k" : "$" + Math.round(v))}</div>
+      <div class="card dc"><h3>轉換漏斗</h3><div class="fun">${d.funnel.map(([k, v], i) => `<div class="fr"><span>${k}</span><i><b style="width:${Math.max(2, v / f0 * 100)}%"></b></i><em>${v}${i ? `<small>${pct(v, d.funnel[i - 1][1])}%</small>` : ""}</em></div>`).join("")}</div>
+        <div class="note">百分比＝從上一步留下來的比例；落差最大的那一步最值得優化</div></div>
+      <div class="card dc"><h3>流量來源</h3>${hbars(d.sources, "", "#D7261E")}</div>
+      <div class="card dc"><h3>裝置</h3>${donut(d.devices)}</div>
+      <div class="card dc"><h3>作業系統</h3>${hbars(d.os, "", "#8A5CF6")}</div>
+      <div class="card dc wide"><h3>熱門時段（瀏覽次數）</h3>${heatmap(d.heat)}<div class="note">顏色越深＝越多人在逛；適合排在這些時段發 LINE 推播與上新品</div></div>
+      <div class="card dc wide"><h3>商品表現</h3>${d.products.length ? `<table class="otable dt"><tr><th>商品</th><th>瀏覽</th><th>加購</th><th>售出</th><th>營收</th><th>加購率</th></tr>
+        ${d.products.map(p => `<tr><td>${esc(p.name.replace(/^.*?[｜|]\s*/, "") || p.name)}</td><td>${p.views}</td><td>${p.carts}</td><td>${p.sold}</td><td>${money(p.rev)}</td><td>${p.views ? pct(p.carts, p.views) + "%" : "—"}</td></tr>`).join("")}</table>` : '<div class="note">尚無資料</div>'}</div>
+      <div class="card dc"><h3>熱門搜尋</h3>${d.searches.length ? `<div class="chips">${d.searches.map(([q, n]) => `<span>${esc(q)}<b>${n}</b></span>`).join("")}</div>` : '<div class="note">尚無資料</div>'}
+        ${d.zero.length ? `<h4>搜不到的關鍵字</h4><div class="chips warn">${d.zero.map(([q, n]) => `<span>${esc(q)}<b>${n}</b></span>`).join("")}</div><div class="note">客人想買但賣場沒有：進貨或上架的參考</div>` : ""}</div>
+      <div class="card dc"><h3>短影音觀看</h3>${hbars(d.videos, " 次", "#F0A020")}<h4>頁面瀏覽</h4>${hbars(d.pages.map(([k, v]) => [{"shop.html": "賣場", "index.html": "電池教學"}[k] || k, v]), "", "#2F6BFF")}</div>
+      <div class="card dc wide"><h3>最新會員 <span class="note">${K.members} 人${d.welcomeUsed !== null ? `・入會禮已使用 ${d.welcomeUsed} 次` : ""}</span></h3>
+        ${d.members.length ? `<div class="mems">${d.members.map(m => `<div>${m.pic ? `<img src="${esc(m.pic)}" alt="" loading="lazy">` : "<i></i>"}<p><b>${esc(m.name || "LINE 會員")}</b><small>${esc(m.firstAt.slice(5))} 加入・${m.orders ? `下單 ${m.orders} 次` : "尚未下單"}</small></p><span class="pill ${m.friend ? "on" : "off"}">${m.friend ? "好友" : "未加好友"}</span></div>`).join("")}</div>` : '<div class="note">尚無會員</div>'}</div>
+    </div>
+    <div class="note" style="margin:6px 0 20px">流量從 2026-11-08 開始記錄・已記錄 ${d.tracked.toLocaleString()} 筆事件</div>`;
 }
 
 /* ── 訂單 ── */
