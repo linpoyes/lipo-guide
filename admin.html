@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-+vqIbk3gAloj/G7ALnKtmLnz2TpYKL73kYjdxM+Hwbw='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-q9bjwKj76e9E96W/RlcKHj3oX8UvhCfOX0UFidd8dpM='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072125">
+<meta name="build" content="202611072144">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -165,7 +165,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072125"></script>
+<script src="shop-core.js?v=202611072144"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -592,6 +592,29 @@ function bindAccount() {
     lsSet("cp-default-pw", ""); await loadAll(); toast("已變更，其他裝置需重新登入"); drawApp();
   }).catch(err => $("aerr").textContent = err.message);
 }
+/* ── LINE 通知：官方帳號「赤貧軍團」@552xxfur；有新訂單／付款成功推播給已綁定的人 ── */
+async function drawLine() {
+  const box = $("lineBox"); if (!box) return;
+  let r; try { r = await admin("admin_lineStatus", {}, {tries: 2}); } catch (e) { box.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  const l = r.line;
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div><b style="font-size:17px">${l.tokenSet ? "官方帳號已連接" : "尚未連接"}</b><span class="note" style="display:block">赤貧軍團 @552xxfur・付款成功時推播訂單與寄件資料</span></div>
+      <span class="pill ${l.tokenSet && l.users.length ? "on" : "warn"}">${l.users.length} 人接收</span></div>
+    ${l.users.length ? `<div class="list" style="margin-top:12px">${l.users.map(u => `<div class="row" style="cursor:default"><div class="info"><b>${esc(u.name || "LINE 使用者")}</b></div><button class="btn danger" data-lunb="${esc(u.id)}" style="padding:6px 10px">移除</button></div>`).join("")}</div>` : ""}
+    <div id="bindArea" style="margin-top:12px"></div>
+    <div class="btns"><button class="btn ink" id="lBind">新增接收者</button><button class="btn ghost" id="lTest" ${l.users.length ? "" : "disabled"}>傳送測試通知</button></div>`;
+  $("lBind").onclick = e => busy(e.target, async () => {
+    const c = await admin("admin_lineBind");
+    $("bindArea").innerHTML = `<div class="card" style="background:var(--wash);border:0;text-align:center">
+      <div class="note">1. 用 LINE 加入好友 <a href="https://line.me/R/ti/p/@552xxfur" target="_blank" rel="noopener">@552xxfur</a>　2. 傳送下面這組數字</div>
+      <div style="font-size:40px;font-weight:900;letter-spacing:.2em;margin:6px 0">${c.code}</div><div class="note">10 分鐘內有效，綁定後自動顯示在上方</div></div>`;
+    let n = 0; const t = setInterval(async () => { n++; const s2 = await admin("admin_lineStatus").catch(() => null);
+      if ((s2 && s2.line.users.length > l.users.length) || n > 60) { clearInterval(t); if (s2 && s2.line.users.length > l.users.length) { toast("已綁定"); drawLine(); } } }, 5000);
+  }).catch(err => toast(err.message));
+  $("lTest").onclick = e => busy(e.target, async () => { await admin("admin_lineTest"); toast("已傳送，請查看 LINE"); }).catch(err => toast(err.message));
+  box.onclick = e => { const b = e.target.closest("[data-lunb]"); if (!b) return; if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "確認移除"; return; }
+    busy(b, async () => { await admin("admin_lineUnbind", {id: b.dataset.lunb}); drawLine(); }).catch(err => toast(err.message)); };
+}
 /* ── 帳號管理（只有管理者）── */
 async function drawUsers() {
   const box = $("usersBox"); if (!box) return;
@@ -623,7 +646,7 @@ function drawSettings() {
   const s = data.settings, isDefault = lsGet("cp-default-pw", "") === "1";
   if (role() !== "owner") { $("main").innerHTML = accountCard(isDefault); bindAccount(); return; }
   const st = setTab;
-  $("main").innerHTML = `<div class="filters subtabs" style="margin-top:14px">${[["shop", "賣場"], ["pay", "金流"], ["acct", "帳號"]].map(([k, n]) => `<button data-st="${k}" aria-pressed="${st === k}">${n}</button>`).join("")}</div>
+  $("main").innerHTML = `<div class="filters subtabs" style="margin-top:14px">${[["shop", "賣場"], ["pay", "金流"], ["line", "LINE 通知"], ["acct", "帳號"]].map(([k, n]) => `<button data-st="${k}" aria-pressed="${st === k}">${n}</button>`).join("")}</div>
     <section data-sec="shop" ${st === "shop" ? "" : "hidden"}><h2>賣場設定</h2><div class="card">
       <label class="check" style="margin-top:0"><input type="checkbox" id="sopen" ${s.ordersOpen ? "checked" : ""}>開放下單</label>
       <span class="note" style="display:block;margin:-6px 0 8px 28px">未勾選＝商品照常展示，購物車與結帳顯示「尚未開放下單」</span>
@@ -654,11 +677,13 @@ function drawSettings() {
           <option value="ratio" ${s.feeSplit === "ratio" ? "selected" : ""}>依分潤比例分攤</option><option value="us" ${s.feeSplit === "us" ? "selected" : ""}>我方全額負擔</option><option value="owner" ${s.feeSplit === "owner" ? "selected" : ""}>貨主全額負擔</option></select></div></div>
       <span class="note">費率未稅，計算時自動加 5% 營業稅。預設為綠界一般會員公告費率；特約會員請依合約修改。</span>
       <div class="err" id="ferr"></div><div class="btns" id="fBtns" hidden><button class="btn ghost" id="fReset" style="flex:none">恢復綠界預設</button><button class="btn ink" id="fSave">儲存手續費設定</button></div></div>
+    </section><section data-sec="line" ${st === "line" ? "" : "hidden"}>
+    <h2>LINE 下單通知</h2><div class="card" id="lineBox"><div class="note">讀取中…</div></div>
     </section><section data-sec="acct" ${st === "acct" ? "" : "hidden"}>
     ${accountCard(isDefault)}
     <h2>帳號管理</h2><div class="card" id="usersBox"><div class="note">載入中…</div></div></section>`;
   $("main").querySelector(".subtabs").onclick = e => { const b = e.target.closest("[data-st]"); if (b) { setTab = b.dataset.st; sessionStorage.setItem("cp-settab", setTab); drawSettings(); } };
-  bindAccount(); drawUsers();
+  bindAccount(); drawUsers(); if (st === "line") drawLine();
   $("sSave").onclick = e => busy(e.target, async () => {
     await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
     await loadAll(); toast("已儲存");

@@ -73,6 +73,7 @@ function doPost(e) {
   if (e.parameter && e.parameter.cb === "711") return storeReturn_(e.parameter);
   // 綠界通知：付款結果（server→server）、ATM 取號結果、取號後導回客人
   if (e.parameter && e.parameter.cb === "ecpay") return ecpayReturn_(e.parameter);
+  if (e.parameter && e.parameter.cb === "line") return lineWebhook_(e);
   if (e.parameter && e.parameter.cb === "ecpayinfo") return ecpayInfo_(e.parameter);
   if (e.parameter && e.parameter.cb === "ecpayback") return ecpayBack_(e.parameter);
   let req;
@@ -321,6 +322,7 @@ function placeOrder_(req) {
     cache.put("ord:" + c.phone, String(nPhone + 1), 3600);
     cache.put("ord:all", String(nAll + 1), 600);
     if (req.clientId) cache.put("ordc:" + req.clientId, "1", 3600);
+    if (!pay) lineNotifyOrder_(orderNo, "新訂單"); // 線上付款的單等付款成功才通知
     const res = { ok: true, orderNo: orderNo, total: q.total };
     if (pay) res.pay = ecpayForm_(rows_("orders").find(o => String(o.orderNo) === orderNo), pay);
     return res;
@@ -513,6 +515,16 @@ const ADMIN = {
     return { ecpay: ecpayCfg_().public };
   },
   admin_ecpayStatus: () => ({ ecpay: ecpayCfg_().public }),
+  // ── LINE 官方帳號通知 ──
+  admin_lineStatus: () => lineStatus_(),
+  admin_lineSave: r => { if (r.lineToken) PropertiesService.getScriptProperties().setProperty("LINE_TOKEN", String(r.lineToken).trim()); return lineStatus_(); },
+  admin_lineBind: () => {  // 產生 6 碼綁定碼（10 分鐘有效），在 LINE 傳給官方帳號就完成綁定
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    CacheService.getScriptCache().put("lineBind", code, 600);
+    return { code: code };
+  },
+  admin_lineUnbind: r => { const p = PropertiesService.getScriptProperties(), l = json_(p.getProperty("LINE_USERS"), []).filter(x => x.id !== r.id); p.setProperty("LINE_USERS", JSON.stringify(l)); return lineStatus_(); },
+  admin_lineTest: () => { const n = linePush_("【赤貧軍團】LINE 通知測試成功"); if (!n) throw new Error("沒有已綁定的 LINE 或權杖無效"); return { sent: n }; },
   admin_saveSettings: r => {
     const s = r.settings || {};
     ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
@@ -653,6 +665,7 @@ function ecpayReturn_(p) {
     const amt = Number(p.TradeAmt) || Number(o.total);
     setOrderField_(String(o.orderNo), { payStatus: "paid", payMethod: String(p.PaymentType || o.payMethod), payFee: String(payFee_(String(p.PaymentType || o.payMethod), amt)),
       paidAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm") });
+    if (String(o.payStatus) !== "paid") lineNotifyOrder_(String(o.orderNo), "已付款，請出貨");
   } else if (String(o.payStatus) !== "paid" && !/^ATM/.test(String(p.PaymentType))) {
     setOrderField_(String(o.orderNo), { payStatus: "failed" });
   }
@@ -679,4 +692,56 @@ function orderStatus_(q) {
   if (!o || !q.cid || String(o.clientId) !== String(q.cid)) return { ok: false, error: "查無訂單" };
   return { ok: true, orderNo: String(o.orderNo), total: Number(o.total), payStatus: String(o.payStatus), payMethod: String(o.payMethod || ""),
     vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || "") };
+}
+
+/* ───────────── LINE 官方帳號：新訂單／付款通知（2026-11-07）─────────────
+   官方帳號「赤貧軍團」@552xxfur，Messaging API channel 2012454428（provider 赤貧軍團）。
+   權杖存指令碼屬性 LINE_TOKEN（只寫不讀）；收通知的人存 LINE_USERS [{id, name}]。
+   綁定：後台按「產生綁定碼」→ 在 LINE 對官方帳號傳那 6 碼。
+   GAS 讀不到 X-Line-Signature 標頭，無法驗章 → 只處理「傳對綁定碼」這一種事件，其他一律忽略，偽造請求也綁不進來。 */
+function lineStatus_() {
+  const p = PropertiesService.getScriptProperties();
+  return { line: { tokenSet: !!p.getProperty("LINE_TOKEN"), users: json_(p.getProperty("LINE_USERS"), []) } };
+}
+function lineApi_(path, body) {
+  const tk = PropertiesService.getScriptProperties().getProperty("LINE_TOKEN"); if (!tk) return null;
+  const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/" + path, { method: body ? "post" : "get", contentType: "application/json", muteHttpExceptions: true,
+    headers: { Authorization: "Bearer " + tk }, payload: body ? JSON.stringify(body) : undefined });
+  return res;
+}
+function linePush_(text) {
+  const users = json_(PropertiesService.getScriptProperties().getProperty("LINE_USERS"), []);
+  let n = 0;
+  users.forEach(u => { const r = lineApi_("message/push", { to: u.id, messages: [{ type: "text", text: text.slice(0, 4900) }] }); if (r && r.getResponseCode() === 200) n++; });
+  return n;
+}
+function lineNotifyOrder_(orderNo, title) {
+  try {
+    const o = rows_("orders").find(x => String(x.orderNo) === orderNo); if (!o) return;
+    const items = json_(o.items, []).map(i => "・" + i.name.replace(/^JXC 1\/43 迷你漂移遙控車｜/, "") + " ×" + i.qty).join("\n");
+    const cvs = String(o.shipMethod).indexOf("7-11") === 0;
+    const pay = /^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM 轉帳" : "未線上付款";
+    linePush_(["【赤貧軍團】" + title, "訂單 " + o.orderNo, items,
+      "金額 $" + Number(o.total).toLocaleString() + "（" + pay + "）",
+      "寄送：" + o.shipMethod + "・" + (Number(o.packages) || 1) + (cvs ? " 個交貨便" : " 箱宅急便"),
+      "收件人：" + o.name + "　" + o.phone, (cvs ? "門市：" : "地址：") + o.address, o.note ? "備註：" + o.note : "",
+      "後台：https://linpoyes.github.io/lipo-guide/admin.html"].filter(Boolean).join("\n"));
+  } catch (e) {}
+}
+function lineWebhook_(e) {
+  const ok = ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
+  let body; try { body = JSON.parse(e.postData.contents); } catch (err) { return ok; }
+  const code = CacheService.getScriptCache().get("lineBind");
+  (body.events || []).forEach(ev => {
+    if (!code || ev.type !== "message" || !ev.message || ev.message.type !== "text") return;
+    if (String(ev.message.text).trim() !== code || !ev.source || !ev.source.userId) return;
+    const p = PropertiesService.getScriptProperties(), users = json_(p.getProperty("LINE_USERS"), []);
+    let name = "";
+    try { const r = lineApi_("profile/" + ev.source.userId); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (err) {}
+    if (!users.some(u => u.id === ev.source.userId)) users.push({ id: ev.source.userId, name: name });
+    p.setProperty("LINE_USERS", JSON.stringify(users));
+    CacheService.getScriptCache().remove("lineBind");
+    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "已綁定！之後有新訂單或付款成功，會在這裡通知你。" }] });
+  });
+  return ok;
 }
