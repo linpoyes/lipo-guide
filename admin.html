@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-1GC9lu6oyZIQorbhQWjNilXaeRDzcmzWqJhAWhukRoA='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-PxiXLFHc3kpn9ZaaoPbOjPt6g/BWTPypqTRm0Q8GBRs='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072111">
+<meta name="build" content="202611072113">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -161,7 +161,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072111"></script>
+<script src="shop-core.js?v=202611072113"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -580,7 +580,7 @@ function drawSettings() {
         <div class="f"><label for="ecIv">HashIV</label><input id="ecIv" type="password" autocomplete="new-password" placeholder="未設定"></div></div>
       <span class="note">金鑰只能寫入、不會顯示；留空＝不變更。綠界廠商後台 → 系統開發管理 → 系統介接設定。</span>
       <div class="err" id="ecErr"></div><div class="btns"><button class="btn ink" id="ecSave">儲存金流設定</button></div></div>
-    <h2>金流手續費</h2><div class="card">
+    <h2>金流手續費 <button class="btn ghost" id="fUnlock">修改</button></h2><div class="card" id="feeCard">
       <div class="f2"><div class="f"><label for="fcp">信用卡費率 %</label><input id="fcp" type="number" step="0.01" value="${s.feeCardPct}"></div>
         <div class="f"><label for="fcm">信用卡每筆最低（元）</label><input id="fcm" type="number" value="${s.feeCardMin}"></div></div>
       <div class="f2"><div class="f"><label for="fco">信用卡處理費（元）</label><input id="fco" type="number" value="${s.feeCardOrder}"></div>
@@ -589,7 +589,7 @@ function drawSettings() {
         <div class="f"><label for="fsp">手續費誰負擔（報表）</label><select id="fsp">
           <option value="ratio" ${s.feeSplit === "ratio" ? "selected" : ""}>依分潤比例分攤</option><option value="us" ${s.feeSplit === "us" ? "selected" : ""}>我方全額負擔</option><option value="owner" ${s.feeSplit === "owner" ? "selected" : ""}>貨主全額負擔</option></select></div></div>
       <span class="note">費率未稅，計算時自動加 5% 營業稅。預設為綠界一般會員公告費率；特約會員請依合約修改。</span>
-      <div class="err" id="ferr"></div><div class="btns"><button class="btn ink" id="fSave">儲存手續費設定</button></div></div>
+      <div class="err" id="ferr"></div><div class="btns" id="fBtns" hidden><button class="btn ghost" id="fReset" style="flex:none">恢復綠界預設</button><button class="btn ink" id="fSave">儲存手續費設定</button></div></div>
     <h2>登入帳號</h2><div class="card">
       ${isDefault ? '<div class="err">目前為初始密碼，請立即變更</div>' : ""}
       <div class="f"><label for="ou">帳號</label><input id="ou" value="${esc(data.user)}" autocomplete="username"></div>
@@ -611,9 +611,20 @@ function drawSettings() {
     if ($("ecOn").checked && !$("ecStage").checked && !(r.ecpay.keySet && r.ecpay.ivSet)) throw new Error("正式模式缺少 HashKey 或 HashIV");
     $("ecKey").value = $("ecIv").value = ""; toast("已儲存金流設定"); drawSettings();
   }).catch(err => $("ecErr").textContent = err.message);
-  $("fSave").onclick = e => busy(e.target, async () => {
+  // 防誤觸（使用者 2026-11-07）：預設鎖住，按「修改」才能改；儲存要再按一次確認
+  const feeIds = ["fcp", "fcm", "fco", "fap", "fam", "fsp"];
+  const lockFee = on => { feeIds.forEach(id => $(id).disabled = on); $("fBtns").hidden = on; $("fUnlock").hidden = !on; };
+  lockFee(true);
+  $("fUnlock").onclick = () => lockFee(false);
+  $("fReset").onclick = () => { [["fcp", "2.75"], ["fcm", "5"], ["fco", "1"], ["fap", "1"], ["fam", "15"], ["fsp", "ratio"]].forEach(([id, v]) => $(id).value = v); toast("已填入綠界預設，按儲存才會生效"); };
+  $("fSave").onclick = e => {
+    const b = e.target;
+    if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "確認儲存（會影響報表拆帳）"; setTimeout(() => { b.dataset.confirm = ""; b.textContent = "儲存手續費設定"; }, 4000); return; }
+    return saveFee(e);
+  };
+  const saveFee = e => busy(e.target, async () => {
     await admin("admin_saveSettings", {settings: {feeCardPct: $("fcp").value, feeCardMin: $("fcm").value, feeCardOrder: $("fco").value, feeAtmPct: $("fap").value, feeAtmMin: $("fam").value, feeSplit: $("fsp").value}});
-    await loadAll(); toast("已儲存");
+    await loadAll(); toast("已儲存"); drawSettings();
   }).catch(err => $("ferr").textContent = err.message);
   $("aSave").onclick = e => busy(e.target, async () => {
     $("aerr").textContent = "";
