@@ -4,6 +4,7 @@
   const noop = () => {};
   window.cpTrack = noop;
   if (navigator.webdriver || /bot|crawl|spider|preview/i.test(navigator.userAgent)) return;
+  try { if (localStorage.getItem("cp-notrack")) return; } catch (e) {} // 登入過後台的裝置＝自己人，不算流量
   const API = "https://script.google.com/macros/s/AKfycbxtUHvT661QSFsB8ACP0QSMq-8PCR9GIxFzXRFzArl4vswAy2YBd5ZbaSIrfGtcKls/exec";
   const rnd = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   const get = (st, k) => { try { return st.getItem(k); } catch (e) { return null; } };

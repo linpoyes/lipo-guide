@@ -447,6 +447,13 @@ const ADMIN = {
   }),
   admin_me: r => ({ me: r.me, roles: ROLES }),
   admin_dashboard: r => dashboard_(r),
+  // 清掉某個訪客碼的流量（測試用資料）；只有管理者
+  admin_trafficPurge: r => {
+    const sh = sheet_("traffic"), n = sh.getLastRow() - 1, vid = String(r.vid || ""); if (n < 1 || !vid) return { removed: 0 };
+    const col = sh.getRange(2, 2, n, 1).getValues(); let removed = 0;
+    for (let i = n - 1; i >= 0; i--) if (String(col[i][0]) === vid) { sh.deleteRow(i + 2); removed++; }
+    return { removed: removed };
+  },
   admin_users: () => ({ users: Object.keys(users_()).map(n => ({ name: n, role: users_()[n].role })), roles: ROLES }),
   admin_saveUser: r => {
     const name = String(r.name || "").normalize("NFKC").trim(), role = String(r.role || ""), pass = String(r.pass || "").normalize("NFKC").trim();
