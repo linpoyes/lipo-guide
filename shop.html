@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-6Ow/jmDlqDv5vMAlia++vm1Ag0Xuom7gAsnjrS+npnI='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-XRWSvVP0JOiE7FbYyI5uAiGKucgof/dE8w4BBk8I6F0='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080216">
+<meta name="build" content="202611080219">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -57,16 +57,24 @@ a{color:inherit}
 /* 熱門搜尋：頁首下方一排關鍵字，點了直接搜尋（後台可自訂，空白＝依品牌與分類自動產生） */
 .hotq{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;margin:10px -14px 0;padding:0 14px;white-space:nowrap}
 .hotq::-webkit-scrollbar{display:none}
-.hotq span{flex:none;font-size:13px;font-weight:800;color:var(--red)}
-.hotq button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
+.hotq span{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--dim);letter-spacing:.08em}
+.hotq span svg{width:14px;height:14px;color:var(--red)}
+.hotq button{flex:none;border:0;background:transparent;color:var(--dim);border-radius:6px;padding:4px 8px;font-size:13px;font-weight:700}
+.hotq button::before{content:"#";color:var(--faint);margin-right:2px}
+.hotq button:hover{color:var(--text);background:var(--wash)}
 .hotq button[aria-pressed=true]{background:var(--chip);border-color:var(--chip);color:var(--bg)}
 .search button{flex:none;width:44px;border:0;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center}
 .cartbtn{position:relative;flex:none;margin-left:auto;width:44px;height:44px;border:0;background:var(--ink);color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center}
 .cartbtn i{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:800;font-style:normal;line-height:20px;text-align:center;border:2px solid var(--bg)}
 .cartbtn i:empty{display:none}
 .hacts{display:flex;gap:8px;margin-left:auto;flex:none}
-.membtn{overflow:hidden;padding:0}.membtn img{width:100%;height:100%;object-fit:cover}
-.membtn.ok{box-shadow:0 0 0 2px #06C755}
+/* 會員鈕：未登入＝人像圖示；登入＝圓形大頭貼＋右下綠點（已加好友）；電腦版加上名稱與等級 */
+.membtn{padding:0;gap:8px}
+.membtn .av{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none}
+.membtn .on{position:absolute;left:34px;bottom:7px;width:10px;height:10px;border-radius:50%;background:#06C755;border:2px solid var(--ink)}
+.membtn .nm{display:none;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:800;text-align:left;line-height:1.2}
+.membtn .nm small{display:block;font-size:11px;font-weight:700;color:#C9CBD2}
+@media (min-width:900px){.membtn{width:auto;padding:0 14px 0 6px}.membtn .nm{display:block}.membtn:not(.in) .nm{padding-right:2px}.membtn:not(.in){padding-left:12px}}
 .npanel .mem{margin:14px 0 0}
 /* 會員中心 */
 .ptrow{display:flex;align-items:flex-start;gap:10px}.ptrow .ptitle{flex:1}
@@ -516,9 +524,9 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611080216"></script>
-<script src="shop-core.js?v=202611080216"></script>
-<script src="tw-zip.js?v=202611080216"></script>
+<script src="track.js?v=202611080219"></script>
+<script src="shop-core.js?v=202611080219"></script>
+<script src="tw-zip.js?v=202611080219"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -583,7 +591,7 @@ function renderHot() {
   }
   words = words.slice(0, 8);
   $("hotq").hidden = !words.length;
-  $("hotq").innerHTML = `<span>熱搜</span>` + words.map(w => `<button type="button" data-hq="${esc(w)}">${esc(w)}</button>`).join("");
+  $("hotq").innerHTML = `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>熱門搜尋</span>` + words.map(w => `<button type="button" data-hq="${esc(w)}">${esc(w)}</button>`).join("");
 }
 $("hotq").onclick = e => {
   const b = e.target.closest("[data-hq]"); if (!b) return;
@@ -1063,7 +1071,10 @@ function drawMemBtn() {
   const b = $("memBtn"), ok = member && member.friend;
   b.classList.toggle("ok", !!ok);
   b.setAttribute("aria-label", member ? "會員：" + (member.name || "LINE 會員") : "會員登入");
-  b.innerHTML = (member && member.pic ? `<img src="${esc(member.pic)}" alt="">` : ICON_USER) + (giftInfo() && !ok ? '<span class="dot"></span>' : "");
+  b.classList.toggle("in", !!member);
+  b.innerHTML = (member && member.pic ? `<img class="av" src="${esc(member.pic)}" alt="">` : ICON_USER) + (ok && member.pic ? '<span class="on"></span>' : "")
+    + `<span class="nm">${member ? esc(member.name || "LINE 會員") + `<small>${mcData ? esc(mcData.tier.name) : "會員中心"}</small>` : "會員登入<small>LINE 一鍵登入</small>"}</span>`
+    + (giftInfo() && !ok ? '<span class="dot"></span>' : "");
 }
 /* ── 會員中心（2026-11-08）：等級、積分、訂單紀錄、優惠券、收藏、最近瀏覽 ──
    訂單／積分／優惠券由後端 memberCenter 依 LINE 帳號即時計算；收藏與最近瀏覽存在這台裝置。 */
@@ -1125,7 +1136,7 @@ async function openMember(tab) {
   if (tab) mcTab = tab;
   drawMC(); open("mcSheet");
   if (!member) return;
-  try { const r = await api({action: "memberCenter", memberToken: memTok}, {tries: 2}); mcData = r; drawMC(); }
+  try { const r = await api({action: "memberCenter", memberToken: memTok}, {tries: 2}); mcData = r; drawMC(); drawMemBtn(); }
   catch (e) { if (/登入/.test(e.message)) { memTok = ""; member = null; lsSet("cp-mem", ""); drawMemBtn(); drawMC(); } else toast(e.message); }
 }
 $("mcPanel").onclick = e => {
