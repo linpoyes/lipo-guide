@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-W5BPXkPatOAnn7XjM3KGGluHj6CvxnPSG1Gnqp3Ect8='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-wzcVn4w3A3yOHh+fZjOXemfGLhqhm9yAFUHNz3CHI4s='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080212">
+<meta name="build" content="202611080214">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -147,12 +147,12 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .donut{display:flex;align-items:center;gap:14px}.donut svg{width:120px;height:120px;flex:none}.donut .dn{fill:var(--text);font-size:15px;font-weight:900}
 .donut p{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;font-weight:700}.donut p i{width:10px;height:10px;border-radius:3px}.donut p b{margin-left:auto;padding-left:10px}
 .heat{display:grid;gap:3px;overflow-x:auto}.hrow{display:grid;grid-template-columns:18px repeat(24,minmax(9px,1fr));gap:3px;align-items:center}
-.hrow span{font-size:11px;color:var(--faint);font-weight:800}.hrow i{aspect-ratio:1;border-radius:3px;background:var(--wash)}
+.hrow span{font-size:11px;color:var(--faint);font-weight:800}.hrow i{aspect-ratio:1;border-radius:3px;background:var(--line);opacity:.9}
 .hx i{background:none!important;font-size:10px;color:var(--faint);font-style:normal;aspect-ratio:auto;text-align:center}
 .chips{display:flex;flex-wrap:wrap;gap:6px}.chips span{display:inline-flex;gap:6px;align-items:center;background:var(--wash);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700}
 .chips b{color:var(--red)}.chips.warn span{background:rgba(168,90,0,.12)}
 .dt td:not(:first-child),.dt th:not(:first-child){text-align:right;white-space:nowrap}
-.mems{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.mems{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
 .mems div{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
 .mems img,.mems div>i{width:38px;height:38px;border-radius:50%;flex:none;background:var(--wash)}
 .mems p{flex:1;min-width:0;margin:0}.mems b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mems small{color:var(--faint);font-size:12px}
@@ -201,7 +201,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611080212"></script>
+<script src="shop-core.js?v=202611080214"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -319,7 +319,7 @@ function donut(list) {
 function heatmap(h) {
   const max = Math.max(1, ...h.flat()), days = ["日", "一", "二", "三", "四", "五", "六"];
   return `<div class="heat"><div class="hrow hx"><span></span>${Array.from({length: 24}, (_, i) => `<i>${i % 3 === 0 ? i : ""}</i>`).join("")}</div>
-    ${[1, 2, 3, 4, 5, 6, 0].map(d => `<div class="hrow"><span>${days[d]}</span>${h[d].map((v, i) => `<i style="background:rgba(215,38,30,${v ? .12 + v / max * .88 : 0})" title="週${days[d]} ${i}:00　${v} 次瀏覽"></i>`).join("")}</div>`).join("")}</div>`;
+    ${[1, 2, 3, 4, 5, 6, 0].map(d => `<div class="hrow"><span>${days[d]}</span>${h[d].map((v, i) => `<i ${v ? `style="background:rgba(215,38,30,${.15 + v / max * .85})"` : ""} title="週${days[d]} ${i}:00　${v} 次瀏覽"></i>`).join("")}</div>`).join("")}</div>`;
 }
 async function drawDash() {
   const main = $("main");
