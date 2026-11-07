@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-q9bjwKj76e9E96W/RlcKHj3oX8UvhCfOX0UFidd8dpM='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-2CifhN8RTzeihDv81Y28NbrxhmBe9wRlttFszgDUrfM='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080114">
+<meta name="build" content="202611080116">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -165,7 +165,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611080114"></script>
+<script src="shop-core.js?v=202611080116"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -204,7 +204,7 @@ function drawLogin() {
         const r = await api({action: "login", user: half($("lu").value), pass: half($("lp").value)});
         token = r.token; lsSet("cp-admin", token);
         lsSet("cp-default-pw", r.isDefault ? "1" : "");
-        await loadAll(); drawApp();
+        await loadAll(); drawApp(); await openFromHash();
       } catch (err) { $("lerr").textContent = err.message; }
     });
   };
@@ -269,6 +269,27 @@ async function copyText(t) {
   try { await navigator.clipboard.writeText(t); }
   catch (e) { const a = document.createElement("textarea"); a.value = t; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); }
 }
+/* 出貨單（A4／可直接貼箱）：收件資料大字、品項勾選欄、包裹數；用隱藏 iframe 列印，不跳新視窗 */
+function printSlip(o) {
+  const cvs = o.shipMethod.startsWith("7-11"), f = shipFields(o);
+  const html = `<!doctype html><meta charset="utf-8"><title>${esc(o.orderNo)}</title><style>
+    @page{size:A4;margin:14mm}body{font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;color:#000}
+    .hd{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #000;padding-bottom:8px}
+    .hd b{font-size:26px;letter-spacing:.1em}.no{font-size:22px;font-weight:900;letter-spacing:.06em}
+    .to{border:3px solid #000;border-radius:10px;padding:14px 18px;margin:16px 0}
+    .to .k{font-size:14px;color:#555}.to .v{font-size:24px;font-weight:800;margin-bottom:8px;word-break:break-all}
+    .ship{display:inline-block;background:#000;color:#fff;font-weight:900;font-size:20px;padding:4px 14px;border-radius:6px}
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:17px}th,td{border:1.5px solid #000;padding:8px 10px;text-align:left}
+    th{background:#eee}td.c{width:60px;text-align:center}.foot{margin-top:18px;font-size:14px;color:#333}</style>
+    <div class="hd"><b>赤貧軍團　出貨單</b><span class="no">${esc(o.orderNo)}</span></div>
+    <p><span class="ship">${esc(o.shipMethod)}・${o.packages || 1} ${cvs ? "個交貨便" : "箱宅急便"}</span>　下單 ${esc(o.createdAt)}　${o.payStatus === "paid" ? "已付款" : "未付款"}</p>
+    <div class="to">${f.filter(([k]) => !["品名", "包裹數"].includes(k)).map(([k, v]) => v ? `<div class="k">${k}</div><div class="v">${esc(v)}</div>` : "").join("")}</div>
+    <table><tr><th>品項</th><th>數量</th><th>撿貨</th></tr>${o.items.map(i => `<tr><td>${esc(i.name)}</td><td class="c">${i.qty}</td><td class="c">□</td></tr>`).join("")}</table>
+    <div class="foot">應收金額 ${money(o.total)}（運費 ${o.shipping ? money(o.shipping) : "免運"}）</div>`;
+  const fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr); fr.contentDocument.open(); fr.contentDocument.write(html); fr.contentDocument.close();
+  setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); setTimeout(() => fr.remove(), 2000); }, 300);
+}
 function openOrder(no) {
   const o = orders.find(x => x.orderNo === no);
   $("mPanel").innerHTML = `<h3>${esc(o.orderNo)}<button class="x" data-x>×</button></h3>
@@ -284,11 +305,13 @@ function openOrder(no) {
       <tr><td>運費（${o.packages || 1} 個包裹）</td><td>${o.shipping ? money(o.shipping) : "免運"}</td></tr>
       <tr><td><b>應付金額</b></td><td><b style="color:var(--red);font-size:18px">${money(o.total)}</b></td></tr></table>
     ${shipBlock(o)}
+    <button class="btn ink" data-print style="width:100%;margin-top:12px">列印出貨單</button>
     <div class="statusbar">${STATUSES.map(s => `<button data-s="${s}" aria-pressed="${o.status === s}">${s}</button>`).join("")}</div>
     <div class="btns">${role() === "owner" ? '<button class="btn danger" data-odel style="flex:none">刪除</button>' : ""}${/^(owner|staff)$/.test(role()) ? `<button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button>` : ""}</div>`;
   openModal();
   $("mPanel").onclick = e => {
     if (e.target.closest("[data-x]")) return closeModal();
+    if (e.target.closest("[data-print]")) return printSlip(o);
     const cp = e.target.closest("[data-cp]");
     if (cp) { copyText(cp.dataset.cp).then(() => { cp.classList.add("done"); cp.querySelector("i").textContent = "已複製"; }); return; }
     if (e.target.closest("[data-cpall]")) { copyText(shipFields(o).filter(([, v]) => v).map(([k, v]) => `${k}：${v}`).join("\n")).then(() => toast("已複製寄件資料")); return; }
@@ -748,10 +771,16 @@ function openModal() { $("modal").classList.add("open"); document.body.style.ove
 function closeModal() { $("modal").classList.remove("open"); document.body.style.overflow = ""; $("mPanel").onclick = $("mPanel").oninput = null; }
 $("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 
+async function openFromHash() {
+  const m = location.hash.match(/^#order=(\w+)/); if (!m) return;
+  history.replaceState(null, "", location.pathname);
+  tab = "orders"; drawApp(); if (!orders) await loadOrders();
+  if (orders.some(o => o.orderNo === m[1])) openOrder(m[1]);
+}
 /* ── 啟動 ── */
 // 只有後端明確回「auth」（過期／失效）才登出；連線失敗不登出，避免 GAS 冷啟動就被踢掉
 if (token) { $("app").innerHTML = '<div class="empty">載入中…</div>';
-  loadAll().then(drawApp).catch(e => { if (!token) return; $("app").innerHTML = `<div class="empty">${esc(e.message)}<br><br><button class="btn" data-reload>重新整理</button></div>`; }); }
+  loadAll().then(async () => { drawApp(); await openFromHash(); }).catch(e => { if (!token) return; $("app").innerHTML = `<div class="empty">${esc(e.message)}<br><br><button class="btn" data-reload>重新整理</button></div>`; }); }
 else drawLogin();
 document.addEventListener("click", e => { if (e.target.closest("[data-reload]")) location.reload(); });
 </script>

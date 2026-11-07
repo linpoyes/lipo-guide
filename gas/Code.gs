@@ -735,7 +735,7 @@ function lineNotifyOrder_(orderNo, title) {
       "金額 $" + Number(o.total).toLocaleString() + "（" + pay + "）",
       "寄送：" + o.shipMethod + "・" + (Number(o.packages) || 1) + (cvs ? " 個交貨便" : " 箱宅急便"),
       "收件人：" + o.name + "　" + o.phone, (cvs ? "門市：" : "地址：") + o.address, o.note ? "備註：" + o.note : "",
-      "後台：https://linpoyes.github.io/lipo-guide/admin.html"].filter(Boolean).join("\n"));
+      "開啟訂單／列印出貨單：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo].filter(Boolean).join("\n"));
   } catch (e) {}
 }
 function lineWebhook_(e) {
