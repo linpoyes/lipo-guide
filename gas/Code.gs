@@ -23,7 +23,7 @@ const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: 
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 // ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
-const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE",
+const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE", shipBarOn: "TRUE", shipBar: "",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
   //   信用卡一次付清 2.75%、每筆最低 5 元，另加訂單處理費 1 元（含稅）；ATM 虛擬帳號 1%、每筆最低 15 元
   feeCardPct: "2.75", feeCardMin: "5", feeCardOrder: "1", feeAtmPct: "1", feeAtmMin: "15",
@@ -83,9 +83,12 @@ function doPost(e) {
     if (a === "order") return out_(placeOrder_(req));
     if (a === "login") return out_(login_(req.user, req.pass));
     if (a && a.indexOf("admin_") === 0) {
-      if (!checkToken_(req.token)) return out_({ ok: false, error: "auth" });
+      const me = checkToken_(req.token);
+      if (!me) return out_({ ok: false, error: "auth" });
       const fn = ADMIN[a];
       if (!fn) return out_({ ok: false, error: "unknown action" });
+      if (!can_(me.role, a)) return out_({ ok: false, error: "此帳號沒有權限" });
+      req.me = me;
       return out_(Object.assign({ ok: true }, fn(req) || {}));
     }
     return out_({ ok: false, error: "unknown action" });
@@ -195,7 +198,7 @@ function catalog_() {
     ok: true,
     products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
-    settings: { ordersOpen: s.ordersOpen, payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
+    settings: { ordersOpen: s.ordersOpen, payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar },
   };
 }
 
@@ -281,7 +284,7 @@ function placeOrder_(req) {
     if (nAll >= 30) return { ok: false, error: "目前訂單量較大，請稍後再試" };
   }
   // admin 帶 token＋test 可在未開放時測試下單（只給後台測試用）
-  if (!getSettings_().ordersOpen && !(req.test && checkToken_(req.token))) return { ok: false, error: "目前尚未開放下單，敬請期待" };
+  if (!getSettings_().ordersOpen && !(req.test && (checkToken_(req.token) || {}).role === "owner")) return { ok: false, error: "目前尚未開放下單，敬請期待" };
   const pay = ecpayCfg_().ready ? String(req.payMethod || "") : "";
   if (ecpayCfg_().ready && pay !== "Credit" && pay !== "ATM") return { ok: false, error: "請選擇付款方式" };
   if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
@@ -330,47 +333,108 @@ function placeOrder_(req) {
 function hash_(s) {
   return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8));
 }
-function setAdmin_(user, pass) {
-  const salt = Utilities.getUuid(), p = PropertiesService.getScriptProperties();
-  p.setProperties({ ADMIN_USER: user, ADMIN_SALT: salt, ADMIN_HASH: hash_(salt + ":" + pass) });
+/* ── 帳號與分級權限（2026-11-07）──
+   帳號存在指令碼屬性 USERS（JSON：名稱 → {salt, hash, role}），密碼只存加鹽雜湊。
+   角色：owner 管理者（全部）／staff 營運（訂單、商品、短影音、折扣碼）／shipper 出貨（看訂單、改出貨狀態）／viewer 報表（看報表）。
+   權限一律在後端檢查（ROLE_ACTIONS），前端只是把看不到的分頁藏起來。 */
+const ROLES = { owner: "管理者", staff: "營運", shipper: "出貨", viewer: "報表" };
+const ROLE_ACTIONS = {
+  staff: ["admin_all", "admin_orders", "admin_orderStatus", "admin_saveProduct", "admin_deleteProduct", "admin_saveVideo", "admin_deleteVideo",
+          "admin_saveCode", "admin_deleteCode", "admin_upload", "admin_changeLogin", "admin_me"],
+  shipper: ["admin_all", "admin_orders", "admin_orderStatus", "admin_changeLogin", "admin_me"],
+  viewer: ["admin_all", "admin_orders", "admin_changeLogin", "admin_me"],
+};
+const can_ = (role, action) => role === "owner" || (ROLE_ACTIONS[role] || []).indexOf(action) >= 0;
+function users_() {
+  const p = PropertiesService.getScriptProperties();
+  let u = json_(p.getProperty("USERS"), null);
+  if (!u) { // 舊版單一帳號 → 轉成管理者
+    u = {};
+    if (p.getProperty("ADMIN_HASH")) u[p.getProperty("ADMIN_USER")] = { salt: p.getProperty("ADMIN_SALT"), hash: p.getProperty("ADMIN_HASH"), role: "owner" };
+    p.setProperty("USERS", JSON.stringify(u));
+  }
+  return u;
+}
+function saveUsers_(u) { PropertiesService.getScriptProperties().setProperty("USERS", JSON.stringify(u)); }
+function setAdmin_(user, pass, role) {
+  const u = users_(), salt = Utilities.getUuid();
+  u[user] = { salt: salt, hash: hash_(salt + ":" + pass), role: role || (u[user] && u[user].role) || "owner" };
+  saveUsers_(u);
+}
+// 讓某帳號的所有登入失效（刪帳號、改密碼時用）；keepToken＝保留目前這台
+function revokeUser_(user, keepToken) {
+  const p = PropertiesService.getScriptProperties(), all = p.getProperties(), keep = keepToken ? "SESS_" + hash_(keepToken) : "";
+  Object.keys(all).forEach(k => {
+    if (k.indexOf("SESS_REVOKED_") === 0) { if (Number(all[k + "_AT"] || 0) < Date.now() - 86400000) { p.deleteProperty(k); p.deleteProperty(k + "_AT"); } return; }
+    if (k.indexOf("SESS_") !== 0 || k === keep) return;
+    const owner = String(all[k]).split("|")[1] || "";
+    if (owner === user || (!owner && user === "*legacy")) {
+      p.deleteProperty(k); p.setProperty("SESS_REVOKED_" + k.slice(5), "1"); p.setProperty("SESS_REVOKED_" + k.slice(5) + "_AT", String(Date.now()));
+    }
+  });
 }
 function login_(user, pass) {
   const cache = CacheService.getScriptCache();
   const fails = Number(cache.get("loginFails") || 0);
   if (fails >= 8) return { ok: false, error: "嘗試次數過多，請 10 分鐘後再試" };
-  const p = PropertiesService.getScriptProperties();
   user = String(user || "").normalize("NFKC").trim(); pass = String(pass || "").normalize("NFKC").trim(); // 全形「０１」也能登入
-  const okUser = user === p.getProperty("ADMIN_USER");
-  const okPass = hash_(p.getProperty("ADMIN_SALT") + ":" + pass) === p.getProperty("ADMIN_HASH");
-  if (!okUser || !okPass) {
+  const rec = users_()[user];
+  if (!rec || hash_(rec.salt + ":" + pass) !== rec.hash) {
     cache.put("loginFails", String(fails + 1), 600);
     return { ok: false, error: "帳號或密碼錯誤" };
   }
   const token = Utilities.getUuid() + Utilities.getUuid();
   const props = PropertiesService.getScriptProperties(), now = Date.now();
-  Object.keys(props.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && k.indexOf("SESS_REVOKED_") < 0 && Number(props.getProperty(k)) < now) props.deleteProperty(k); });
-  props.setProperty("SESS_" + hash_(token), String(now + SESSION_DAYS * 86400000));
+  Object.keys(props.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && k.indexOf("SESS_REVOKED_") < 0 && Number(String(props.getProperty(k)).split("|")[0]) < now) props.deleteProperty(k); });
+  props.setProperty("SESS_" + hash_(token), (now + SESSION_DAYS * 86400000) + "|" + user);
   // 指令碼屬性剛寫入時，下一個請求偶爾讀不到（10-31 實測：登入後第一個動作回 auth），所以同時放快取（最長 6 小時）
-  cache.put("tok:" + token, "1", 21600);
-  return { ok: true, token: token, isDefault: String(pass) === "01" };
+  cache.put("tok:" + token, user, 21600);
+  return { ok: true, token: token, user: user, role: rec.role, isDefault: pass === "01" };
 }
+// 回傳 {user, role}；無效回 null。角色每次即時查，所以改權限、刪帳號立刻生效
 function checkToken_(t) {
-  if (!t) return false;
-  if (CacheService.getScriptCache().get("tok:" + t) === "1" &&
-      PropertiesService.getScriptProperties().getProperty("SESS_REVOKED_" + hash_(t)) !== "1") return true;
-  const exp = Number(PropertiesService.getScriptProperties().getProperty("SESS_" + hash_(t)) || 0);
-  return exp > Date.now();
+  if (!t) return null;
+  const p = PropertiesService.getScriptProperties(), h = hash_(t);
+  let user = CacheService.getScriptCache().get("tok:" + t);
+  if (user && p.getProperty("SESS_REVOKED_" + h) === "1") user = null;
+  if (!user) {
+    const v = String(p.getProperty("SESS_" + h) || ""), parts = v.split("|");
+    if (!(Number(parts[0]) > Date.now())) return null;
+    user = parts[1] || p.getProperty("ADMIN_USER") || ""; // 舊格式 session 沒記帳號 → 視為原本的管理者
+  }
+  if (user === "1") user = p.getProperty("ADMIN_USER") || ""; // 舊快取值
+  const rec = users_()[user];
+  return rec ? { user: user, role: rec.role } : null;
 }
 
 /* ───────────── 後台動作 ───────────── */
 const ADMIN = {
-  admin_all: () => ({
+  admin_all: r => ({
     products: withSold_(rows_("products").map(product_)).sort((a, b) => a.sort - b.sort),
     videos: rows_("videos").map(video_).sort((a, b) => a.sort - b.sort),
     codes: rows_("codes").map(code_),
-    settings: getSettings_(),
-    user: PropertiesService.getScriptProperties().getProperty("ADMIN_USER"),
+    settings: getSettings_(), me: r.me,
   }),
+  admin_me: r => ({ me: r.me, roles: ROLES }),
+  admin_users: () => ({ users: Object.keys(users_()).map(n => ({ name: n, role: users_()[n].role })), roles: ROLES }),
+  admin_saveUser: r => {
+    const name = String(r.name || "").normalize("NFKC").trim(), role = String(r.role || ""), pass = String(r.pass || "").normalize("NFKC").trim();
+    if (!/^[\w.@-]{2,20}$/.test(name)) throw new Error("帳號限英數字 2–20 碼");
+    if (!ROLES[role]) throw new Error("請選擇權限");
+    const u = users_(), isNew = !u[name];
+    if (isNew && pass.length < 4) throw new Error("新帳號密碼至少 4 碼");
+    if (!isNew && u[name].role === "owner" && role !== "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個管理者");
+    if (name === r.me.user && role !== "owner") throw new Error("不能降低自己的權限");
+    if (pass) { setAdmin_(name, pass, role); if (!isNew) revokeUser_(name); }
+    else { u[name].role = role; saveUsers_(u); }
+  },
+  admin_deleteUser: r => {
+    const u = users_(), name = String(r.name || "");
+    if (!u[name]) return;
+    if (name === r.me.user) throw new Error("不能刪除自己");
+    if (u[name].role === "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個管理者");
+    delete u[name]; saveUsers_(u); revokeUser_(name);
+  },
   admin_orders: () => ({
     orders: rows_("orders").map(o => ({
       orderNo: String(o.orderNo), createdAt: String(o.createdAt), name: String(o.name), phone: String(o.phone),
@@ -422,6 +486,7 @@ const ADMIN = {
   },
   admin_deleteCode: r => { remove_("codes", "code", r.code); },
   admin_orderStatus: r => {
+    if (r.field === "payStatus" && r.me.role !== "owner" && r.me.role !== "staff") throw new Error("此帳號沒有權限");
     const nos = r.orderNos || [r.orderNo];
     const sh = sheet_("orders"), col = SHEETS.orders.indexOf(r.field === "payStatus" ? "payStatus" : "status") + 1;
     rows_("orders").forEach(o => { if (nos.indexOf(String(o.orderNo)) >= 0) sh.getRange(o._row, col).setNumberFormat("@").setValue(String(r.value)); });
@@ -450,25 +515,18 @@ const ADMIN = {
   admin_ecpayStatus: () => ({ ecpay: ecpayCfg_().public }),
   admin_saveSettings: r => {
     const s = r.settings || {};
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
-    const p = PropertiesService.getScriptProperties();
-    const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化，否則全形新密碼改完會登不進去
-    r.oldPass = nf(r.oldPass); r.newUser = nf(r.newUser); r.newPass = nf(r.newPass);
-    if (hash_(p.getProperty("ADMIN_SALT") + ":" + String(r.oldPass || "")) !== p.getProperty("ADMIN_HASH")) throw new Error("目前密碼錯誤");
-    if (!r.newUser || String(r.newPass || "").length < 2) throw new Error("新密碼至少 2 碼");
-    setAdmin_(String(r.newUser), String(r.newPass));
-    // 改密碼後，其他裝置的登入全部失效，只保留目前這台
-    const keep = "SESS_" + hash_(r.token);
-    const all = p.getProperties();
-    Object.keys(all).forEach(k => {
-      if (k.indexOf("SESS_REVOKED_") === 0) { if (Number(all[k + "_AT"] || 0) < Date.now() - 86400000) { p.deleteProperty(k); p.deleteProperty(k + "_AT"); } return; }
-      if (k.indexOf("SESS_") === 0 && k.indexOf("_AT") < 0 && k !== keep) {
-        p.deleteProperty(k);
-        p.setProperty("SESS_REVOKED_" + k.slice(5), "1"); p.setProperty("SESS_REVOKED_" + k.slice(5) + "_AT", String(Date.now()));
-      }
-    });
+    const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
+    const me = r.me.user, u = users_(), rec = u[me];
+    if (hash_(rec.salt + ":" + nf(r.oldPass)) !== rec.hash) throw new Error("目前密碼錯誤");
+    const newUser = nf(r.newUser) || me, newPass = nf(r.newPass);
+    if (newPass.length < 2) throw new Error("新密碼至少 2 碼");
+    if (newUser !== me) { if (u[newUser]) throw new Error("帳號名稱已被使用"); delete u[me]; saveUsers_(u); }
+    setAdmin_(newUser, newPass, rec.role);
+    revokeUser_(me, r.token); // 其他裝置登出、保留目前這台
+    if (newUser !== me) { const p = PropertiesService.getScriptProperties(), k = "SESS_" + hash_(r.token); p.setProperty(k, String(p.getProperty(k)).split("|")[0] + "|" + newUser); CacheService.getScriptCache().put("tok:" + r.token, newUser, 21600); }
   },
   // 上傳：影片 → 直接存進網站 repo 的 media/（GitHub Pages 同網域，<video> 才能直接播放）；
   // 圖片 → 雲端硬碟（lh3 縮圖網址外站可用）。

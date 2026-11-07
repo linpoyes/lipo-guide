@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-aijIhKQV1iHXzpBVpX11y0mjgtFEQ15uDn3WJS84OmQ='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-M1WF3upwUjCjIwa0Jqtn+PRHjRr7PeHoIhH9z58EYSQ='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072121">
+<meta name="build" content="202611072123">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -163,11 +163,16 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072121"></script>
+<script src="shop-core.js?v=202611072123"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
 let token = lsGet("cp-admin", "") || "";
+// 分級權限：分頁依角色顯示（後端也會擋，這裡只是不顯示用不到的）
+const TABS = [["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["report", "報表"], ["settings", "設定"]];
+const ROLE_TABS = {owner: TABS.map(t => t[0]), staff: ["orders", "products", "videos", "codes", "settings"], shipper: ["orders", "settings"], viewer: ["report", "settings"]};
+const ROLE_NAME = {owner: "管理者", staff: "營運", shipper: "出貨", viewer: "報表"};
+const role = () => (data && data.me && data.me.role) || "owner";
 let data = null, orders = null, tab = sessionStorage.getItem("cp-tab") || "orders", orderFilter = "新訂單";
 const STATUSES = ["新訂單", "已確認", "已出貨", "已完成", "已取消"];
 
@@ -208,12 +213,13 @@ async function loadAll() { data = await admin("admin_all", {}, {tries: 3}); }
 async function loadOrders() { orders = (await admin("admin_orders", {}, {tries: 3})).orders; }
 
 function drawApp() {
-  $("app").innerHTML = `<header class="top"><div class="wrap"><img src="badge.png?v=1" alt=""><b>赤貧軍團</b><span>管理後台</span>
+  if (!ROLE_TABS[role()].includes(tab)) tab = ROLE_TABS[role()][0];
+  $("app").innerHTML = `<header class="top"><div class="wrap"><img src="badge.png?v=1" alt=""><b>赤貧軍團</b><span>${esc(data.me ? data.me.user : "")}・${ROLE_NAME[role()]}</span>
       <a href="shop.html" target="_blank" rel="noopener">賣場</a><button id="outBtn">登出</button></div></header>
     <nav class="tabs"><div class="wrap">
-      ${[["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["report", "報表"], ["settings", "設定"]]
+      ${TABS.filter(([k]) => ROLE_TABS[role()].includes(k))
         .map(([k, n]) => `<button data-tab="${k}" aria-pressed="${tab === k}">${n}</button>`).join("")}</div></nav>
-    ${lsGet("cp-default-pw", "") === "1" ? '<div class="wrap"><button class="pwwarn" data-gopw>目前為初始密碼，任何人都可能登入，請立即變更 ›</button></div>' : ""}
+    ${lsGet("cp-default-pw", "") === "1" && role() === "owner" ? '<div class="wrap"><button class="pwwarn" data-gopw>目前為初始密碼，任何人都可能登入，請立即變更 ›</button></div>' : ""}
     <main class="wrap" id="main"></main>`;
   $("outBtn").onclick = logout;
   const gp = document.querySelector("[data-gopw]"); if (gp) gp.onclick = () => { tab = "settings"; sessionStorage.setItem("cp-tab", tab); drawApp(); };
@@ -277,7 +283,7 @@ function openOrder(no) {
       <tr><td><b>應付金額</b></td><td><b style="color:var(--red);font-size:18px">${money(o.total)}</b></td></tr></table>
     ${shipBlock(o)}
     <div class="statusbar">${STATUSES.map(s => `<button data-s="${s}" aria-pressed="${o.status === s}">${s}</button>`).join("")}</div>
-    <div class="btns"><button class="btn danger" data-odel style="flex:none">刪除</button><button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button></div>`;
+    <div class="btns">${role() === "owner" ? '<button class="btn danger" data-odel style="flex:none">刪除</button>' : ""}${/^(owner|staff)$/.test(role()) ? `<button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button>` : ""}</div>`;
   openModal();
   $("mPanel").onclick = e => {
     if (e.target.closest("[data-x]")) return closeModal();
@@ -569,8 +575,50 @@ async function drawReport() {
 }
 
 /* ── 設定 ── */
+function accountCard(isDefault) {
+  return `<h2>我的帳號</h2><div class="card">
+      ${isDefault ? '<div class="err">目前為初始密碼，請立即變更</div>' : ""}
+      <div class="f"><label for="ou">帳號</label><input id="ou" value="${esc(data.me ? data.me.user : "")}" autocomplete="username"></div>
+      <div class="f"><label for="op">目前密碼</label><input id="op" type="password" autocomplete="current-password"></div>
+      <div class="f"><label for="np">新密碼</label><input id="np" type="password" autocomplete="new-password"><span class="note">至少 2 碼</span></div>
+      <div class="err" id="aerr"></div><div class="btns"><button class="btn ink" id="aSave">變更帳號密碼</button></div></div>`;
+}
+function bindAccount() {
+  $("aSave").onclick = e => busy(e.target, async () => {
+    $("aerr").textContent = "";
+    await admin("admin_changeLogin", {oldPass: $("op").value, newUser: $("ou").value.trim(), newPass: $("np").value});
+    lsSet("cp-default-pw", ""); await loadAll(); toast("已變更，其他裝置需重新登入"); drawApp();
+  }).catch(err => $("aerr").textContent = err.message);
+}
+/* ── 帳號管理（只有管理者）── */
+async function drawUsers() {
+  const box = $("usersBox"); if (!box) return;
+  let r; try { r = await admin("admin_users", {}, {tries: 2}); } catch (e) { box.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  const opts = sel => Object.entries(ROLE_NAME).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${n}</option>`).join("");
+  box.innerHTML = `<div class="list">${r.users.map(u => `<div class="row" style="cursor:default"><div class="info"><b>${esc(u.name)}${u.name === data.me.user ? "（我）" : ""}</b><small>${ROLE_NAME[u.role] || u.role}</small></div>
+      <div class="right" style="display:flex;gap:6px"><select data-urole="${esc(u.name)}" ${u.name === data.me.user ? "disabled" : ""}>${opts(u.role)}</select>
+      ${u.name === data.me.user ? "" : `<button class="btn danger" data-udel="${esc(u.name)}" style="padding:6px 10px">刪除</button>`}</div></div>`).join("")}</div>
+    <h3 style="margin:14px 0 4px;font-size:16px">新增帳號</h3>
+    <div class="f2"><div class="f"><label for="nuName">帳號</label><input id="nuName" autocomplete="off" placeholder="英數字 2–20 碼"></div>
+      <div class="f"><label for="nuPass">密碼</label><input id="nuPass" type="password" autocomplete="new-password" placeholder="至少 4 碼"></div></div>
+    <div class="f"><label for="nuRole">權限</label><select id="nuRole">${opts("shipper")}</select></div>
+    <div class="note">管理者：全部｜營運：訂單、商品、短影音、折扣碼｜出貨：看訂單、改出貨狀態、複製寄件資料｜報表：看報表與拆帳</div>
+    <div class="err" id="uerr"></div><div class="btns"><button class="btn ink" id="nuSave">新增帳號</button></div>`;
+  box.onchange = e => { const s = e.target.closest("[data-urole]"); if (s) admin("admin_saveUser", {name: s.dataset.urole, role: s.value}).then(() => toast("已變更權限")).catch(err => { toast(err.message); drawUsers(); }); };
+  box.onclick = e => {
+    const d = e.target.closest("[data-udel]"); if (!d) return;
+    if (d.dataset.confirm !== "1") { d.dataset.confirm = "1"; d.textContent = "確認刪除"; return; }
+    busy(d, async () => { await admin("admin_deleteUser", {name: d.dataset.udel}); toast("已刪除帳號"); drawUsers(); }).catch(err => toast(err.message));
+  };
+  $("nuSave").onclick = e => busy(e.target, async () => {
+    $("uerr").textContent = "";
+    await admin("admin_saveUser", {name: $("nuName").value.trim(), pass: $("nuPass").value, role: $("nuRole").value});
+    toast("已新增帳號"); drawUsers();
+  }).catch(err => $("uerr").textContent = err.message);
+}
 function drawSettings() {
   const s = data.settings, isDefault = lsGet("cp-default-pw", "") === "1";
+  if (role() !== "owner") { $("main").innerHTML = accountCard(isDefault); bindAccount(); return; }
   $("main").innerHTML = `<h2>賣場設定</h2><div class="card">
       <label class="check" style="margin-top:0"><input type="checkbox" id="sopen" ${s.ordersOpen ? "checked" : ""}>開放下單</label>
       <span class="note" style="display:block;margin:-6px 0 8px 28px">未勾選＝商品照常展示，購物車與結帳顯示「尚未開放下單」</span>
@@ -578,6 +626,8 @@ function drawSettings() {
         <div class="f"><label for="sc">7-11 店到店運費</label><input id="sc" type="number" inputmode="numeric" value="${s.shipFeeCvs}"></div></div>
       <div class="f"><label for="so">免運門檻</label><input id="so" type="number" inputmode="numeric" value="${s.freeShipOver || ""}" placeholder="不設"><span class="note">折扣後金額達門檻即免運（兩種寄送皆適用）</span></div>
       <div class="f"><label for="sl">LINE 聯絡網址（選填）</label><input id="sl" value="${esc(s.lineUrl)}" placeholder="https://lin.ee/…"><span class="note">訂單完成頁顯示「LINE 聯絡」按鈕</span></div>
+      <label class="check"><input type="checkbox" id="sbOn" ${s.shipBarOn ? "checked" : ""}>顯示免運公告條</label>
+      <div class="f"><label for="sb">免運公告文字</label><input id="sb" value="${esc(s.shipBar)}" placeholder="空白＝自動顯示「全站滿 $${Number(s.freeShipOver || 0).toLocaleString()} 免運」"><span class="note">賣場上方那一條；空白會依免運門檻自動產生</span></div>
       <div class="f"><label for="sn">賣場公告（選填）</label><input id="sn" value="${esc(s.notice)}" placeholder="例：全館滿 $2,000 免運"></div>
       <div class="err" id="serr"></div><div class="btns"><button class="btn" id="sSave">儲存設定</button></div></div>
     <h2>綠界金流</h2><div class="card" id="ecCard">
@@ -598,14 +648,11 @@ function drawSettings() {
           <option value="ratio" ${s.feeSplit === "ratio" ? "selected" : ""}>依分潤比例分攤</option><option value="us" ${s.feeSplit === "us" ? "selected" : ""}>我方全額負擔</option><option value="owner" ${s.feeSplit === "owner" ? "selected" : ""}>貨主全額負擔</option></select></div></div>
       <span class="note">費率未稅，計算時自動加 5% 營業稅。預設為綠界一般會員公告費率；特約會員請依合約修改。</span>
       <div class="err" id="ferr"></div><div class="btns" id="fBtns" hidden><button class="btn ghost" id="fReset" style="flex:none">恢復綠界預設</button><button class="btn ink" id="fSave">儲存手續費設定</button></div></div>
-    <h2>登入帳號</h2><div class="card">
-      ${isDefault ? '<div class="err">目前為初始密碼，請立即變更</div>' : ""}
-      <div class="f"><label for="ou">帳號</label><input id="ou" value="${esc(data.user)}" autocomplete="username"></div>
-      <div class="f"><label for="op">目前密碼</label><input id="op" type="password" autocomplete="current-password"></div>
-      <div class="f"><label for="np">新密碼</label><input id="np" type="password" autocomplete="new-password"><span class="note">至少 2 碼</span></div>
-      <div class="err" id="aerr"></div><div class="btns"><button class="btn ink" id="aSave">變更帳號密碼</button></div></div>`;
+    ${accountCard(isDefault)}
+    <h2>帳號管理</h2><div class="card" id="usersBox"><div class="note">載入中…</div></div>`;
+  bindAccount(); drawUsers();
   $("sSave").onclick = e => busy(e.target, async () => {
-    await admin("admin_saveSettings", {settings: {ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
+    await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
   admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {
@@ -634,11 +681,7 @@ function drawSettings() {
     await admin("admin_saveSettings", {settings: {feeCardPct: $("fcp").value, feeCardMin: $("fcm").value, feeCardOrder: $("fco").value, feeAtmPct: $("fap").value, feeAtmMin: $("fam").value, feeSplit: $("fsp").value}});
     await loadAll(); toast("已儲存"); drawSettings();
   }).catch(err => $("ferr").textContent = err.message);
-  $("aSave").onclick = e => busy(e.target, async () => {
-    $("aerr").textContent = "";
-    await admin("admin_changeLogin", {oldPass: $("op").value, newUser: $("ou").value.trim(), newPass: $("np").value});
-    lsSet("cp-default-pw", ""); toast("已變更，其他裝置需重新登入"); $("op").value = $("np").value = ""; drawSettings();
-  }).catch(err => $("aerr").textContent = err.message);
+
 }
 
 /* ── 上傳 ── */
