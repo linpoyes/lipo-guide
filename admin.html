@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-gkLl3P5FUA0deIrhX0il5oruUe6uAWjd5wX3CK1dHVs='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-W5BPXkPatOAnn7XjM3KGGluHj6CvxnPSG1Gnqp3Ect8='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080207">
+<meta name="build" content="202611080209">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -136,7 +136,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .dgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .dc{margin:0}.dc h3{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:16px}
 .dc h4{margin:14px 0 8px;font-size:14px;color:var(--dim)}
-.chart{width:100%;height:auto;display:block}.chart .gl{stroke:var(--line);stroke-width:1}.chart .ax,.donut .ax{fill:var(--faint);font-size:11px;font-weight:700}
+.chart{width:100%;height:auto;display:block;max-width:100%}.chart .gl{stroke:var(--line);stroke-width:1}.chart .ax,.donut .ax{fill:var(--faint);font-size:11px;font-weight:700}
 .lg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}.lg i{width:10px;height:10px;border-radius:3px;margin-left:6px}
 .hb,.fun{display:grid;gap:8px}
 .hbr,.fr{display:grid;grid-template-columns:78px minmax(0,1fr) 74px;align-items:center;gap:8px;font-size:13px;font-weight:700}
@@ -144,7 +144,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .hbr i,.fr i{height:12px;border-radius:6px;background:var(--wash);overflow:hidden}.hbr b,.fr b{display:block;height:100%;border-radius:6px}
 .fr i{height:20px}.fr b{background:linear-gradient(90deg,#D7261E,#FF7A45)}
 .hbr em,.fr em{font-style:normal;text-align:right;font-weight:900}.hbr small,.fr small{display:block;color:var(--faint);font-size:11px}
-.donut{display:flex;align-items:center;gap:14px}.donut svg{width:120px;flex:none}.donut .dn{fill:var(--text);font-size:15px;font-weight:900}
+.donut{display:flex;align-items:center;gap:14px}.donut svg{width:120px;height:120px;flex:none}.donut .dn{fill:var(--text);font-size:15px;font-weight:900}
 .donut p{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;font-weight:700}.donut p i{width:10px;height:10px;border-radius:3px}.donut p b{margin-left:auto;padding-left:10px}
 .heat{display:grid;gap:3px;overflow-x:auto}.hrow{display:grid;grid-template-columns:18px repeat(24,minmax(9px,1fr));gap:3px;align-items:center}
 .hrow span{font-size:11px;color:var(--faint);font-weight:800}.hrow i{aspect-ratio:1;border-radius:3px;background:var(--wash)}
@@ -201,7 +201,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611080207"></script>
+<script src="shop-core.js?v=202611080209"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -276,12 +276,14 @@ function delta(cur, prev, inverse) {
   const good = inverse ? d < 0 : d > 0;
   return `<em class="${good ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d)}%</em>`;
 }
+// 圖表寬度跟著版面走（1:1 顯示，字不會被放大縮小）
+const chartW = () => Math.max(300, Math.min(1100, (($("main") || {}).clientWidth || 640) - (innerWidth >= 760 ? 60 : 30)));
 function lineChart(series, keys, colors, fmt) {
-  const W = 640, H = 200, P = {l: 34, r: 8, t: 12, b: 24}, n = series.length;
+  const W = chartW(), H = 210, P = {l: 34, r: 8, t: 12, b: 24}, n = series.length;
   const max = Math.max(1, ...series.flatMap(s => keys.map(k => s[k])));
-  const nice = Math.pow(10, Math.floor(Math.log10(max))), top = Math.ceil(max / nice) * nice;
+  const nice = Math.pow(10, Math.floor(Math.log10(max))), top = Math.max(4, Math.ceil(max / nice) * nice);
   const x = i => P.l + (n === 1 ? (W - P.l - P.r) / 2 : i * (W - P.l - P.r) / (n - 1)), y = v => P.t + (1 - v / top) * (H - P.t - P.b);
-  const grid = [0, .5, 1].map(f => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(top * f)}" y2="${y(top * f)}" class="gl"/><text x="${P.l - 6}" y="${y(top * f) + 4}" text-anchor="end" class="ax">${fmt ? fmt(top * f) : Math.round(top * f)}</text>`).join("");
+  const grid = [0, .25, .5, .75, 1].map(f => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(top * f)}" y2="${y(top * f)}" class="gl"/><text x="${P.l - 6}" y="${y(top * f) + 4}" text-anchor="end" class="ax">${fmt ? fmt(top * f) : Math.round(top * f)}</text>`).join("");
   const every = Math.ceil(n / 8);
   const xl = series.map((s, i) => i % every === 0 || i === n - 1 ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" class="ax">${esc(s.k)}</text>` : "").join("");
   const paths = keys.map((k, j) => {
@@ -293,8 +295,8 @@ function lineChart(series, keys, colors, fmt) {
   return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img">${grid}${xl}${paths}</svg>`;
 }
 function barChart(series, k, color, fmt) {
-  const W = 640, H = 180, P = {l: 44, r: 8, t: 12, b: 24}, n = series.length;
-  const max = Math.max(1, ...series.map(s => s[k])), bw = (W - P.l - P.r) / n;
+  const W = chartW(), H = 190, P = {l: 44, r: 8, t: 12, b: 24}, n = series.length;
+  const max = Math.max(1000, ...series.map(s => s[k])), bw = (W - P.l - P.r) / n;
   const y = v => P.t + (1 - v / max) * (H - P.t - P.b), every = Math.ceil(n / 8);
   return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img">
     <line x1="${P.l}" x2="${W - P.r}" y1="${y(0)}" y2="${y(0)}" class="gl"/><text x="${P.l - 6}" y="${y(max) + 4}" text-anchor="end" class="ax">${fmt(max)}</text>
@@ -311,7 +313,7 @@ function donut(list) {
   const tot = list.reduce((a, x) => a + x[1], 0), C = 2 * Math.PI * 38, cols = ["#D7261E", "#2F6BFF", "#1F9D63", "#F0A020", "#8A5CF6", "#888"];
   let off = 0;
   const arcs = list.map(([k, v], i) => { const len = v / tot * C, a = `<circle r="38" cx="50" cy="50" fill="none" stroke="${cols[i % 6]}" stroke-width="16" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"><title>${esc(k)} ${v}</title></circle>`; off += len; return a; }).join("");
-  return `<div class="donut"><svg viewBox="0 0 100 100">${arcs}<text x="50" y="48" text-anchor="middle" class="dn">${tot.toLocaleString()}</text><text x="50" y="62" text-anchor="middle" class="ax">工作階段</text></svg>
+  return `<div class="donut"><svg viewBox="0 0 100 100" width="120" height="120">${arcs}<text x="50" y="48" text-anchor="middle" class="dn">${tot.toLocaleString()}</text><text x="50" y="62" text-anchor="middle" class="ax">工作階段</text></svg>
     <div>${list.map(([k, v], i) => `<p><i style="background:${cols[i % 6]}"></i>${esc(k)}<b>${pct(v, tot)}%</b></p>`).join("")}</div></div>`;
 }
 function heatmap(h) {
