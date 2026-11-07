@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-NDNFMtJLnlAkRBE9FVcikLRyByksvXin624TMLW6vVs='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-CE2JNX0VKl/oxvlNkn67ZHvfECrhYeJSZejtUZAPuJU='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072040">
+<meta name="build" content="202611072045">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -136,6 +136,7 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .meta{font-size:12px;color:var(--faint);font-weight:700}
 .tierhint{font-size:12px;font-weight:800;color:var(--ok)}
 .badge{position:absolute;top:8px;left:8px;z-index:1;font-size:11px;font-weight:900;color:#fff;background:var(--red);border-radius:6px;padding:1px 7px;letter-spacing:.06em}
+.badge.soon{background:var(--chip);color:var(--bg);top:8px;left:8px}
 .badge.out{background:#555}
 .empty{padding:28px 10px;text-align:center;color:var(--faint);font-weight:700}
 .skel{background:linear-gradient(90deg,var(--wash),var(--line),var(--wash));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:14px;aspect-ratio:3/4}
@@ -349,8 +350,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611072040"></script>
-<script src="tw-zip.js?v=202611072040"></script>
+<script src="shop-core.js?v=202611072045"></script>
+<script src="tw-zip.js?v=202611072045"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -444,10 +445,10 @@ function card(p) {
   const tags = [p.hot && '<i class="t hot">熱銷</i>', isNew(p) && '<i class="t new">新品</i>', best && `<i class="t deal">${best.qty} 件起 ${zhe(best.price, p.price)}</i>`, p.brand && `<i class="t">${esc(p.brand)}</i>`].filter(Boolean).join("");
   return `<div class="pcard${out ? " out" : ""}" data-id="${esc(p.id)}" role="button" tabindex="0">
     <div class="img">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 500))}" alt="" loading="lazy">` : svg(p.category || "all")}
-      ${out ? '<span class="badge out">售完</span>' : ""}${hasVid ? '<span class="vbadge" aria-label="有影片">▶</span>' : ""}</div>
+      ${out ? '<span class="badge out">售完</span>' : !canBuy(p) ? '<span class="badge soon">即將開賣</span>' : ""}${hasVid ? '<span class="vbadge" aria-label="有影片">▶</span>' : ""}</div>
     <div class="body"><span class="name">${esc(p.name)}</span>
       <div class="prow"><span class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}</span>
-        ${out ? "" : `<button class="qadd" data-qadd="${esc(p.id)}" aria-label="加入購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.3" fill="currentColor"/><circle cx="17" cy="20" r="1.3" fill="currentColor"/></svg></button>`}</div>
+        ${out || !canBuy(p) ? "" : `<button class="qadd" data-qadd="${esc(p.id)}" aria-label="加入購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.3" fill="currentColor"/><circle cx="17" cy="20" r="1.3" fill="currentColor"/></svg></button>`}</div>
       ${tags ? `<div class="tags">${tags}</div>` : ""}
     </div></div>`;
 }
@@ -459,6 +460,8 @@ $("sorts").onclick = e => {
   filter.sort = k === "price" ? (filter.sort === "low" ? "high" : "low") : k;
   lsSet("cp-sort", filter.sort); renderList();
 };
+// 下單開關：後台「開放下單」關閉時全站都不能買；個別商品勾「即將開賣」也不能買（後端同樣會擋）
+const canBuy = p => !!(catalog && catalog.settings.ordersOpen) && !p.preorder;
 // 商品編號 p<建立時間36進位>：拿來判斷新品與「最新上架」
 const created = p => parseInt(String(p.id).slice(1), 36) || 0;
 const isNew = p => Date.now() - created(p) < 30 * 86400000;
@@ -570,7 +573,7 @@ function openProduct(id) {
       ${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ""}
       <div class="buyrow">
         <div class="stepper"><button data-q="-1" aria-label="減少">−</button><span>${pQty}</span><button data-q="1" aria-label="增加">＋</button></div>
-        <button class="btn" data-add ${out ? "disabled" : ""}>${out ? "已售完" : `加入購物車　${money(u * pQty)}`}</button>
+        <button class="btn" data-add ${out || !canBuy(p) ? "disabled" : ""}>${out ? "已售完" : !canBuy(p) ? "即將開賣，敬請期待" : `加入購物車　${money(u * pQty)}`}</button>
       </div>`;
     const g = $("pPanel").querySelector(".gallery");
     g.scrollLeft = gi * gStep(g);
@@ -701,7 +704,7 @@ function drawCart() {
       </div>`).join("")}
       <form class="coupon" id="couponForm"><input id="codeIn" placeholder="折扣碼" value="${esc(code)}" autocapitalize="characters" aria-label="折扣碼"><button>${code ? "更新" : "套用"}</button></form>
       ${codeMsg}${summary}
-      <div class="buyrow"><button class="btn" data-step="form">前往結帳</button></div>`;
+      <div class="buyrow"><button class="btn" data-step="form" ${catalog.settings.ordersOpen ? "" : "disabled"}>${catalog.settings.ordersOpen ? "前往結帳" : "尚未開放下單"}</button></div>`;
   } else {
     $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">填寫訂購資料</div>
       <form id="orderForm">

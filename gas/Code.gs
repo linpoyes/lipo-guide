@@ -12,7 +12,7 @@
  */
 
 const SHEETS = {
-  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand"],
+  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note"],
   orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId"],
@@ -22,7 +22,8 @@ const SHEETS = {
 const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定" };
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
-const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "" };
+// ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
+const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE" };
 // 登入有效 10 天（使用者 2026-10-31：登入過的裝置不要一直登出）。
 // CacheService 最長只存 6 小時，所以 session 存在指令碼屬性：SESS_<token 雜湊> = 到期毫秒。
 const SESSION_DAYS = 10;
@@ -133,6 +134,7 @@ function getSettings_() {
   rows_("settings").forEach(r => s[r.key] = r.value);
   s.shipFee = Number(s.shipFee) || 0;
   s.shipFeeCvs = Number(s.shipFeeCvs) || 0;
+  s.ordersOpen = bool_(s.ordersOpen);
   s.freeShipOver = Number(s.freeShipOver) || 0;
   return s;
 }
@@ -147,6 +149,8 @@ function product_(r) {
     images: json_(r.images, []), tiers: json_(r.tiers, []),
     stock: r.stock === "" || r.stock === null ? -1 : Number(r.stock),
     active: bool_(r.active), hot: bool_(r.hot), sort: Number(r.sort) || 0, cvsOk: bool_(r.cvsOk), brand: String(r.brand || "").trim(),
+    // 代銷：supplier＝供貨商（空白＝自有商品）、commission＝我方抽成 %、preorder＝此商品暫不開放下單（即將開賣）
+    supplier: String(r.supplier || "").trim(), commission: Number(r.commission) || 0, preorder: bool_(r.preorder),
   };
 }
 function video_(r) {
@@ -178,7 +182,7 @@ function catalog_() {
     ok: true,
     products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
-    settings: { shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
+    settings: { ordersOpen: s.ordersOpen, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
   };
 }
 
@@ -210,7 +214,9 @@ function quote_(items, codeStr, shipMethod) {
     if (!qty) return;
     if (p.stock >= 0 && qty > p.stock) errors.push(p.name + " 庫存不足（剩 " + p.stock + "）");
     const u = unitPrice_(p, qty);
-    lines.push({ id: p.id, name: p.name, qty: qty, price: p.price, unit: u, total: u * qty });
+    if (p.preorder) errors.push(p.name + " 即將開賣，尚未開放訂購");
+    // 供貨商與抽成在下單當下記進訂單（之後改商品設定不影響舊單的報表）
+    lines.push({ id: p.id, name: p.name, qty: qty, price: p.price, unit: u, total: u * qty, supplier: p.supplier, commission: p.commission });
     subtotal += u * qty;
     tierSaving += (p.price - u) * qty;
   });
@@ -256,6 +262,7 @@ function placeOrder_(req) {
     if (nPhone >= 5) return { ok: false, error: "下單次數過多，請稍後再試或與我們聯絡" };
     if (nAll >= 30) return { ok: false, error: "目前訂單量較大，請稍後再試" };
   }
+  if (!getSettings_().ordersOpen) return { ok: false, error: "目前尚未開放下單，敬請期待" };
   if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
   if (!c.address) return { ok: false, error: c.shipMethod === SHIP_CVS ? "請選擇 7-11 門市" : "請填寫收件地址" };
   const lock = LockService.getScriptLock();
@@ -360,6 +367,8 @@ const ADMIN = {
       stock: p.stock === "" || p.stock === null || p.stock === undefined ? "-1" : String(Number(p.stock)),
       active: p.active ? "TRUE" : "FALSE", hot: p.hot ? "TRUE" : "FALSE", sort: String(Number(p.sort) || 0),
       updatedAt: new Date().toISOString(), cvsOk: p.cvsOk ? "TRUE" : "FALSE", brand: String(p.brand || "").normalize("NFKC").trim(),
+      supplier: String(p.supplier || "").normalize("NFKC").trim(), commission: String(Math.max(0, Math.min(100, Number(p.commission) || 0))),
+      preorder: p.preorder ? "TRUE" : "FALSE",
     });
     return { id: id };
   },
@@ -404,7 +413,7 @@ const ADMIN = {
   },
   admin_saveSettings: r => {
     const s = r.settings || {};
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const p = PropertiesService.getScriptProperties();

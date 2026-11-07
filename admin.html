@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-I1ZwcVHHjdPpej9x6CIoOajP/UcEsZ5A/glWpwrSc5M='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-I4WVm7X75k6jK+OU/0d0aFM0y9Oy7WaHz4TL2cU32SE='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072040">
+<meta name="build" content="202611072045">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -40,7 +40,7 @@ svg{width:20px;height:20px}
 .top a,.top button{color:#fff;background:transparent;border:1px solid #444;border-radius:8px;padding:4px 10px;font-size:13px;text-decoration:none}
 .tabs{position:sticky;top:54px;z-index:9;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}
 .tabs .wrap{display:flex;gap:4px}
-.tabs button{flex:1 1 0;min-width:0;border:0;border-radius:10px;padding:8px 0;background:var(--card);color:var(--dim);font-weight:800;white-space:nowrap}
+.tabs button{flex:1 1 0;min-width:0;border:0;border-radius:10px;padding:8px 0;font-size:14px;background:var(--card);color:var(--dim);font-weight:800;white-space:nowrap}
 .tabs button[aria-pressed=true]{background:var(--red);color:#fff}
 
 h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -123,6 +123,20 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .stats div{background:var(--ink);color:#fff;border-radius:12px;padding:10px;box-shadow:inset 0 -3px 0 var(--red)}
 .stats small{display:block;color:#C9CBD2;font-size:12px;font-weight:700}
 .stats b{font-size:20px;font-weight:900}
+
+.rcard{margin-bottom:12px}
+.rh{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;font-size:17px}
+.rgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px}
+@media (min-width:640px){.rgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.rgrid div{background:var(--wash);border-radius:10px;padding:8px 10px}
+.rgrid small{display:block;font-size:12px;color:var(--dim);font-weight:700}
+.rgrid b{font-size:18px}
+.rgrid b.ok{color:var(--ok)}
+.rt th{text-align:right;font-size:12px;color:var(--dim);padding:6px 0;border-bottom:1px solid var(--line)}
+.rt th:first-child{text-align:left}
+.rt td{text-align:right}
+.rt td:first-child{text-align:left;padding-right:8px}
+@media print{.top,.tabs,.pwwarn,#rCsv,#rPrint,.filters{display:none!important}body{background:#fff;color:#000}.card,.stats div{break-inside:avoid}}
 </style>
 </head>
 <body>
@@ -131,7 +145,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072040"></script>
+<script src="shop-core.js?v=202611072045"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -179,14 +193,14 @@ function drawApp() {
   $("app").innerHTML = `<header class="top"><div class="wrap"><img src="badge.png?v=1" alt=""><b>赤貧軍團</b><span>管理後台</span>
       <a href="shop.html" target="_blank" rel="noopener">賣場</a><button id="outBtn">登出</button></div></header>
     <nav class="tabs"><div class="wrap">
-      ${[["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["settings", "設定"]]
+      ${[["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["report", "報表"], ["settings", "設定"]]
         .map(([k, n]) => `<button data-tab="${k}" aria-pressed="${tab === k}">${n}</button>`).join("")}</div></nav>
     ${lsGet("cp-default-pw", "") === "1" ? '<div class="wrap"><button class="pwwarn" data-gopw>目前為初始密碼，任何人都可能登入，請立即變更 ›</button></div>' : ""}
     <main class="wrap" id="main"></main>`;
   $("outBtn").onclick = logout;
   const gp = document.querySelector("[data-gopw]"); if (gp) gp.onclick = () => { tab = "settings"; sessionStorage.setItem("cp-tab", tab); drawApp(); };
   document.querySelector(".tabs").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; sessionStorage.setItem("cp-tab", tab); drawApp(); } };
-  ({orders: drawOrders, products: drawProducts, videos: drawVideos, codes: drawCodes, settings: drawSettings})[tab]();
+  ({orders: drawOrders, products: drawProducts, videos: drawVideos, codes: drawCodes, report: drawReport, settings: drawSettings})[tab]();
 }
 
 /* ── 訂單 ── */
@@ -272,7 +286,7 @@ function drawProducts() {
   $("main").innerHTML = `<h2>商品 ${ps.length} 項 <button class="btn" id="newP">新增商品</button></h2>
     <div class="list">${ps.length ? ps.map(p => `<button class="row" data-p="${esc(p.id)}">
       ${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 150))}" alt="">` : '<div class="ph"></div>'}
-      <div class="info"><b>${esc(p.name)}</b><small>${p.brand ? esc(p.brand) + "・" : ""}${esc(catName(p.category))}・${money(p.price)}・${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}・已售 ${p.sold || 0}</small></div>
+      <div class="info"><b>${esc(p.name)}</b><small>${p.preorder ? "即將開賣・" : ""}${p.supplier ? `代銷 ${esc(p.supplier)} ${p.commission}%・` : ""}${p.brand ? esc(p.brand) + "・" : ""}${esc(catName(p.category))}・${money(p.price)}・${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}・已售 ${p.sold || 0}</small></div>
       <div class="right"><span class="pill ${p.active ? "on" : "off"}">${p.active ? "上架" : "下架"}</span>${p.hot ? '<br><span class="pill new">熱銷</span>' : ""}</div></button>`).join("") : '<div class="empty">尚無商品</div>'}</div>`;
   $("newP").onclick = () => editProduct(null);
   $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-p]"); if (b) editProduct(b.dataset.p); };
@@ -300,7 +314,11 @@ function editProduct(id) {
           <span>${zhe(t.price, Number(p.price)) || ""}</span><button data-trm="${i}" aria-label="刪除">×</button></div>`).join("")}</div>
         <button class="btn ghost" data-tadd style="align-self:flex-start">＋ 新增級距</button><span class="note">例：2 件以上每件 $900、3 件以上每件 $850</span></div>
       <div class="f"><label for="pd">商品介紹</label><textarea id="pd">${esc(p.desc)}</textarea></div>
+      <div class="f2"><div class="f"><label for="psu">供貨商（代銷才填）</label><input id="psu" list="supList" value="${esc(p.supplier || "")}" placeholder="空白＝自有商品">
+          <datalist id="supList">${[...new Set(data.products.map(x => x.supplier).filter(Boolean))].map(b => `<option value="${esc(b)}">`).join("")}</datalist></div>
+        <div class="f"><label for="pcm">我方抽成 %</label><input id="pcm" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="${p.supplier ? p.commission : ""}" placeholder="例：5"><span class="note">報表依此計算應付供貨商金額</span></div></div>
       <label class="check"><input type="checkbox" id="pa" ${p.active ? "checked" : ""}>上架</label>
+      <label class="check"><input type="checkbox" id="ppo" ${p.preorder ? "checked" : ""}>即將開賣（顯示但不能下單）</label>
       <label class="check"><input type="checkbox" id="ph" ${p.hot ? "checked" : ""}>標示熱銷</label>
       <label class="check"><input type="checkbox" id="pv" ${p.cvsOk ? "checked" : ""}>可 7-11 店到店（小件）</label>
       <span class="note" style="margin:-6px 0 0 28px;display:block">未勾選＝僅限黑貓宅配；7-11 限 45×30×30 公分、5 公斤內</span>
@@ -309,7 +327,7 @@ function editProduct(id) {
   };
   const read = () => {
     p.name = $("pn").value.trim(); p.category = $("pc").value; p.price = Number($("pp").value) || 0; p.listPrice = Number($("pl").value) || 0;
-    p.stock = $("ps").value === "" ? -1 : Number($("ps").value); p.desc = $("pd").value; p.active = $("pa").checked; p.hot = $("ph").checked; p.cvsOk = $("pv").checked; p.brand = $("pb").value.trim();
+    p.stock = $("ps").value === "" ? -1 : Number($("ps").value); p.desc = $("pd").value; p.active = $("pa").checked; p.hot = $("ph").checked; p.cvsOk = $("pv").checked; p.brand = $("pb").value.trim(); p.supplier = $("psu").value.trim(); p.commission = p.supplier ? Number($("pcm").value) || 0 : 0; p.preorder = $("ppo").checked;
     p.tiers = [...document.querySelectorAll("[data-tq]")].map((el, i) => ({qty: Number(el.value) || 0, price: Number(document.querySelector(`[data-tp="${i}"]`).value) || 0}));
   };
   draw(); openModal();
@@ -327,6 +345,7 @@ function editProduct(id) {
     if (save) { read();
       if (!p.name) return $("perr").textContent = "請填寫商品名稱";
       if (!(p.price > 0)) return $("perr").textContent = "請填寫售價";
+      if (p.supplier && !(p.commission > 0 && p.commission < 100)) return $("perr").textContent = "代銷商品請填寫抽成 %（1–99）";
       const bad = p.tiers.find(t => !(t.qty >= 2) || !(t.price > 0) || t.price >= p.price);
       if (bad) return $("perr").textContent = "多件優惠：件數需 2 以上，每件價格需低於售價";
       busy(save, async () => { await admin("admin_saveProduct", {product: {...p, id}}); await loadAll(); closeModal(); drawProducts(); toast("已儲存"); })
@@ -437,10 +456,86 @@ function editCode(code) {
   };
 }
 
+/* ── 報表（2026-11-07）：營業概況＋代銷結算（供貨商 × 抽成 %）＋商品明細，可匯出 CSV、列印 ──
+   計算口徑：排除「已取消」；商品金額＝成交單價×數量（已含多件優惠）；折扣碼依各品項金額比例分攤；
+   運費另計、不分給供貨商；抽成與供貨商以「下單當下」記在訂單裡的值為準。 */
+let rpt = {range: "month", from: "", to: "", paidOnly: false};
+const ymd = d => d.toLocaleDateString("sv-SE", {timeZone: "Asia/Taipei"});
+function rptRange() {
+  const now = new Date(), y = +ymd(now).slice(0, 4), m = +ymd(now).slice(5, 7);
+  const first = (yy, mm) => `${yy}-${String(mm).padStart(2, "0")}-01`;
+  const last = (yy, mm) => ymd(new Date(Date.UTC(yy, mm, 0, 12)));
+  if (rpt.range === "month") return [first(y, m), ymd(now)];
+  if (rpt.range === "last") { const ly = m === 1 ? y - 1 : y, lm = m === 1 ? 12 : m - 1; return [first(ly, lm), last(ly, lm)]; }
+  if (rpt.range === "year") return [`${y}-01-01`, ymd(now)];
+  return [rpt.from || "2000-01-01", rpt.to || ymd(now)];
+}
+function rptCompute() {
+  const [from, to] = rptRange();
+  const os = orders.filter(o => o.status !== "已取消" && (!rpt.paidOnly || o.payStatus === "paid") && o.createdAt.slice(0, 10) >= from && o.createdAt.slice(0, 10) <= to);
+  const lines = [];
+  for (const o of os) {
+    const base = o.items.reduce((a, i) => a + i.total, 0) || 1;
+    for (const i of o.items) {
+      const disc = Math.round(o.codeDiscount * i.total / base), net = i.total - disc;
+      const rate = i.supplier ? Number(i.commission) || 0 : 0, fee = Math.round(net * rate / 100);
+      lines.push({date: o.createdAt.slice(0, 10), orderNo: o.orderNo, status: o.status, paid: o.payStatus === "paid", name: i.name, qty: i.qty, unit: i.unit,
+        gross: i.total, disc, net, supplier: i.supplier || "", rate, fee, payable: i.supplier ? net - fee : 0});
+    }
+  }
+  const sum = (arr, k) => arr.reduce((a, x) => a + x[k], 0);
+  const sup = {};
+  for (const l of lines.filter(l => l.supplier)) {
+    const g = sup[l.supplier] = sup[l.supplier] || {name: l.supplier, lines: [], prods: {}};
+    g.lines.push(l);
+    const pp = g.prods[l.name] = g.prods[l.name] || {name: l.name, qty: 0, net: 0, fee: 0, payable: 0};
+    pp.qty += l.qty; pp.net += l.net; pp.fee += l.fee; pp.payable += l.payable;
+  }
+  return {from, to, os, lines, sum, sup: Object.values(sup),
+    own: lines.filter(l => !l.supplier), ship: os.reduce((a, o) => a + o.shipping, 0), code: os.reduce((a, o) => a + o.codeDiscount, 0)};
+}
+async function drawReport() {
+  const main = $("main");
+  if (!orders) { main.innerHTML = '<div class="empty">載入訂單中…</div>'; try { await loadOrders(); } catch (e) { main.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; } }
+  const r = rptCompute(), S = r.sum;
+  const supRows = r.sup.map(g => `<div class="card rcard">
+      <h3 class="rh">${esc(g.name)}<span class="pill on">抽成 ${[...new Set(g.lines.map(l => l.rate))].join("／")}%</span></h3>
+      <div class="rgrid"><div><small>銷售額（折扣後）</small><b>${money(S(g.lines, "net"))}</b></div><div><small>我方抽成</small><b class="ok">${money(S(g.lines, "fee"))}</b></div>
+        <div><small>應付供貨商</small><b>${money(S(g.lines, "payable"))}</b></div><div><small>件數</small><b>${S(g.lines, "qty")}</b></div></div>
+      <table class="otable rt"><tr><th>商品</th><th>件數</th><th>銷售額</th><th>抽成</th><th>應付</th></tr>
+        ${Object.values(g.prods).sort((a, b) => b.net - a.net).map(p => `<tr><td>${esc(p.name)}</td><td>${p.qty}</td><td>${money(p.net)}</td><td>${money(p.fee)}</td><td>${money(p.payable)}</td></tr>`).join("")}</table>
+    </div>`).join("");
+  main.innerHTML = `<h2>報表 <span style="display:flex;gap:6px"><button class="btn ghost" id="rCsv">匯出 CSV</button><button class="btn ghost" id="rPrint">列印</button></span></h2>
+    <div class="filters">${[["month", "本月"], ["last", "上月"], ["year", "今年"], ["custom", "自訂"]].map(([k, n]) => `<button data-r="${k}" aria-pressed="${rpt.range === k}">${n}</button>`).join("")}
+      <button data-paid aria-pressed="${rpt.paidOnly}">只算已付款</button></div>
+    ${rpt.range === "custom" ? `<div class="f2" style="margin-bottom:10px"><div class="f"><label for="rf">開始</label><input id="rf" type="date" value="${rpt.from}"></div><div class="f"><label for="rt">結束</label><input id="rt" type="date" value="${rpt.to}"></div></div>` : ""}
+    <div class="note" style="margin-bottom:8px">${r.from} ～ ${r.to}・排除已取消${rpt.paidOnly ? "・只含已付款" : ""}</div>
+    <div class="stats"><div><small>商品銷售額</small><b>${money(S(r.lines, "net"))}</b></div><div><small>訂單</small><b>${r.os.length}</b></div><div><small>件數</small><b>${S(r.lines, "qty")}</b></div></div>
+    <div class="stats"><div><small>代銷抽成收入</small><b>${money(S(r.lines, "fee"))}</b></div><div><small>應付供貨商</small><b>${money(S(r.lines, "payable"))}</b></div><div><small>自有商品銷售</small><b>${money(S(r.own, "net"))}</b></div></div>
+    <div class="note" style="margin:-4px 0 10px">另計：運費 ${money(r.ship)}・折扣碼折抵 ${money(r.code)}（已依比例自各品項扣除）</div>
+    <h2>代銷結算</h2>${supRows || '<div class="empty">此期間沒有代銷商品的訂單</div>'}`;
+  main.querySelector(".filters").onclick = e => {
+    const b = e.target.closest("[data-r]"); if (b) { rpt.range = b.dataset.r; drawReport(); }
+    if (e.target.closest("[data-paid]")) { rpt.paidOnly = !rpt.paidOnly; drawReport(); }
+  };
+  ["rf", "rt"].forEach(id => { const el = $(id); if (el) el.onchange = () => { rpt[id === "rf" ? "from" : "to"] = el.value; drawReport(); }; });
+  $("rPrint").onclick = () => print();
+  $("rCsv").onclick = () => {
+    const q = v => `"${String(v).replace(/"/g, '""')}"`;
+    const head = ["日期", "訂單編號", "狀態", "付款", "商品", "數量", "單價", "金額", "折扣分攤", "銷售額", "供貨商", "抽成%", "我方抽成", "應付供貨商"];
+    const rows = r.lines.map(l => [l.date, l.orderNo, l.status, l.paid ? "已付款" : "未付款", l.name, l.qty, l.unit, l.gross, l.disc, l.net, l.supplier || "自有", l.rate, l.fee, l.payable]);
+    const csv = "\ufeff" + [head, ...rows].map(x => x.map(q).join(",")).join("\r\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"}));
+    a.download = `赤貧軍團報表_${r.from}_${r.to}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+}
+
 /* ── 設定 ── */
 function drawSettings() {
   const s = data.settings, isDefault = lsGet("cp-default-pw", "") === "1";
   $("main").innerHTML = `<h2>賣場設定</h2><div class="card">
+      <label class="check" style="margin-top:0"><input type="checkbox" id="sopen" ${s.ordersOpen ? "checked" : ""}>開放下單</label>
+      <span class="note" style="display:block;margin:-6px 0 8px 28px">未勾選＝商品照常展示，購物車與結帳顯示「尚未開放下單」</span>
       <div class="f2"><div class="f"><label for="sf">黑貓宅配運費</label><input id="sf" type="number" inputmode="numeric" value="${s.shipFee}"></div>
         <div class="f"><label for="sc">7-11 店到店運費</label><input id="sc" type="number" inputmode="numeric" value="${s.shipFeeCvs}"></div></div>
       <div class="f"><label for="so">免運門檻</label><input id="so" type="number" inputmode="numeric" value="${s.freeShipOver || ""}" placeholder="不設"><span class="note">折扣後金額達門檻即免運（兩種寄送皆適用）</span></div>
@@ -454,7 +549,7 @@ function drawSettings() {
       <div class="f"><label for="np">新密碼</label><input id="np" type="password" autocomplete="new-password"><span class="note">至少 2 碼</span></div>
       <div class="err" id="aerr"></div><div class="btns"><button class="btn ink" id="aSave">變更帳號密碼</button></div></div>`;
   $("sSave").onclick = e => busy(e.target, async () => {
-    await admin("admin_saveSettings", {settings: {shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
+    await admin("admin_saveSettings", {settings: {ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
   $("aSave").onclick = e => busy(e.target, async () => {
