@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-CE2JNX0VKl/oxvlNkn67ZHvfECrhYeJSZejtUZAPuJU='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072047">
+<meta name="build" content="202611072048">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -290,7 +290,41 @@ footer nav a{color:var(--faint);text-decoration:none}
 
 /* 商品圖改「完整顯示」：廣告圖多為橫式，裁成正方形會切掉車名與賣點 */
 .pcard .img img{object-fit:contain}
-.gallery img{object-fit:contain;background:#111}
+.gallery img{object-fit:contain;background:#111;aspect-ratio:3/2}
+.pcard .img{aspect-ratio:4/3}
+
+/* ── 電腦版放大（2026-11-07 使用者：網頁版要大一點、好讀；手機維持不變）── */
+@media (min-width:900px){
+  body{font-size:18px}
+  .wrap{max-width:1320px;padding:0 28px}
+  .top .wrap{padding-top:12px;padding-bottom:12px;gap:18px}
+  .brand img{width:52px;height:52px;border-radius:12px}
+  .brand b{font-size:26px} .brand small{font-size:13px}
+  .search input{font-size:18px;padding:12px 14px} .search button{width:56px}
+  .cartbtn{width:54px;height:54px} .cartbtn svg{width:26px;height:26px}
+  .hero{max-height:300px}
+  .shipbar{font-size:17px;padding:10px}
+  .dd select{font-size:17px;padding:9px 38px 9px 18px}
+  .sorts button{font-size:17px;padding:8px 20px}
+  .latest{padding:8px 16px 8px 8px} .latest span{font-size:17px} .latest b{font-size:19px} .latest i{font-size:14px;padding:4px 12px} .latest img{width:38px;height:38px}
+  .shop .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+  .pcard .body{padding:14px 16px 16px;gap:8px}
+  .pcard .name{font-size:18px}
+  .prow .price b{font-size:24px} .prow .price s{font-size:15px}
+  .qadd{width:46px;height:46px} .qadd svg{width:24px;height:24px}
+  .t{font-size:14px;padding:2px 9px}
+  h2{font-size:22px}
+  .reel{width:200px}
+  .promos button{height:190px} .promos b{font-size:30px} .promos small{font-size:15px} .promos i{font-size:15px}
+  .panel{max-width:760px}
+  .ptitle{font-size:26px}
+  .price b{font-size:24px}
+  .tiers{font-size:17px}
+  .desc{font-size:17px}
+  .btn{height:56px;font-size:19px}
+  .field label{font-size:16px} .field input,.field select,.field textarea,.coupon input{font-size:17px;padding:12px}
+  .line .info b{font-size:17px} .sum div{font-size:17px} .sum .total{font-size:22px}
+}
 </style>
 </head>
 <body>
@@ -354,8 +388,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611072047"></script>
-<script src="tw-zip.js?v=202611072047"></script>
+<script src="shop-core.js?v=202611072048"></script>
+<script src="tw-zip.js?v=202611072048"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {

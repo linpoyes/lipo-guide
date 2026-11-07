@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-I4WVm7X75k6jK+OU/0d0aFM0y9Oy7WaHz4TL2cU32SE='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072047">
+<meta name="build" content="202611072048">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -137,6 +137,22 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .rt td{text-align:right}
 .rt td:first-child{text-align:left;padding-right:8px}
 @media print{.top,.tabs,.pwwarn,#rCsv,#rPrint,.filters{display:none!important}body{background:#fff;color:#000}.card,.stats div{break-inside:avoid}}
+
+/* 電腦版放大（2026-11-07）*/
+@media (min-width:900px){
+  body{font-size:17px}
+  .wrap{max-width:1180px;padding:0 24px}
+  .top .wrap{height:64px} .top b{font-size:20px}
+  .tabs button{font-size:17px;padding:11px 0}
+  h2{font-size:22px}
+  .row{padding:14px} .row .info b{font-size:17px} .row .info small{font-size:15px} .row img,.row .ph{width:64px;height:64px}
+  .f label{font-size:15px} .f input,.f select,.f textarea{font-size:17px;padding:10px 12px}
+  .btn{font-size:17px;padding:11px 20px}
+  .stats b{font-size:26px} .stats small{font-size:14px}
+  .rgrid b{font-size:22px} .rgrid small{font-size:14px}
+  .otable{font-size:16px}
+  .modal .panel{max-width:760px}
+}
 </style>
 </head>
 <body>
@@ -145,7 +161,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072047"></script>
+<script src="shop-core.js?v=202611072048"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
