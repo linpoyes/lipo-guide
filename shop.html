@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-XRWSvVP0JOiE7FbYyI5uAiGKucgof/dE8w4BBk8I6F0='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080221">
+<meta name="build" content="202611080222">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -74,7 +74,7 @@ a{color:inherit}
 .membtn .on{position:absolute;left:34px;bottom:7px;width:10px;height:10px;border-radius:50%;background:#06C755;border:2px solid var(--ink)}
 .membtn .nm{display:none;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:800;text-align:left;line-height:1.2}
 .membtn .nm small{display:block;font-size:11px;font-weight:700;color:#C9CBD2}
-@media (min-width:900px){.membtn{width:auto;padding:0 14px 0 6px}.membtn .nm{display:block}.membtn:not(.in) .nm{padding-right:2px}.membtn:not(.in){padding-left:12px}}
+
 .npanel .mem{margin:14px 0 0}
 /* 會員中心 */
 .ptrow{display:flex;align-items:flex-start;gap:10px}.ptrow .ptitle{flex:1}
@@ -453,6 +453,9 @@ footer nav a{color:var(--faint);text-decoration:none}
   .field label{font-size:16px} .field input,.field select,.field textarea,.coupon input{font-size:17px;padding:12px}
   .line .info b{font-size:17px} .sum div{font-size:17px} .sum .total{font-size:22px}
 }
+/* 會員鈕電腦版：膠囊（頭像＋名稱＋等級）；放最後，壓過 .cartbtn 的固定寬度 */
+@media (min-width:900px){.hacts .cartbtn.membtn{width:auto;min-width:54px;padding:0 16px 0 8px;justify-content:flex-start}.hacts .cartbtn.membtn:not(.in){padding-left:14px}
+  .membtn .nm{display:block}.membtn .av{width:38px;height:38px}.membtn .on{left:38px;bottom:8px}}
 </style>
 </head>
 <body>
@@ -524,9 +527,9 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611080221"></script>
-<script src="shop-core.js?v=202611080221"></script>
-<script src="tw-zip.js?v=202611080221"></script>
+<script src="track.js?v=202611080222"></script>
+<script src="shop-core.js?v=202611080222"></script>
+<script src="tw-zip.js?v=202611080222"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
