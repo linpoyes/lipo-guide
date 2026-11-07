@@ -15,7 +15,7 @@ const SHEETS = {
   products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note"],
-  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire"],
+  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire"],
   settings: ["key", "value"],
 };
 // 試算表分頁的中文名稱（給使用者自己打開試算表時看得懂）
@@ -23,7 +23,7 @@ const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: 
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 // ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
-const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE", shipBarOn: "TRUE", shipBar: "",
+const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE", requireLine: "TRUE", shipBarOn: "TRUE", shipBar: "",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
   //   信用卡一次付清 2.75%、每筆最低 5 元，另加訂單處理費 1 元（含稅）；ATM 虛擬帳號 1%、每筆最低 15 元
   feeCardPct: "2.75", feeCardMin: "5", feeCardOrder: "1", feeAtmPct: "1", feeAtmMin: "15",
@@ -61,6 +61,9 @@ function doGet(e) {
   if (a === "catalog") return out_(catalog_());
   if (a === "ping") return out_({ ok: true });
   if (a === "orderStatus") return out_(orderStatus_(e.parameter));
+  if ((e.parameter || {}).cb === "linelogin") return lineLoginReturn_(e.parameter);
+  if (a === "member") return out_(memberCheck_(e.parameter.mt));
+  if (a === "loginUrl") return out_({ ok: true, url: loginUrl_() });
   if (a === "store") { // 賣場輪詢：選門市的結果（sk 是賣場產生的一次性亂數）
     const v = CacheService.getScriptCache().get("store:" + String((e.parameter || {}).sk || ""));
     return out_({ ok: true, store: v ? JSON.parse(v) : null });
@@ -199,7 +202,7 @@ function catalog_() {
     ok: true,
     products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
-    settings: { ordersOpen: s.ordersOpen, payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar },
+    settings: { ordersOpen: s.ordersOpen, requireLine: s.requireLine !== "FALSE", payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar },
   };
 }
 
@@ -286,6 +289,12 @@ function placeOrder_(req) {
   }
   // admin 帶 token＋test 可在未開放時測試下單（只給後台測試用）
   if (!getSettings_().ordersOpen && !(req.test && (checkToken_(req.token) || {}).role === "owner")) return { ok: false, error: "目前尚未開放下單，敬請期待" };
+  // LINE 會員：必須用 LINE 登入且已加入官方帳號好友才能下單（設定 requireLine，預設開）
+  const mem = memberOf_(req.memberToken);
+  if (getSettings_().requireLine !== "FALSE" && !(req.test && (checkToken_(req.token) || {}).role === "owner")) {
+    if (!mem) return { ok: false, error: "請先用 LINE 登入會員", needLogin: true };
+    if (!mem.friend) return { ok: false, error: "請先加入赤貧軍團官方帳號好友", needFriend: true };
+  }
   const pay = ecpayCfg_().ready ? String(req.payMethod || "") : "";
   if (ecpayCfg_().ready && pay !== "Credit" && pay !== "ATM") return { ok: false, error: "請選擇付款方式" };
   if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
@@ -306,7 +315,7 @@ function placeOrder_(req) {
       orderNo: orderNo, createdAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm"),
       name: c.name, phone: c.phone, line: c.line || "", shipMethod: c.shipMethod, address: c.address || "", note: c.note || "",
       items: JSON.stringify(q.lines), subtotal: q.subtotal, tierSaving: q.tierSaving, code: q.code, codeDiscount: q.codeDiscount,
-      shipping: q.shipping, packages: String(q.packages), total: q.total, status: "新訂單", payStatus: pay ? "awaiting" : "unpaid", clientId: req.clientId || "",
+      shipping: q.shipping, packages: String(q.packages), lineUid: mem ? mem.uid : "", lineName: mem ? mem.name : "", total: q.total, status: "新訂單", payStatus: pay ? "awaiting" : "unpaid", clientId: req.clientId || "",
       payMethod: pay,
     });
     // 扣庫存（-1 = 不限量）
@@ -443,7 +452,7 @@ const ADMIN = {
       line: String(o.line), shipMethod: String(o.shipMethod), address: String(o.address), note: String(o.note),
       items: json_(o.items, []), subtotal: Number(o.subtotal), tierSaving: Number(o.tierSaving), code: String(o.code),
       codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), packages: Number(o.packages) || 1, total: Number(o.total),
-      status: String(o.status), payStatus: String(o.payStatus), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
+      status: String(o.status), payStatus: String(o.payStatus), lineName: String(o.lineName || ""), lineUid: String(o.lineUid || ""), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
       paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""),
     })).reverse(),
   }),
@@ -517,6 +526,7 @@ const ADMIN = {
   admin_ecpayStatus: () => ({ ecpay: ecpayCfg_().public }),
   // ── LINE 官方帳號通知 ──
   admin_lineStatus: () => lineStatus_(),
+  admin_setLoginSecret: r => { PropertiesService.getScriptProperties().setProperty("LINE_LOGIN_SECRET", String(r.secret || "").trim()); },
   admin_lineSave: r => { if (r.lineToken) PropertiesService.getScriptProperties().setProperty("LINE_TOKEN", String(r.lineToken).trim()); return lineStatus_(); },
   admin_lineBind: () => {  // 產生 6 碼綁定碼（10 分鐘有效），在 LINE 傳給官方帳號就完成綁定
     const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -527,7 +537,7 @@ const ADMIN = {
   admin_lineTest: () => { const n = linePush_("【赤貧軍團】LINE 通知測試成功"); if (!n) throw new Error("沒有已綁定的 LINE 或權杖無效"); return { sent: n }; },
   admin_saveSettings: r => {
     const s = r.settings || {};
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
@@ -744,4 +754,57 @@ function lineWebhook_(e) {
     lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "已綁定！之後有新訂單或付款成功，會在這裡通知你。" }] });
   });
   return ok;
+}
+
+/* ───────────── LINE 會員登入（2026-11-08）─────────────
+   LINE Login channel 2012457738（provider 赤貧軍團，已連結官方帳號 @552xxfur）。
+   流程：賣場按「LINE 登入」→ access.line.me（bot_prompt=aggressive，登入時一併邀請加好友）
+        → 回到這裡 ?cb=linelogin&code&state → 用 secret 換 token、驗 id_token、查好友狀態
+        → 發一組會員權杖（存 SESS 類屬性 MEM_<雜湊>，30 天）→ 帶 #lm=<權杖> 回賣場。
+   channel secret 存指令碼屬性 LINE_LOGIN_SECRET（不進版控）。 */
+const LINE_LOGIN_ID = "2012457738";
+const LOGIN_CB = EXEC_URL + "?cb=linelogin";
+function lineLoginReturn_(q) {
+  const back = (frag) => HtmlService.createHtmlOutput('<meta name="viewport" content="width=device-width,initial-scale=1"><div style="font-family:-apple-system,sans-serif;text-align:center;padding:40px 16px"><p style="font-size:18px;font-weight:700">' +
+    (frag.indexOf("lm=") === 0 ? "登入成功" : "登入未完成") + '</p><a href="' + SHOP_PAGE + "#" + frag + '" target="_top" style="display:inline-block;margin-top:12px;padding:12px 28px;border-radius:12px;background:#06C755;color:#fff;font-weight:800;text-decoration:none;font-size:17px">回到賣場</a></div><script>try{window.top.location.href=' +
+    JSON.stringify(SHOP_PAGE + "#" + frag) + '}catch(e){}</script>').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  try {
+    if (!q.code) return back("lmerr=cancel");
+    const st = CacheService.getScriptCache().get("lls:" + q.state); // state 防 CSRF
+    if (!st) return back("lmerr=state");
+    const secret = PropertiesService.getScriptProperties().getProperty("LINE_LOGIN_SECRET");
+    const tok = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/token", { method: "post", muteHttpExceptions: true,
+      payload: { grant_type: "authorization_code", code: q.code, redirect_uri: LOGIN_CB, client_id: LINE_LOGIN_ID, client_secret: secret } }).getContentText());
+    if (!tok.id_token) return back("lmerr=token");
+    const idt = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/verify", { method: "post", muteHttpExceptions: true,
+      payload: { id_token: tok.id_token, client_id: LINE_LOGIN_ID, nonce: st } }).getContentText());
+    if (!idt.sub) return back("lmerr=verify");
+    const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + tok.access_token } }).getContentText());
+    const mt = Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, "");
+    const rec = { uid: idt.sub, name: idt.name || "", pic: idt.picture || "", friend: !!fr.friendFlag, at: tok.access_token, exp: Date.now() + 30 * 86400000 };
+    PropertiesService.getScriptProperties().setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
+    return back("lm=" + mt);
+  } catch (e) { return back("lmerr=fail"); }
+}
+function memberOf_(mt) {
+  if (!mt) return null;
+  const p = PropertiesService.getScriptProperties(), k = "MEM_" + hash_(String(mt));
+  const rec = json_(p.getProperty(k), null);
+  if (!rec || rec.exp < Date.now()) return null;
+  if (!rec.friend) { // 剛加好友：重查一次（access token 有效 30 天）
+    try { const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + rec.at } }).getContentText());
+      if (fr.friendFlag) { rec.friend = true; p.setProperty(k, JSON.stringify(rec)); } } catch (e) {}
+  }
+  return rec;
+}
+function memberCheck_(mt) {
+  const m = memberOf_(mt);
+  return m ? { ok: true, member: { name: m.name, pic: m.pic, friend: m.friend } } : { ok: true, member: null };
+}
+// 產生登入網址（含一次性 state／nonce）
+function loginUrl_() {
+  const state = Utilities.getUuid().replace(/-/g, ""), nonce = Utilities.getUuid().replace(/-/g, "");
+  CacheService.getScriptCache().put("lls:" + state, nonce, 900);
+  return "https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=" + LINE_LOGIN_ID + "&redirect_uri=" + encodeURIComponent(LOGIN_CB) +
+    "&state=" + state + "&scope=openid%20profile&nonce=" + nonce + "&bot_prompt=aggressive";
 }

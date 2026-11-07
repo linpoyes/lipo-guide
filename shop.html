@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-WU0Et10wAJxpoD+dfIt+bkNbzof6kJlOzN6TXS6NQ3Q='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-ocOCOnJ7BR0teQSU1Haa3mGpRJFozZdQgN/id2Q9vUA='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080050">
+<meta name="build" content="202611080103">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -214,6 +214,12 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .store button,.pickstore{flex:none;border:0;border-radius:10px;background:var(--text);color:var(--bg);font-weight:800;padding:8px 12px}
 .pickstore{width:100%;padding:12px;font-size:16px;background:#00754A;color:#fff}
 .done{text-align:center;padding:10px 0}
+.mem{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin:6px 0 12px}
+.mem.ok{border-color:#06C755}
+.mem img{width:40px;height:40px;border-radius:50%}
+.mem div{flex:1;min-width:150px}.mem b{display:block;font-size:16px}.mem small{display:block;color:var(--dim);font-size:13px}
+.linebtn{border:0;border-radius:10px;background:#06C755;color:#fff;font-weight:800;padding:9px 16px;text-decoration:none;font-size:15px}
+.memre,.memout{border:1.5px solid var(--line);background:transparent;color:var(--text);border-radius:10px;padding:8px 12px;font-weight:700}
 .va{display:grid;gap:8px;margin:14px 0 6px;text-align:left}
 .va div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
 .va small{display:block;font-size:12px;color:var(--dim);font-weight:700}
@@ -394,8 +400,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611080050"></script>
-<script src="tw-zip.js?v=202611080050"></script>
+<script src="shop-core.js?v=202611080103"></script>
+<script src="tw-zip.js?v=202611080103"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -762,7 +768,8 @@ function drawCart() {
       <div class="buyrow"><button class="btn" data-step="form" ${catalog.settings.ordersOpen ? "" : "disabled"}>${catalog.settings.ordersOpen ? "前往結帳" : "尚未開放下單"}</button></div>`;
   } else {
     $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">填寫訂購資料</div>
-      <form id="orderForm">
+      ${memberBox()}
+      <form id="orderForm" ${needLine() ? "hidden" : ""}>
         <div class="field"><label for="oName">收件人真實姓名</label><input id="oName" autocomplete="name" maxlength="10" required>
           <span class="hint" id="nameHint">取貨時需核對證件，請填寫與證件相同的姓名；中文 2–5 字或英文 4–10 字母，不可有數字與符號</span></div>
         <div class="field"><label for="oPhone">手機</label><input id="oPhone" type="tel" inputmode="tel" autocomplete="tel" required></div>
@@ -803,6 +810,9 @@ $("cPanel").addEventListener("click", e => {
   }
   const st = e.target.closest("[data-step]");
   if (st) { step = st.dataset.step; drawCart(); $("cPanel").scrollTop = 0; }
+  const lg = e.target.closest("[data-login]"); if (lg) { lineLogin(lg); return; }
+  if (e.target.closest("[data-logout]")) { memTok = ""; member = null; lsSet("cp-mem", ""); drawCart(); return; }
+  const rc = e.target.closest("[data-recheck]"); if (rc) { busy(rc, async () => { await loadMember(); drawCart(); if (!(member && member.friend)) toast("尚未偵測到加入好友，請稍候再試"); }); return; }
   const pb = e.target.closest("[data-pay]");
   if (pb) { payM = pb.dataset.pay; lsSet("cp-pay", payM); for (const b of $("pays").children) b.setAttribute("aria-pressed", b === pb); }
   const sb = e.target.closest("[data-ship]");
@@ -827,6 +837,26 @@ function checkName(n) {
   return "姓名請填寫與證件相同的中文或英文，不可有符號";
 }
 let payM = lsGet("cp-pay", "Credit");
+/* ── LINE 會員（2026-11-08 使用者：購買要加入 LINE 會員）──
+   結帳前要 LINE 登入並加入官方帳號好友；登入時 LINE 會一起邀請加好友（bot_prompt）。
+   會員權杖存 localStorage cp-mem（30 天），後端 memberOf_ 驗證，下單一併送出。 */
+let memTok = lsGet("cp-mem", ""), member = null;
+const needLine = () => catalog && catalog.settings.requireLine && !(member && member.friend);
+async function loadMember() {
+  if (!memTok) { member = null; return; }
+  try { const r = await (await fetch(API + "?action=member&mt=" + encodeURIComponent(memTok) + "&_=" + Date.now())).json(); member = r.member; if (!member) { memTok = ""; lsSet("cp-mem", ""); } } catch (e) {}
+}
+function memberBox() {
+  if (!catalog || !catalog.settings.requireLine) return "";
+  if (member && member.friend) return `<div class="mem ok">${member.pic ? `<img src="${esc(member.pic)}" alt="">` : ""}<div><b>${esc(member.name || "LINE 會員")}</b><small>赤貧軍團會員・已加入好友</small></div><button type="button" data-logout class="memout">登出</button></div>`;
+  if (member) return `<div class="mem"><div><b>${esc(member.name)}，還差一步</b><small>加入赤貧軍團官方帳號好友後即可下單</small></div>
+    <a class="linebtn" href="https://line.me/R/ti/p/@552xxfur" target="_blank" rel="noopener">加入好友</a><button type="button" class="memre" data-recheck>我已加入</button></div>`;
+  return `<div class="mem"><div><b>LINE 會員專屬</b><small>以 LINE 登入並加入官方帳號好友即可下單，出貨會用 LINE 通知</small></div><button type="button" class="linebtn" data-login>LINE 登入</button></div>`;
+}
+async function lineLogin(btn) {
+  saveDraft(); lsSet("cp-afterlogin", "1");
+  await busy(btn, async () => { const r = await (await fetch(API + "?action=loginUrl&_=" + Date.now())).json(); location.href = r.url; });
+}
 // 綠界：把後端簽好章的欄位做成表單送出（整頁跳到綠界付款頁）
 function goPay(pay) {
   const f = document.createElement("form"); f.method = "POST"; f.action = pay.url;
@@ -906,7 +936,7 @@ async function submitOrder() {
   await busy($("submitBtn"), async () => {
     err.textContent = "";
     try {
-      const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : "", payMethod: catalog.settings.payReady ? payM : ""}, {tries: 3});
+      const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : "", memberToken: memTok, payMethod: catalog.settings.payReady ? payM : ""}, {tries: 3});
       lsSet("cp-last", {no: r.orderNo, cid: clientId});
       if (r.pay) { cart = []; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); goPay(r.pay); return; }
       cart = []; code = ""; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); serverQuote = null;
@@ -936,10 +966,17 @@ function renderAll() {
   renderReels(); refilter(); saveCart();
 }
 renderAll();
-api(null, {tries: 3, timeout: 45000}).then(d => {
+api(null, {tries: 3, timeout: 45000}).then(async d => {
   catalog = d; lsSet("cp-catalog2", {at: Date.now(), d});
   cart = cart.filter(l => d.products.some(p => p.id === l.id));
   renderAll();
+  // LINE 登入回來：#lm=會員權杖（或 #lmerr=原因）
+  if (location.hash.startsWith("#lm=") || location.hash.startsWith("#lmerr=")) {
+    if (location.hash.startsWith("#lm=")) { memTok = location.hash.slice(4); lsSet("cp-mem", memTok); } else toast("LINE 登入未完成");
+    history.replaceState(null, "", location.pathname);
+  }
+  await loadMember();
+  if (lsGet("cp-afterlogin", "") && cart.length) { lsSet("cp-afterlogin", ""); step = "form"; drawCart(); open("cSheet"); refreshQuote(); }
   if (location.hash.startsWith("#paid=")) { const no = location.hash.slice(6); history.replaceState(null, "", location.pathname); showPaid(no); }
   // 從 7-11 電子地圖回來：#store={id,name,addr} → 存起來、回到填寫資料那一步
   if (location.hash.startsWith("#store=")) {

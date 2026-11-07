@@ -5,11 +5,11 @@ import base64, hashlib, re, sys
 COMMON = {
   "default-src": ["'self'"],
   "style-src": ["'self'", "'unsafe-inline'"],  # 版面大量 style 屬性；樣式無法執行程式，風險低
-  "img-src": ["'self'", "data:", "https://lh3.googleusercontent.com", "https://i.ytimg.com", "https://drive.google.com"],
+  "img-src": ["'self'", "data:", "https://profile.line-scdn.net", "https://lh3.googleusercontent.com", "https://i.ytimg.com", "https://drive.google.com"],
   "media-src": ["'self'", "https://drive.usercontent.google.com"],
   "connect-src": ["'self'", "https://script.google.com", "https://script.googleusercontent.com"],
   "frame-src": ["https://www.youtube.com", "https://drive.google.com"],
-  "object-src": ["'none'"], "base-uri": ["'self'"], "form-action": ["'self'", "https://payment.ecpay.com.tw", "https://payment-stage.ecpay.com.tw", "https://emap.presco.com.tw"],
+  "object-src": ["'none'"], "base-uri": ["'self'"], "form-action": ["'self'", "https://payment.ecpay.com.tw", "https://payment-stage.ecpay.com.tw", "https://emap.presco.com.tw", "https://access.line.me"],
 }
 for f in sys.argv[1:]:
     s = open(f).read()
