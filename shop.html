@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-21xgZT44O0Xe/IQHMEcjrIjgxYmh5SyQnEouR8Pu388='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me; script-src 'self' 'sha256-KkUmcv/+vLOMF82biImT56LPBiyP+IyljrZ4GMbWynE='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080204">
+<meta name="build" content="202611080207">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -68,6 +68,44 @@ a{color:inherit}
 .membtn{overflow:hidden;padding:0}.membtn img{width:100%;height:100%;object-fit:cover}
 .membtn.ok{box-shadow:0 0 0 2px #06C755}
 .npanel .mem{margin:14px 0 0}
+/* 會員中心 */
+.ptrow{display:flex;align-items:flex-start;gap:10px}.ptrow .ptitle{flex:1}
+.favbtn{flex:none;margin-top:10px;width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--dim);display:flex;align-items:center;justify-content:center}
+.favbtn svg path{fill:none}.favbtn[aria-pressed=true]{color:var(--red);border-color:var(--red)}.favbtn[aria-pressed=true] svg path{fill:currentColor}
+.mchead{display:flex;align-items:center;gap:12px;margin:8px 0 12px}.mchead img{width:52px;height:52px;border-radius:50%;flex:none}
+.mchead div{flex:1;min-width:0}.mchead b{display:block;font-size:18px}
+.tier{display:inline-block;margin-top:3px;font-size:12px;font-weight:900;letter-spacing:.06em;border-radius:999px;padding:2px 10px;color:#fff;background:#6E7383}
+.tier.t1{background:linear-gradient(135deg,#A9B4C2,#6F7C8E)}.tier.t2{background:linear-gradient(135deg,#E8C25A,#B8862B)}.tier.t3{background:linear-gradient(135deg,#3A3D46,#0E0F13);box-shadow:inset 0 0 0 1px #E8C25A;color:#E8C25A}
+.mcstat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mcstat div{background:var(--ink);color:#fff;border-radius:12px;padding:10px 12px;position:relative}
+.mcstat small{display:block;color:#C9CBD2;font-size:12px;font-weight:700}.mcstat b{font-size:22px;font-weight:900}
+.mcstat i{display:block;font-style:normal;font-size:11px;color:#FFB650;font-weight:700}
+.tierbar{height:8px;border-radius:4px;background:var(--line);margin:12px 0 4px;overflow:hidden}.tierbar i{display:block;height:100%;background:linear-gradient(90deg,#D7261E,#FF8A3D);border-radius:4px}
+.tiernote{font-size:12px;color:var(--dim);font-weight:700}
+.mctabs{display:flex;gap:6px;margin:14px 0 10px;position:sticky;top:-16px;background:var(--bg);padding:8px 0;z-index:2}
+.mctabs button{flex:1;border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:7px 0;font-weight:800;font-size:14px}
+.mctabs button[aria-pressed=true]{background:var(--chip);border-color:var(--chip);color:var(--bg)}
+.mco{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+.mco summary{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;list-style:none}.mco summary::-webkit-details-marker{display:none}
+.mco summary>div:first-child{flex:1;min-width:0}.mco summary b{display:block;font-size:15px}.mco summary small{color:var(--dim);font-size:12px}
+.mco .r{text-align:right}.st{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:1px 8px;margin-top:2px}
+.st.ok{color:#1F7A4A;background:rgba(31,122,74,.12)}.st.wait{color:#A85A00;background:rgba(168,90,0,.12)}.st.off{color:var(--dim);background:var(--wash)}
+.mcod{padding:0 12px 12px;border-top:1px dashed var(--line)}.mcod p{display:flex;justify-content:space-between;gap:10px;margin:8px 0 0;font-size:14px}
+.mcod p.m span:last-child{color:var(--red)}.mcod .note{display:block;color:var(--dim);font-size:12px}.mcod .va{display:block;background:var(--wash);border-radius:8px;padding:8px 10px;font-weight:700}
+.mcod .btn{width:100%;margin-top:10px;height:42px}
+.gift.used{opacity:.55;border-color:var(--line)}.gift small+small{margin-top:0}
+.ptsbig{background:var(--ink);color:#fff;border-radius:14px;padding:16px;text-align:center}.ptsbig small{color:#C9CBD2;font-weight:700}.ptsbig b{display:block;font-size:40px;font-weight:900;line-height:1.2}.ptsbig span{font-size:13px;color:#C9CBD2}
+.rules{margin:10px 0;font-size:13px;color:var(--dim)}.rules p{margin:4px 0;padding-left:14px;position:relative}.rules p::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--red)}
+.plog{display:flex;justify-content:space-between;font-size:14px;border-bottom:1px solid var(--line);padding:8px 0;margin:0}.plog b{margin-left:10px}.plog .up{color:#1F7A4A}.plog .down{color:var(--red)}
+.mch{margin:14px 0 8px;font-size:15px}
+.mcgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mcgrid button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:0 0 8px;overflow:hidden;text-align:left;color:var(--text)}
+.mcgrid img,.mcgrid i{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:var(--wash)}
+.mcgrid span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;font-weight:700;margin:6px 8px 2px;line-height:1.35}.mcgrid b{font-size:13px;color:var(--red);margin:0 8px}
+.perks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:4px 0 6px}
+.perks div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.perks b{display:block;font-size:14px}.perks span{font-size:12px;color:var(--dim)}
+.ptsrow{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0}
+.ptsrow input{width:20px;height:20px;accent-color:var(--red)}.ptsrow b{display:block;font-size:15px}.ptsrow small{color:var(--dim);font-size:12px}
 svg{width:22px;height:22px}
 @media (max-width:520px){.brand small{display:none}.brand b{font-size:17px}.top .wrap{flex-wrap:wrap}.search{order:3;flex-basis:100%}}
 
@@ -473,12 +511,13 @@ footer nav a{color:var(--faint);text-decoration:none}
 <div class="sheet" id="pSheet" role="dialog" aria-modal="true"><div class="panel" id="pPanel"></div></div>
 <!-- 購物車／結帳 -->
 <div class="sheet" id="cSheet" role="dialog" aria-modal="true"><div class="panel" id="cPanel"></div></div>
+<div class="sheet" id="mcSheet" role="dialog" aria-modal="true" aria-label="會員中心"><div class="panel" id="mcPanel"></div></div>
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611080204"></script>
-<script src="shop-core.js?v=202611080204"></script>
-<script src="tw-zip.js?v=202611080204"></script>
+<script src="track.js?v=202611080207"></script>
+<script src="shop-core.js?v=202611080207"></script>
+<script src="tw-zip.js?v=202611080207"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -751,6 +790,7 @@ let pQty = 1;
 function openProduct(id) {
   const p = catalog.products.find(x => x.id === id); if (!p) return;
   cpTrack("product", {pid: id});
+  lsSet("cp-recent", [id, ...lsGet("cp-recent", []).filter(x => x !== id)].slice(0, 12));
   pQty = 1;
   let gi = 0;   // 目前第幾張；改數量會重畫整塊，要記住位置，不然會跳回第一張
   const nImg = p.images.length;
@@ -760,7 +800,7 @@ function openProduct(id) {
     $("pPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
       <div class="gwrap"><div class="gallery">${imgs}</div>${nImg > 1 ? `<button class="gnav prev" data-g="-1" aria-label="上一張">‹</button><button class="gnav next" data-g="1" aria-label="下一張">›</button>` : ""}</div>
       ${nImg > 1 ? `<div class="gdots">${p.images.map((_, i) => `<button data-gi="${i}" aria-label="第 ${i + 1} 張"></button>`).join("")}</div>` : ""}
-      ${p.brand ? `<div class="bname" style="margin-top:12px">${esc(p.brand)}</div>` : ""}<div class="ptitle" ${p.brand ? 'style="margin-top:2px"' : ""}>${esc(p.name)}</div>
+      ${p.brand ? `<div class="bname" style="margin-top:12px">${esc(p.brand)}</div>` : ""}<div class="ptrow"><div class="ptitle" ${p.brand ? 'style="margin-top:2px"' : ""}>${esc(p.name)}</div><button type="button" class="favbtn" data-fav aria-pressed="${isFav(p.id)}" aria-label="收藏">${HEART}</button></div>
       <div class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}<span class="hint">${esc(catName(p.category))}${p.stock > 0 ? `・庫存 ${p.stock}` : ""}</span></div>
       ${p.tiers.length ? `<table class="tiers"><tr><th>多件優惠</th><th>每件</th></tr>
         <tr class="${u === p.price ? "on" : ""}"><td>1 件</td><td>${money(p.price)}</td></tr>
@@ -792,6 +832,7 @@ function openProduct(id) {
     const q = e.target.closest("[data-q]");
     if (q) { const max = p.stock > 0 ? p.stock : 99; pQty = Math.min(max, Math.max(1, pQty + Number(q.dataset.q))); draw(); }
     if (e.target.closest("[data-add]")) { addToCart(p.id, pQty); close("pSheet"); openCart(); }
+    const fv = e.target.closest("[data-fav]"); if (fv) { toggleFav(p.id); fv.setAttribute("aria-pressed", isFav(p.id)); toast(isFav(p.id) ? "已加入收藏" : "已取消收藏"); }
   };
   open("pSheet");
 }
@@ -852,7 +893,7 @@ function pickStore() {
 
 function openCart() { step = "cart"; drawCart(); open("cSheet"); refreshQuote(); }
 $("cartBtn").onclick = openCart;
-$("memBtn").onclick = openMember;
+$("memBtn").onclick = () => openMember();
 $("cartFab").onclick = openCart;
 $("toTop").onclick = () => scrollTo({top: 0, behavior: "smooth"});
 // 往下滑超過一個畫面高度左右才出現，回到頂端就收起
@@ -860,10 +901,10 @@ addEventListener("scroll", () => { const h = scrollY < 320; if ($("cartFab").hid
 
 async function refreshQuote() {
   if (!cart.length) { serverQuote = null; drawCart(); return; }
-  const key = JSON.stringify([cart, code, shipNow()]);
+  const key = JSON.stringify([cart, code, shipNow(), usePts]);
   try {
-    const r = await api({action: "quote", items: cart, code, shipMethod: shipNow(), memberToken: memTok}, {tries: 3});
-    if (key === JSON.stringify([cart, code, shipNow()])) { serverQuote = r.quote; drawCart(); }
+    const r = await api({action: "quote", items: cart, code, shipMethod: shipNow(), memberToken: memTok, usePoints: usePts}, {tries: 3});
+    if (key === JSON.stringify([cart, code, shipNow(), usePts])) { serverQuote = r.quote; drawCart(); }
   } catch (e) { /* 連不上時維持前台預覽 */ }
 }
 
@@ -878,7 +919,8 @@ function totals() {
   lq.lines.forEach(({p, qty}) => { const per = cvs ? p.cvsPer : p.homePer; if (per > 0) share += qty / per; });
   const packages = lq.lines.length ? Math.max(1, Math.ceil(share - 1e-9)) : 0;
   const shipping = !lq.lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : (cvs ? s.shipFeeCvs : s.shipFee) * packages;
-  return {...lq, codeDiscount, shipping, packages, total: after + shipping, freeShipOver: s.freeShipOver};
+  const pointsDiscount = sq && usePts ? sq.pointsDiscount || 0 : 0;
+  return {...lq, codeDiscount, shipping, packages, pointsDiscount, total: after + shipping - pointsDiscount, freeShipOver: s.freeShipOver};
 }
 
 function drawCart() {
@@ -896,6 +938,7 @@ function drawCart() {
       <div><span>商品小計</span><span>${money(t.subtotal + t.tierSaving)}</span></div>
       ${t.tierSaving ? `<div class="minus"><span>多件優惠</span><span>−${money(t.tierSaving)}</span></div>` : ""}
       ${t.codeDiscount ? `<div class="minus"><span>折扣碼</span><span>−${money(t.codeDiscount)}</span></div>` : ""}
+      ${t.pointsDiscount ? `<div class="minus"><span>積分折抵（${t.pointsDiscount} 點）</span><span>−${money(t.pointsDiscount)}</span></div>` : ""}
       <div><span>運費${t.packages > 1 ? `（${t.packages} ${shipNow() === SHIP_CVS ? "個交貨便" : "箱宅急便"}）` : ""}</span><span>${t.shipping ? money(t.shipping) : "免運"}</span></div>
       <div class="total"><span>應付金額</span><b>${money(t.total)}</b></div>${freeGap}</div>`;
 
@@ -909,7 +952,7 @@ function drawCart() {
       </div>`).join("")}
       ${giftBox()}
       <form class="coupon" id="couponForm"><input id="codeIn" placeholder="折扣碼" value="${esc(code)}" autocapitalize="characters" aria-label="折扣碼"><button>${code ? "更新" : "套用"}</button></form>
-      ${codeMsg}${summary}
+      ${codeMsg}${ptsRow()}${summary}
       <div class="buyrow"><button class="btn" data-step="form" ${catalog.settings.ordersOpen ? "" : "disabled"}>${catalog.settings.ordersOpen ? "前往結帳" : "尚未開放下單"}</button></div>`;
   } else {
     $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">填寫訂購資料</div>
@@ -1020,20 +1063,82 @@ function drawMemBtn() {
   b.setAttribute("aria-label", member ? "會員：" + (member.name || "LINE 會員") : "會員登入");
   b.innerHTML = (member && member.pic ? `<img src="${esc(member.pic)}" alt="">` : ICON_USER) + (giftInfo() && !ok ? '<span class="dot"></span>' : "");
 }
-function openMember() {
-  if ($("memPop")) return;
-  const d = document.createElement("div"); d.id = "memPop"; d.className = "npop";
-  const draw = () => d.innerHTML = `<div class="npanel" role="dialog" aria-modal="true" aria-labelledby="mTitle"><button class="close" data-mx aria-label="關閉">×</button><div class="nhead"><img src="badge.png?v=1" alt=""><b id="mTitle">赤貧軍團會員</b></div>${memberBox(true)}</div>`;
-  draw(); document.body.appendChild(d);
-  d.onclick = e => {
-    if (e.target === d || e.target.closest("[data-mx]")) return d.remove();
-    const lg = e.target.closest("[data-login]"); if (lg) return lineLogin(lg);
-    if (e.target.closest("[data-logout]")) { memTok = ""; member = null; lsSet("cp-mem", ""); drawMemBtn(); d.remove(); toast("已登出"); return; }
-    if (e.target.closest("[data-usegift]")) { useGift(); d.remove(); if (cart.length) openCart(); return; }
-    const rc = e.target.closest("[data-recheck]");
-    if (rc) busy(rc, async () => { await loadMember(); drawMemBtn(); draw(); if (!(member && member.friend)) toast("尚未偵測到加入好友，請稍候再試"); });
-  };
+/* ── 會員中心（2026-11-08）：等級、積分、訂單紀錄、優惠券、收藏、最近瀏覽 ──
+   訂單／積分／優惠券由後端 memberCenter 依 LINE 帳號即時計算；收藏與最近瀏覽存在這台裝置。 */
+const HEART = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.4 2.5h1.8c.8-1.3 2.3-2.5 4.4-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+const isFav = id => lsGet("cp-fav", []).includes(id);
+function toggleFav(id) { const f = lsGet("cp-fav", []); lsSet("cp-fav", f.includes(id) ? f.filter(x => x !== id) : [id, ...f].slice(0, 60)); }
+let usePts = !!lsGet("cp-usepts", false), mcTab = "orders", mcData = null;
+function ptsRow() {
+  const q = serverQuote, pc = catalog && catalog.settings.points;
+  if (!pc || !pc.on || !member || !member.friend || !q || !(q.pointsBalance > 0)) return "";
+  const can = Math.min(q.pointsBalance, q.pointsMax || 0);
+  return `<label class="ptsrow"><input type="checkbox" data-usepts ${usePts ? "checked" : ""} ${can ? "" : "disabled"}><span><b>使用積分折抵</b><small>可用 ${q.pointsBalance} 點・本單最多折 ${money(can)}</small></span></label>`;
 }
+const PAY_TXT = o => o.payStatus === "paid" ? "已付款" : o.payStatus === "awaiting" ? (o.vaAccount ? "待轉帳" : "待付款") : o.payStatus === "failed" ? "付款失敗" : "未付款";
+function miniCards(ids) {
+  const ps = ids.map(id => catalog.products.find(p => p.id === id)).filter(Boolean);
+  return ps.length ? `<div class="mcgrid">${ps.map(p => `<button type="button" data-open="${esc(p.id)}">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 300))}" alt="" loading="lazy">` : "<i></i>"}<span>${esc(p.name.replace(/^.*?[｜|]\s*/, "") || p.name)}</span><b>${money(p.price)}</b></button>`).join("")}</div>` : "";
+}
+function drawMC() {
+  const P = $("mcPanel"), x = "<button class=\"close\" data-close aria-label=\"關閉\">×</button>";
+  if (!member) {
+    const g = giftInfo(), pc = catalog && catalog.settings.points;
+    P.innerHTML = `${x}<div class="ptitle">會員中心</div>${memberBox(true)}
+      <div class="perks">${g ? `<div><b>入會禮</b><span>${esc(g.label)}</span></div>` : ""}${pc && pc.on ? `<div><b>消費回饋</b><span>每 $${pc.rate} 得 1 點</span></div>` : ""}<div><b>會員等級</b><span>累積消費升等</span></div><div><b>訂單查詢</b><span>出貨進度一手掌握</span></div></div>
+      ${favRecent()}`;
+    return;
+  }
+  const d = mcData, tabs = [["orders", "訂單"], ["coupons", "優惠券"], ["points", "積分"], ["fav", "收藏"]];
+  const head = `<div class="mchead">${member.pic ? `<img src="${esc(member.pic)}" alt="">` : ""}<div><b>${esc(member.name || "LINE 會員")}</b>
+      ${d ? `<span class="tier t${d.tier.level}">${esc(d.tier.name)}</span>` : ""}</div><button type="button" data-logout class="memout">登出</button></div>
+    ${!member.friend ? memberBox(true) : ""}
+    ${d ? `<div class="mcstat"><div><small>可用積分</small><b>${d.points.balance.toLocaleString()}</b>${d.points.pending ? `<i>待入帳 ${d.points.pending}</i>` : ""}</div><div><small>累積消費</small><b>${money(d.tier.spend)}</b></div><div><small>可用優惠券</small><b>${d.coupons.filter(c => !c.used).length}</b></div></div>
+      ${d.tier.next ? `<div class="tierbar"><i style="width:${Math.min(100, d.tier.spend / d.tier.nextAt * 100)}%"></i></div><div class="tiernote">再消費 ${money(d.tier.nextAt - d.tier.spend)} 升級${esc(d.tier.next)}</div>` : '<div class="tiernote">已達最高等級，感謝支持</div>'}` : '<div class="note">載入中…</div>'}
+    <div class="mctabs">${tabs.map(([k, n]) => `<button type="button" data-mct="${k}" aria-pressed="${mcTab === k}">${n}</button>`).join("")}</div>`;
+  let body = "";
+  if (!d && mcTab !== "fav") body = '<div class="skel" style="height:120px"></div>';
+  else if (mcTab === "orders") body = d.orders.length ? d.orders.map(o => `<details class="mco"><summary><div><b>${esc(o.orderNo)}</b><small>${esc(o.createdAt)}・${o.items.reduce((a, i) => a + i.qty, 0)} 件</small></div>
+        <div class="r"><b>${money(o.total)}</b><span class="st ${o.status === "已取消" ? "off" : o.payStatus === "paid" ? "ok" : "wait"}">${o.status === "已取消" ? "已取消" : o.payStatus === "paid" ? esc(o.status === "新訂單" ? "備貨中" : o.status) : PAY_TXT(o)}</span></div></summary>
+        <div class="mcod">${o.items.map(i => `<p><span>${esc(i.name)} × ${i.qty}</span><span>${money(i.total)}</span></p>`).join("")}
+          ${o.codeDiscount ? `<p class="m"><span>折扣碼</span><span>−${money(o.codeDiscount)}</span></p>` : ""}${o.pointsUsed ? `<p class="m"><span>積分折抵</span><span>−${money(o.pointsUsed)}</span></p>` : ""}
+          <p><span>運費</span><span>${o.shipping ? money(o.shipping) : "免運"}</span></p>
+          <p class="note">${esc(o.shipMethod)}・${esc(o.address)}</p>
+          ${o.vaAccount && o.payStatus !== "paid" ? `<p class="va">轉帳帳號 ${esc(o.vaBank)}－${esc(o.vaAccount)}<br>繳費期限 ${esc(o.vaExpire)}</p>` : ""}
+          ${o.earn && o.status !== "已取消" ? `<p class="note">${o.payStatus === "paid" ? "已獲得" : "付款後可得"} ${o.earn} 點</p>` : ""}
+          <button type="button" class="btn ghost" data-rebuy="${esc(o.orderNo)}">再買一次</button></div></details>`).join("") : '<div class="empty">還沒有訂單</div>';
+  else if (mcTab === "coupons") body = d.coupons.length ? d.coupons.map(c => `<div class="gift${c.used ? " used" : ""}"><div><b>${esc(c.label)}</b><small>${c.minSpend ? `滿 ${money(c.minSpend)} 可用・` : ""}${c.endAt ? `${esc(c.endAt)} 前有效・` : ""}${esc(c.note || "")}</small><small>折扣碼 <code>${esc(c.code)}</code></small></div>
+        <button type="button" data-usecode="${esc(c.code)}" ${c.used ? "disabled" : ""}>${c.used ? "已使用" : code === c.code ? "已套用" : "套用"}</button></div>`).join("") : '<div class="empty">目前沒有可用的優惠券</div>';
+  else if (mcTab === "points") body = `<div class="ptsbig"><small>可用積分</small><b>${d.points.balance.toLocaleString()}</b><span>1 點折抵 $1・結帳時勾選使用</span></div>
+      <div class="rules"><p>每消費 $${d.points.rate} 回饋 1 點（以折扣後商品金額計，不含運費）</p><p>訂單付款完成即入帳；取消訂單點數自動收回</p><p>單筆最多折抵商品金額 ${d.points.maxPct}%</p></div>
+      ${d.orders.filter(o => o.earn || o.pointsUsed).map(o => `<p class="plog"><span>${esc(o.createdAt.slice(0, 10))}　${esc(o.orderNo)}</span><span>${o.earn && o.status !== "已取消" ? `<b class="up">${o.payStatus === "paid" ? "+" : "待 +"}${o.earn}</b>` : ""}${o.pointsUsed && o.status !== "已取消" ? `<b class="down">−${o.pointsUsed}</b>` : ""}</span></p>`).join("") || '<div class="empty">尚無積分紀錄</div>'}`;
+  else body = favRecent(true);
+  P.innerHTML = `${x}<div class="ptitle">會員中心</div>${head}<div class="mcbody">${body}</div>`;
+}
+function favRecent(full) {
+  const f = lsGet("cp-fav", []), r = lsGet("cp-recent", []);
+  return (f.length ? `<h4 class="mch">我的收藏</h4>${miniCards(f)}` : full ? '<div class="empty">還沒有收藏商品，在商品頁點愛心即可收藏</div>' : "") + (r.length ? `<h4 class="mch">最近瀏覽</h4>${miniCards(r.slice(0, 6))}` : "");
+}
+async function openMember(tab) {
+  if (tab) mcTab = tab;
+  drawMC(); open("mcSheet");
+  if (!member) return;
+  try { const r = await api({action: "memberCenter", memberToken: memTok}, {tries: 2}); mcData = r; drawMC(); }
+  catch (e) { if (/登入/.test(e.message)) { memTok = ""; member = null; lsSet("cp-mem", ""); drawMemBtn(); drawMC(); } else toast(e.message); }
+}
+$("mcPanel").onclick = e => {
+  const t = e.target.closest("[data-mct]"); if (t) { mcTab = t.dataset.mct; drawMC(); return; }
+  const lg = e.target.closest("[data-login]"); if (lg) return lineLogin(lg);
+  if (e.target.closest("[data-logout]")) { memTok = ""; member = null; mcData = null; lsSet("cp-mem", ""); drawMemBtn(); close("mcSheet"); toast("已登出"); return; }
+  const rc = e.target.closest("[data-recheck]"); if (rc) { busy(rc, async () => { await loadMember(); drawMemBtn(); openMember(); }); return; }
+  const op = e.target.closest("[data-open]"); if (op) { close("mcSheet"); openProduct(op.dataset.open); return; }
+  const uc = e.target.closest("[data-usecode]");
+  if (uc) { code = uc.dataset.usecode; lsSet("cp-code", code); serverQuote = null; toast("已套用折扣碼 " + code); close("mcSheet"); if (cart.length) openCart(); else drawMC(); return; }
+  const rb = e.target.closest("[data-rebuy]");
+  if (rb) { const o = mcData.orders.find(x => x.orderNo === rb.dataset.rebuy); let n = 0;
+    o.items.forEach(i => { const p = catalog.products.find(x => x.id === i.id); if (p && p.stock !== 0 && canBuy(p)) { addToCart(p.id, i.qty); n++; } });
+    if (n) { close("mcSheet"); openCart(); } else toast("這張訂單的商品目前無法購買"); }
+};
 drawMemBtn();
 async function lineLogin(btn) {
   saveDraft(); lsSet("cp-afterlogin", "1"); cpTrack("login");
@@ -1091,7 +1196,8 @@ $("cPanel").addEventListener("focusout", e => {
   h.style.color = m ? "var(--bad)" : ""; h.style.fontWeight = m ? "700" : "";
   h.textContent = m || "取貨時需核對證件，請填寫與證件相同的姓名；中文 2–5 字或英文 4–10 字母，不可有數字與符號";
 });
-$("cPanel").addEventListener("change", e => { if (e.target.id === "oCounty") fillDist(""); if (e.target.id === "oDist") showZip(); });
+$("cPanel").addEventListener("change", e => { if (e.target.id === "oCounty") fillDist(""); if (e.target.id === "oDist") showZip();
+  if (e.target.matches("[data-usepts]")) { usePts = e.target.checked; lsSet("cp-usepts", usePts); serverQuote = null; drawCart(); refreshQuote(); } });
 // 地址固定成「郵遞區號＋縣市＋區＋路名」，後台複製後可直接貼進黑貓寄件
 function homeAddress() {
   const zip = showZip(), street = $("oAddr").value.trim().normalize("NFKC");
@@ -1118,7 +1224,7 @@ async function submitOrder() {
   await busy($("submitBtn"), async () => {
     err.textContent = "";
     try {
-      const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : "", memberToken: memTok, payMethod: catalog.settings.payReady ? payM : ""}, {tries: 3});
+      const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : "", memberToken: memTok, usePoints: usePts, payMethod: catalog.settings.payReady ? payM : ""}, {tries: 3});
       lsSet("cp-last", {no: r.orderNo, cid: clientId});
       cpTrack("order", {pid: r.orderNo, n: r.total});
       if (r.pay) { cart = []; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); goPay(r.pay); return; }
@@ -1171,6 +1277,7 @@ api(null, {tries: 3, timeout: 45000}).then(async d => {
   if (lineBack) { const ok = await lineBack; if (!ok) { toast("LINE 登入未完成"); lsSet("cp-afterlogin", ""); } }
   await loadMember(); drawMemBtn();
   if (lineBack && member) toast(member.friend ? "登入成功，歡迎 " + (member.name || "會員") : "登入成功，加入官方帳號好友即可下單");
+  if (lineBack && member && !lsGet("cp-afterlogin", "")) openMember("coupons"); // 登入完直接看到入會禮與會員權益
   if (lsGet("cp-afterlogin", "") && cart.length) { lsSet("cp-afterlogin", ""); step = "form"; drawCart(); open("cSheet"); refreshQuote(); }
   if (location.hash.startsWith("#paid=")) { const no = location.hash.slice(6); history.replaceState(null, "", location.pathname); showPaid(no); }
   // 從 7-11 電子地圖回來：#store={id,name,addr} → 存起來、回到填寫資料那一步

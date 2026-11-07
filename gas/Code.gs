@@ -14,8 +14,8 @@
 const SHEETS = {
   products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
-  codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note"],
-  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire"],
+  codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note", "member"],
+  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed"],
   settings: ["key", "value"],
   // 流量（2026-11-08）：前台 track.js 送來的事件，一列一筆；ts＝台北時間 yyyy-MM-dd HH:mm:ss
   traffic:  ["ts", "vid", "sid", "type", "page", "pid", "q", "n", "src", "ref", "dev", "os"],
@@ -32,6 +32,8 @@ const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lin
   welcomeCode: "",
   // 賣場熱門搜尋關鍵字（逗號分隔）；空白＝前台依品牌與分類自動產生
   hotWords: "",
+  // 會員積分（2026-11-08）：已付款訂單每消費 pointRate 元回饋 1 點；1 點折抵 1 元；單筆最多折抵商品金額的 pointMaxPct %
+  pointsOn: "TRUE", pointRate: "100", pointMaxPct: "50",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
   //   信用卡一次付清 2.75%、每筆最低 5 元，另加訂單處理費 1 元（含稅）；ATM 虛擬帳號 1%、每筆最低 15 元
   feeCardPct: "2.75", feeCardMin: "5", feeCardOrder: "1", feeAtmPct: "1", feeAtmMin: "15",
@@ -91,7 +93,8 @@ function doPost(e) {
   try { req = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "格式錯誤" }); }
   try {
     const a = req.action;
-    if (a === "quote") return out_({ ok: true, quote: quote_(req.items, req.code, req.shipMethod, req.code && isWelcome_(req.code) ? memberOf_(req.memberToken) : null) });
+    if (a === "quote") return out_({ ok: true, quote: quote_(req.items, req.code, req.shipMethod, req.memberToken ? memberOf_(req.memberToken) : null, !!req.usePoints) });
+    if (a === "memberCenter") return out_(memberCenter_(req));
     if (a === "order") return out_(placeOrder_(req));
     if (a === "login") return out_(login_(req.user, req.pass));
     if (a === "track") return out_(track_(req));
@@ -197,7 +200,7 @@ function code_(r) {
   return { code: String(r.code), type: String(r.type || "percent"), value: Number(r.value) || 0,
            minSpend: Number(r.minSpend) || 0, startAt: String(r.startAt || ""), endAt: String(r.endAt || ""),
            limit: r.limit === "" ? 0 : Number(r.limit) || 0, used: Number(r.used) || 0,
-           active: bool_(r.active), note: String(r.note || "") };
+           active: bool_(r.active), note: String(r.note || ""), member: bool_(r.member) };
 }
 
 /* ───────────── 公開：型錄 ───────────── */
@@ -218,7 +221,7 @@ function catalog_() {
     ok: true,
     products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
-    settings: { ordersOpen: s.ordersOpen, requireLine: s.requireLine !== "FALSE", payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar, hotWords: s.hotWords, welcome: (w => w && { label: w.label, minSpend: w.minSpend })(welcomeInfo_()) },
+    settings: { ordersOpen: s.ordersOpen, requireLine: s.requireLine !== "FALSE", payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar, hotWords: s.hotWords, points: pointCfg_(), welcome: (w => w && { label: w.label, minSpend: w.minSpend })(welcomeInfo_()) },
   };
 }
 
@@ -239,7 +242,7 @@ function codeCheck_(c, subtotal) {
   if (subtotal < c.minSpend) return "未達最低消費 $" + c.minSpend;
   return "";
 }
-function quote_(items, codeStr, shipMethod, mem) {
+function quote_(items, codeStr, shipMethod, mem, usePoints) {
   const prods = {};
   rows_("products").map(product_).forEach(p => prods[p.id] = p);
   const lines = [], errors = [];
@@ -260,6 +263,7 @@ function quote_(items, codeStr, shipMethod, mem) {
   if (codeStr) {
     const c = rows_("codes").map(code_).find(x => x.code.toUpperCase() === String(codeStr).trim().toUpperCase());
     codeError = codeCheck_(c, subtotal);
+    if (!codeError && c.member && !isWelcome_(c.code) && (!mem || !mem.friend)) codeError = "此為會員專屬優惠，請先以 LINE 登入並加入官方帳號好友";
     if (!codeError && isWelcome_(c.code)) {
       if (!mem || !mem.friend) codeError = "此為 LINE 會員入會禮，請先以 LINE 登入並加入官方帳號好友";
       else if (welcomeUsed_(mem.uid)) codeError = "入會禮每位會員限用一次";
@@ -279,8 +283,16 @@ function quote_(items, codeStr, shipMethod, mem) {
   const packages = lines.length ? Math.max(1, Math.ceil(share - 1e-9)) : 0;
   // 運費＝每包運費 × 包裹數（達免運門檻全免）
   const shipping = !lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : (cvs ? s.shipFeeCvs : s.shipFee) * packages;
+  // 積分折抵：在運費之後扣，最多折到商品金額（折扣後）的 pointMaxPct %
+  let pointsDiscount = 0, pointsBalance = 0;
+  const pc = pointCfg_();
+  if (pc.on && mem && mem.friend) {
+    pointsBalance = pointsOf_(mem.uid).balance;
+    if (usePoints) pointsDiscount = Math.max(0, Math.min(pointsBalance, Math.floor(after * pc.maxPct / 100)));
+  }
   return { packages: packages, lines: lines, subtotal: subtotal, tierSaving: tierSaving, code: code, codeDiscount: codeDiscount,
-           codeError: codeError, shipping: shipping, total: after + shipping, errors: errors };
+           codeError: codeError, shipping: shipping, pointsDiscount: pointsDiscount, pointsBalance: pointsBalance, pointsMax: pc.on ? Math.floor(after * pc.maxPct / 100) : 0,
+           total: after + shipping - pointsDiscount, errors: errors };
 }
 
 /* ───────────── 公開：送出訂單 ───────────── */
@@ -326,7 +338,7 @@ function placeOrder_(req) {
     const dup = req.clientId && rows_("orders").find(o => String(o.clientId) === String(req.clientId));
     if (dup) return Object.assign({ ok: true, orderNo: String(dup.orderNo), total: Number(dup.total) },
       dup.payStatus === "awaiting" && dup.payMethod ? { pay: ecpayForm_(dup, dup.payMethod) } : {});
-    const q = quote_(req.items, req.code, c.shipMethod, mem);
+    const q = quote_(req.items, req.code, c.shipMethod, mem, !!req.usePoints);
     if (!q.lines.length) return { ok: false, error: "購物車是空的" };
     if (q.errors.length) return { ok: false, error: q.errors.join("；") };
     if (req.code && q.codeError) return { ok: false, error: q.codeError };
@@ -336,7 +348,7 @@ function placeOrder_(req) {
       name: c.name, phone: c.phone, line: c.line || "", shipMethod: c.shipMethod, address: c.address || "", note: c.note || "",
       items: JSON.stringify(q.lines), subtotal: q.subtotal, tierSaving: q.tierSaving, code: q.code, codeDiscount: q.codeDiscount,
       shipping: q.shipping, packages: String(q.packages), lineUid: mem ? mem.uid : "", lineName: mem ? mem.name : "", total: q.total, status: "新訂單", payStatus: pay ? "awaiting" : "unpaid", clientId: req.clientId || "",
-      payMethod: pay,
+      payMethod: pay, pointsUsed: String(q.pointsDiscount || 0),
     });
     // 扣庫存（-1 = 不限量）
     const sh = sheet_("products"), stockCol = SHEETS.products.indexOf("stock") + 1;
@@ -481,7 +493,7 @@ const ADMIN = {
       items: json_(o.items, []), subtotal: Number(o.subtotal), tierSaving: Number(o.tierSaving), code: String(o.code),
       codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), packages: Number(o.packages) || 1, total: Number(o.total),
       status: String(o.status), payStatus: String(o.payStatus), lineName: String(o.lineName || ""), lineUid: String(o.lineUid || ""), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
-      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""),
+      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""), pointsUsed: Number(o.pointsUsed) || 0,
     })).reverse(),
   }),
   admin_saveProduct: r => {
@@ -519,7 +531,7 @@ const ADMIN = {
     if (c.type === "amount" && !(c.value > 0)) throw new Error("折抵金額需大於 0");
     upsert_("codes", "code", { code: code, type: c.type === "amount" ? "amount" : "percent", value: String(Number(c.value)),
       minSpend: String(Number(c.minSpend) || 0), startAt: c.startAt || "", endAt: c.endAt || "",
-      limit: String(Number(c.limit) || 0), active: c.active ? "TRUE" : "FALSE", note: c.note || "" });
+      limit: String(Number(c.limit) || 0), active: c.active ? "TRUE" : "FALSE", note: c.note || "", member: c.member ? "TRUE" : "FALSE" });
     if (c.renamedFrom && String(c.renamedFrom).toUpperCase() !== code) remove_("codes", "code", c.renamedFrom);
     return { code: code };
   },
@@ -565,7 +577,7 @@ const ADMIN = {
   admin_lineTest: () => { const n = linePush_("【赤貧軍團】LINE 通知測試成功"); if (!n) throw new Error("沒有已綁定的 LINE 或權杖無效"); return { sent: n }; },
   admin_saveSettings: r => {
     const s = r.settings || {};
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords", "pointsOn", "pointRate", "pointMaxPct"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
@@ -1036,3 +1048,54 @@ function dashboard_(r) {
     welcomeUsed: welcome ? ords.filter(o => o.code.toUpperCase() === welcome).length : null, tracked: total };
 }
 function top_(obj, n) { return Object.keys(obj).map(k => [k, obj[k]]).sort((a, b) => b[1] - a[1]).slice(0, n); }
+
+
+/* ───────────── 會員中心：訂單紀錄、積分、等級、優惠券（2026-11-08）─────────────
+   積分不另開帳本，一律由訂單即時算：
+     獲得＝已付款且未取消的訂單，(商品金額 − 折扣碼 − 積分折抵) ÷ pointRate 無條件捨去
+     使用＝訂單的 pointsUsed（未取消、未付款失敗；待付款超過 3 天視為放棄，點數退回）
+   訂單取消或付款失敗，獲得與使用的點數都自動還原，不必人工處理。
+   等級依累積已付款消費（商品金額）：一般 → 銀卡 3,000 → 金卡 10,000 → 黑卡 30,000。 */
+const TIERS = [["一般會員", 0], ["銀卡會員", 3000], ["金卡會員", 10000], ["黑卡會員", 30000]];
+function pointCfg_() {
+  const s = getSettings_();
+  return { on: s.pointsOn !== "FALSE", rate: Math.max(1, Number(s.pointRate) || 100), maxPct: Math.max(0, Math.min(100, Number(s.pointMaxPct) || 50)) };
+}
+function orderLive_(o) {
+  if (String(o.status) === "已取消" || String(o.payStatus) === "failed") return false;
+  const cutoff = Utilities.formatDate(new Date(Date.now() - 3 * 86400000), "Asia/Taipei", "yyyy-MM-dd HH:mm");
+  return !(String(o.payStatus) === "awaiting" && String(o.createdAt) < cutoff);
+}
+const goods_ = o => Math.max(0, (Number(o.subtotal) || 0) - (Number(o.codeDiscount) || 0) - (Number(o.pointsUsed) || 0));
+function pointsOf_(uid, list) {
+  const pc = pointCfg_(); let earned = 0, used = 0, pending = 0;
+  (list || rows_("orders")).forEach(o => {
+    if (String(o.lineUid) !== uid || !orderLive_(o)) return;
+    used += Number(o.pointsUsed) || 0;
+    const pts = Math.floor(goods_(o) / pc.rate);
+    if (String(o.payStatus) === "paid") earned += pts; else pending += pts;
+  });
+  return { earned: earned, used: used, pending: pending, balance: Math.max(0, earned - used) };
+}
+function memberCenter_(req) {
+  const m = memberOf_(req.memberToken);
+  if (!m) return { ok: false, error: "請先以 LINE 登入", needLogin: true };
+  const all = rows_("orders"), mine = all.filter(o => String(o.lineUid) === m.uid).reverse();
+  const pc = pointCfg_(), pts = pointsOf_(m.uid, all);
+  const spend = mine.filter(o => String(o.payStatus) === "paid" && String(o.status) !== "已取消").reduce((a, o) => a + goods_(o), 0);
+  let ti = 0; TIERS.forEach((t, i) => { if (spend >= t[1]) ti = i; });
+  const next = TIERS[ti + 1];
+  const orders = mine.slice(0, 50).map(o => ({ orderNo: String(o.orderNo), createdAt: String(o.createdAt), status: String(o.status), payStatus: String(o.payStatus),
+    payMethod: String(o.payMethod || ""), shipMethod: String(o.shipMethod), address: String(o.address), total: Number(o.total) || 0, shipping: Number(o.shipping) || 0,
+    codeDiscount: Number(o.codeDiscount) || 0, pointsUsed: Number(o.pointsUsed) || 0, items: json_(o.items, []).map(i => ({ id: i.id, name: i.name, qty: i.qty, unit: i.unit, total: i.total })),
+    earn: orderLive_(o) ? Math.floor(goods_(o) / pc.rate) : 0, vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || "") }));
+  // 優惠券：入會禮（未用過）＋後台勾「會員中心顯示」且仍有效的折扣碼
+  const d = today_(), coupons = [], w = welcomeInfo_();
+  if (w && m.friend) coupons.push({ code: w.code, label: w.label, minSpend: w.minSpend, endAt: "", note: "入會禮・限用一次", used: welcomeUsed_(m.uid) });
+  rows_("codes").map(code_).filter(c => c.member && c.active && !isWelcome_(c.code) && !(c.endAt && d > c.endAt) && !(c.limit > 0 && c.used >= c.limit)).forEach(c => {
+    const off = 100 - c.value;
+    coupons.push({ code: c.code, label: c.type === "amount" ? "折 $" + c.value : (off % 10 === 0 ? off / 10 : off) + " 折", minSpend: c.minSpend, startAt: c.startAt, endAt: c.endAt, note: c.note, used: false });
+  });
+  return { ok: true, member: { name: m.name, pic: m.pic, friend: m.friend }, orders: orders, points: Object.assign(pts, { rate: pc.rate, maxPct: pc.maxPct, on: pc.on }),
+    tier: { name: TIERS[ti][0], level: ti, spend: spend, next: next ? next[0] : "", nextAt: next ? next[1] : 0 }, coupons: coupons };
+}
