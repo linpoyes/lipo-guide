@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-CE2JNX0VKl/oxvlNkn67ZHvfECrhYeJSZejtUZAPuJU='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-JwCkqLqw+IWCyOwihLA01dXGUTE4vLAuxTjTptNCFdM='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072053">
+<meta name="build" content="202611072054">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -388,8 +388,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611072053"></script>
-<script src="tw-zip.js?v=202611072053"></script>
+<script src="shop-core.js?v=202611072054"></script>
+<script src="tw-zip.js?v=202611072054"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -477,12 +477,16 @@ function renderList() {
   $("grid").innerHTML = list.length ? list.map(card).join("")
     : `<div class="empty">${filter.q ? "找不到相符的商品" : `${esc([filter.brand, filter.cat !== "all" ? catName(filter.cat) : ""].filter(Boolean).join("・"))} 尚無商品`}<br><button class="btn ghost" data-reset style="margin-top:12px;height:40px;padding:0 18px;flex:none">看全部商品</button></div>`;
 }
+// 依螢幕密度要圖：Retina 電腦開商品大圖要 1500px 以上才不糊（2026-11-07 使用者回報畫質跑掉）
+const DPR = Math.min(3, window.devicePixelRatio || 1);
+const CARD_W = Math.min(1000, Math.ceil((innerWidth >= 900 ? 320 : innerWidth / 2) * DPR / 100) * 100);
+const BIG_W = Math.min(2000, Math.ceil(Math.min(760, innerWidth) * DPR / 100) * 100);
 function card(p) {
   const out = p.stock === 0, best = (p.tiers || []).slice(-1)[0];
   const hasVid = catalog.videos && catalog.videos.some(v => v.productId === p.id);
   const tags = [p.hot && '<i class="t hot">熱銷</i>', isNew(p) && '<i class="t new">新品</i>', best && `<i class="t deal">${best.qty} 件起 ${zhe(best.price, p.price)}</i>`, p.brand && `<i class="t">${esc(p.brand)}</i>`].filter(Boolean).join("");
   return `<div class="pcard${out ? " out" : ""}" data-id="${esc(p.id)}" role="button" tabindex="0">
-    <div class="img">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 500))}" alt="" loading="lazy">` : svg(p.category || "all")}
+    <div class="img">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], CARD_W))}" alt="" loading="lazy">` : svg(p.category || "all")}
       ${out ? '<span class="badge out">售完</span>' : !canBuy(p) ? '<span class="badge soon">即將開賣</span>' : ""}${hasVid ? '<span class="vbadge" aria-label="有影片">▶</span>' : ""}</div>
     <div class="body"><span class="name">${esc(p.name)}</span>
       <div class="prow"><span class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}</span>
@@ -597,7 +601,7 @@ function openProduct(id) {
   pQty = 1;
   let gi = 0;   // 目前第幾張；改數量會重畫整塊，要記住位置，不然會跳回第一張
   const nImg = p.images.length;
-  const imgs = p.images.length ? p.images.map(s => `<img src="${esc(imgUrl(s, 1000))}" alt="">`).join("") : `<div class="noimg">${svg(p.category || "all")}</div>`;
+  const imgs = p.images.length ? p.images.map(s => `<img src="${esc(imgUrl(s, BIG_W))}" alt="">`).join("") : `<div class="noimg">${svg(p.category || "all")}</div>`;
   const draw = () => {
     const u = unitPrice(p, pQty), out = p.stock === 0;
     $("pPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
