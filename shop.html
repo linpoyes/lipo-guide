@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-JwCkqLqw+IWCyOwihLA01dXGUTE4vLAuxTjTptNCFdM='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-cmwLB47zAwr833ckLl28fvKMht14d5vAsLNzsQveaW0='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072054">
+<meta name="build" content="202611072106">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -214,6 +214,10 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .store button,.pickstore{flex:none;border:0;border-radius:10px;background:var(--text);color:var(--bg);font-weight:800;padding:8px 12px}
 .pickstore{width:100%;padding:12px;font-size:16px;background:#00754A;color:#fff}
 .done{text-align:center;padding:10px 0}
+.va{display:grid;gap:8px;margin:14px 0 6px;text-align:left}
+.va div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.va small{display:block;font-size:12px;color:var(--dim);font-weight:700}
+.va b{font-size:20px;letter-spacing:.06em}
 .done .no{display:inline-block;margin:8px 0;font-size:22px;font-weight:900;letter-spacing:.06em;background:var(--ink);color:#fff;padding:4px 14px;border-radius:10px}
 .vplayer{width:100%;aspect-ratio:9/16;max-height:72vh;border:0;border-radius:14px;background:#000;display:block;margin:0 auto}
 
@@ -269,6 +273,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 .tags{display:flex;flex-wrap:wrap;gap:4px}
 .t{font-style:normal;font-size:11.5px;font-weight:800;color:var(--dim);background:var(--wash);border-radius:6px;padding:1px 7px}
 .t::before{content:"#";opacity:.55;margin-right:1px}
+.t.soon{color:var(--bg);background:var(--chip);box-shadow:none}
+.t.soon::before{content:none}
 .t.hot{color:#C11F18;background:rgba(215,38,30,.10)} .t.new{color:#1C3F7C;background:rgba(28,63,124,.10)} .t.deal{color:#1F7A4A;background:rgba(31,122,74,.12)}
 @media (prefers-color-scheme: dark){.t.hot{color:#FF8A80}.t.new{color:#9DBCF5}.t.deal{color:#6EDCA5}}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;background:var(--ink);color:#fff;font-weight:800;padding:9px 18px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none}
@@ -388,8 +394,8 @@ footer nav a{color:var(--faint);text-decoration:none}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="shop-core.js?v=202611072054"></script>
-<script src="tw-zip.js?v=202611072054"></script>
+<script src="shop-core.js?v=202611072106"></script>
+<script src="tw-zip.js?v=202611072106"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -484,10 +490,10 @@ const BIG_W = Math.min(2000, Math.ceil(Math.min(760, innerWidth) * DPR / 100) * 
 function card(p) {
   const out = p.stock === 0, best = (p.tiers || []).slice(-1)[0];
   const hasVid = catalog.videos && catalog.videos.some(v => v.productId === p.id);
-  const tags = [p.hot && '<i class="t hot">熱銷</i>', isNew(p) && '<i class="t new">新品</i>', best && `<i class="t deal">${best.qty} 件起 ${zhe(best.price, p.price)}</i>`, p.brand && `<i class="t">${esc(p.brand)}</i>`].filter(Boolean).join("");
+  const tags = [!out && !canBuy(p) && '<i class="t soon">即將開賣</i>', p.hot && '<i class="t hot">熱銷</i>', isNew(p) && '<i class="t new">新品</i>', best && `<i class="t deal">${best.qty} 件起 ${zhe(best.price, p.price)}</i>`, p.brand && `<i class="t">${esc(p.brand)}</i>`].filter(Boolean).join("");
   return `<div class="pcard${out ? " out" : ""}" data-id="${esc(p.id)}" role="button" tabindex="0">
     <div class="img">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], CARD_W))}" alt="" loading="lazy">` : svg(p.category || "all")}
-      ${out ? '<span class="badge out">售完</span>' : !canBuy(p) ? '<span class="badge soon">即將開賣</span>' : ""}${hasVid ? '<span class="vbadge" aria-label="有影片">▶</span>' : ""}</div>
+      ${out ? '<span class="badge out">售完</span>' : ""}${hasVid ? '<span class="vbadge" aria-label="有影片">▶</span>' : ""}</div>
     <div class="body"><span class="name">${esc(p.name)}</span>
       <div class="prow"><span class="price"><b>${money(p.price)}</b>${p.listPrice > p.price ? `<s>${money(p.listPrice)}</s>` : ""}</span>
         ${out || !canBuy(p) ? "" : `<button class="qadd" data-qadd="${esc(p.id)}" aria-label="加入購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6"/><circle cx="10" cy="20" r="1.3" fill="currentColor"/><circle cx="17" cy="20" r="1.3" fill="currentColor"/></svg></button>`}</div>
@@ -766,9 +772,12 @@ function drawCart() {
           ${store ? `<div class="store"><div><b>7-11 ${esc(store.name)}門市</b><small>${esc(store.addr)}${store.id ? `　店號 ${esc(store.id)}` : ""}</small></div><button type="button" data-pickstore>重選</button></div>`
             : '<button type="button" class="pickstore" data-pickstore>選擇 7-11 門市</button>'}</div>
         <div class="field"><label for="oNote">備註（選填）</label><textarea id="oNote"></textarea></div>
+        ${catalog.settings.payReady ? `<div class="field"><label>付款方式</label><div class="ships" id="pays">
+          <button type="button" data-pay="Credit" aria-pressed="${payM === "Credit"}">信用卡<small>一次付清</small></button>
+          <button type="button" data-pay="ATM" aria-pressed="${payM === "ATM"}">ATM 轉帳<small>虛擬帳號・3 日內繳費</small></button></div></div>` : ""}
         ${summary}
         <div class="msg bad" id="orderErr"></div>
-        <div class="buyrow"><button type="button" class="btn ghost" data-step="cart" style="flex:none;width:96px">返回</button><button class="btn" id="submitBtn">送出訂單</button></div>
+        <div class="buyrow"><button type="button" class="btn ghost" data-step="cart" style="flex:none;width:96px">返回</button><button class="btn" id="submitBtn">${catalog.settings.payReady ? "前往付款" : "送出訂單"}</button></div>
       </form>`;
     const saved = {...lsGet("cp-customer", {}), ...lsGet("cp-draft", {})};
     $("oName").value = saved.name || ""; $("oPhone").value = saved.phone || ""; $("oLine").value = saved.line || "";
@@ -787,6 +796,8 @@ $("cPanel").addEventListener("click", e => {
   }
   const st = e.target.closest("[data-step]");
   if (st) { step = st.dataset.step; drawCart(); $("cPanel").scrollTop = 0; }
+  const pb = e.target.closest("[data-pay]");
+  if (pb) { payM = pb.dataset.pay; lsSet("cp-pay", payM); for (const b of $("pays").children) b.setAttribute("aria-pressed", b === pb); }
   const sb = e.target.closest("[data-ship]");
   if (sb && !sb.disabled) { saveDraft(); ship = sb.dataset.ship; lsSet("cp-ship", ship); serverQuote = null; drawCart(); refreshQuote(); }
   if (e.target.closest("[data-pickstore]")) pickStore();
@@ -807,6 +818,35 @@ function checkName(n) {
   if (/^[\u4e00-\u9fff]+$/.test(n)) return n.length >= 2 && n.length <= 5 ? "" : "中文姓名需 2–5 字";
   if (/^[A-Za-z][A-Za-z .]*$/.test(n)) { const l = n.replace(/[ .]/g, "").length; return l >= 4 && l <= 10 ? "" : "英文姓名需 4–10 個字母"; }
   return "姓名請填寫與證件相同的中文或英文，不可有符號";
+}
+let payM = lsGet("cp-pay", "Credit");
+// 綠界：把後端簽好章的欄位做成表單送出（整頁跳到綠界付款頁）
+function goPay(pay) {
+  const f = document.createElement("form"); f.method = "POST"; f.action = pay.url;
+  for (const [k, v] of Object.entries(pay.fields)) { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v; f.appendChild(i); }
+  document.body.appendChild(f); f.submit();
+}
+// 付款完成或 ATM 取號後回到賣場（#paid=訂單編號）：用下單時的 clientId 向後端查真正狀態，不信網址
+async function showPaid(no) {
+  const last = lsGet("cp-last", {});
+  if (last.no !== no) return;
+  step = "done"; open("cSheet");
+  $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="done"><div class="ptitle">確認付款狀態中…</div></div>`;
+  for (let i = 0; i < 4; i++) {
+    try {
+      const r = await (await fetch(API + "?action=orderStatus&no=" + encodeURIComponent(no) + "&cid=" + encodeURIComponent(last.cid) + "&_=" + Date.now())).json();
+      if (!r.ok) break;
+      const paid = r.payStatus === "paid", va = r.vaAccount;
+      if (!paid && !va && i < 3) { await new Promise(res => setTimeout(res, 2500)); continue; }
+      $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="done">
+        <div class="ptitle">${paid ? "付款完成" : va ? "請於期限內完成轉帳" : "尚未完成付款"}</div><div class="no">${esc(r.orderNo)}</div>
+        <div>金額 <b style="color:var(--red);font-size:20px">${money(r.total)}</b></div>
+        ${!paid && va ? `<div class="va"><div><small>銀行代碼</small><b>${esc(r.vaBank)}</b></div><div><small>轉帳帳號</small><b>${esc(r.vaAccount)}</b></div><div><small>繳費期限</small><b>${esc(r.vaExpire)}</b></div></div>
+          <p class="hint">此帳號僅顯示一次，請截圖保存；轉帳完成後會自動確認</p>` : ""}
+        ${paid ? '<p class="hint">我們將盡快安排出貨</p>' : !va ? '<p class="hint">若已付款請稍候再查看，或與我們聯絡</p>' : ""}</div>`;
+      return;
+    } catch (e) { await new Promise(res => setTimeout(res, 2500)); }
+  }
 }
 // 去選門市前先把填到一半的資料存起來，回來時還原
 function saveDraft() {
@@ -859,7 +899,9 @@ async function submitOrder() {
   await busy($("submitBtn"), async () => {
     err.textContent = "";
     try {
-      const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : ""}, {tries: 3});
+      const r = await api({action: "order", clientId, customer: c, items: cart, code: serverQuote && serverQuote.code ? code : "", payMethod: catalog.settings.payReady ? payM : ""}, {tries: 3});
+      lsSet("cp-last", {no: r.orderNo, cid: clientId});
+      if (r.pay) { cart = []; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); goPay(r.pay); return; }
       cart = []; code = ""; saveCart(); lsSet("cp-code", ""); lsSet("cp-pending", null); lsSet("cp-draft", null); serverQuote = null;
       step = "done";
       const lineUrl = catalog.settings.lineUrl;
@@ -890,6 +932,7 @@ api(null, {tries: 3, timeout: 45000}).then(d => {
   catalog = d; lsSet("cp-catalog", d);
   cart = cart.filter(l => d.products.some(p => p.id === l.id));
   renderAll();
+  if (location.hash.startsWith("#paid=")) { const no = location.hash.slice(6); history.replaceState(null, "", location.pathname); showPaid(no); }
   // 從 7-11 電子地圖回來：#store={id,name,addr} → 存起來、回到填寫資料那一步
   if (location.hash.startsWith("#store=")) {
     try { store = JSON.parse(decodeURIComponent(location.hash.slice(7))); lsSet("cp-store", store); ship = SHIP_CVS; lsSet("cp-ship", ship); } catch (e) {}

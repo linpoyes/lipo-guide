@@ -9,7 +9,7 @@ COMMON = {
   "media-src": ["'self'", "https://drive.usercontent.google.com"],
   "connect-src": ["'self'", "https://script.google.com", "https://script.googleusercontent.com"],
   "frame-src": ["https://www.youtube.com", "https://drive.google.com"],
-  "object-src": ["'none'"], "base-uri": ["'self'"], "form-action": ["'self'"],
+  "object-src": ["'none'"], "base-uri": ["'self'"], "form-action": ["'self'", "https://payment.ecpay.com.tw", "https://payment-stage.ecpay.com.tw", "https://emap.presco.com.tw"],
 }
 for f in sys.argv[1:]:
     s = open(f).read()

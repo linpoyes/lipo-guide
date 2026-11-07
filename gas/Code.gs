@@ -15,7 +15,7 @@ const SHEETS = {
   products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note"],
-  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId"],
+  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire"],
   settings: ["key", "value"],
 };
 // 試算表分頁的中文名稱（給使用者自己打開試算表時看得懂）
@@ -23,7 +23,13 @@ const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: 
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 // ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
-const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE" };
+const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE",
+  // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
+  //   信用卡一次付清 2.75%、每筆最低 5 元，另加訂單處理費 1 元（含稅）；ATM 虛擬帳號 1%、每筆最低 15 元
+  feeCardPct: "2.75", feeCardMin: "5", feeCardOrder: "1", feeAtmPct: "1", feeAtmMin: "15",
+  // 手續費分攤：ratio＝先從營收扣手續費再依分潤比例拆（雙方按比例負擔）；us＝我方全付；owner＝貨主全付
+  feeSplit: "ratio" };
+const ECPAY_STAGE = { mid: "3002607", key: "pwFHCqoQZGmho4w6", iv: "EkRm7iFT261dpevs" }; // 綠界公開的測試帳號（非機密）
 // 登入有效 10 天（使用者 2026-10-31：登入過的裝置不要一直登出）。
 // CacheService 最長只存 6 小時，所以 session 存在指令碼屬性：SESS_<token 雜湊> = 到期毫秒。
 const SESSION_DAYS = 10;
@@ -54,6 +60,7 @@ function doGet(e) {
   const a = (e.parameter || {}).action;
   if (a === "catalog") return out_(catalog_());
   if (a === "ping") return out_({ ok: true });
+  if (a === "orderStatus") return out_(orderStatus_(e.parameter));
   if (a === "store") { // 賣場輪詢：選門市的結果（sk 是賣場產生的一次性亂數）
     const v = CacheService.getScriptCache().get("store:" + String((e.parameter || {}).sk || ""));
     return out_({ ok: true, store: v ? JSON.parse(v) : null });
@@ -64,6 +71,10 @@ function doGet(e) {
 function doPost(e) {
   // 7-11 電子地圖選完門市後，會把門市資料以表單 POST 回這裡（?cb=711），轉交回賣場
   if (e.parameter && e.parameter.cb === "711") return storeReturn_(e.parameter);
+  // 綠界通知：付款結果（server→server）、ATM 取號結果、取號後導回客人
+  if (e.parameter && e.parameter.cb === "ecpay") return ecpayReturn_(e.parameter);
+  if (e.parameter && e.parameter.cb === "ecpayinfo") return ecpayInfo_(e.parameter);
+  if (e.parameter && e.parameter.cb === "ecpayback") return ecpayBack_(e.parameter);
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "格式錯誤" }); }
   try {
@@ -182,7 +193,7 @@ function catalog_() {
     ok: true,
     products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
-    settings: { ordersOpen: s.ordersOpen, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
+    settings: { ordersOpen: s.ordersOpen, payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice },
   };
 }
 
@@ -262,7 +273,10 @@ function placeOrder_(req) {
     if (nPhone >= 5) return { ok: false, error: "下單次數過多，請稍後再試或與我們聯絡" };
     if (nAll >= 30) return { ok: false, error: "目前訂單量較大，請稍後再試" };
   }
-  if (!getSettings_().ordersOpen) return { ok: false, error: "目前尚未開放下單，敬請期待" };
+  // admin 帶 token＋test 可在未開放時測試下單（只給後台測試用）
+  if (!getSettings_().ordersOpen && !(req.test && checkToken_(req.token))) return { ok: false, error: "目前尚未開放下單，敬請期待" };
+  const pay = ecpayCfg_().ready ? String(req.payMethod || "") : "";
+  if (ecpayCfg_().ready && pay !== "Credit" && pay !== "ATM") return { ok: false, error: "請選擇付款方式" };
   if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
   if (!c.address) return { ok: false, error: c.shipMethod === SHIP_CVS ? "請選擇 7-11 門市" : "請填寫收件地址" };
   const lock = LockService.getScriptLock();
@@ -270,7 +284,8 @@ function placeOrder_(req) {
   try {
     // 冪等：同一個 clientId 只成立一張單（前端重送不會重複下單）
     const dup = req.clientId && rows_("orders").find(o => String(o.clientId) === String(req.clientId));
-    if (dup) return { ok: true, orderNo: String(dup.orderNo), total: Number(dup.total) };
+    if (dup) return Object.assign({ ok: true, orderNo: String(dup.orderNo), total: Number(dup.total) },
+      dup.payStatus === "awaiting" && dup.payMethod ? { pay: ecpayForm_(dup, dup.payMethod) } : {});
     const q = quote_(req.items, req.code, c.shipMethod);
     if (!q.lines.length) return { ok: false, error: "購物車是空的" };
     if (q.errors.length) return { ok: false, error: q.errors.join("；") };
@@ -280,7 +295,8 @@ function placeOrder_(req) {
       orderNo: orderNo, createdAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm"),
       name: c.name, phone: c.phone, line: c.line || "", shipMethod: c.shipMethod, address: c.address || "", note: c.note || "",
       items: JSON.stringify(q.lines), subtotal: q.subtotal, tierSaving: q.tierSaving, code: q.code, codeDiscount: q.codeDiscount,
-      shipping: q.shipping, total: q.total, status: "新訂單", payStatus: "unpaid", clientId: req.clientId || "",
+      shipping: q.shipping, total: q.total, status: "新訂單", payStatus: pay ? "awaiting" : "unpaid", clientId: req.clientId || "",
+      payMethod: pay,
     });
     // 扣庫存（-1 = 不限量）
     const sh = sheet_("products"), stockCol = SHEETS.products.indexOf("stock") + 1;
@@ -295,7 +311,9 @@ function placeOrder_(req) {
     cache.put("ord:" + c.phone, String(nPhone + 1), 3600);
     cache.put("ord:all", String(nAll + 1), 600);
     if (req.clientId) cache.put("ordc:" + req.clientId, "1", 3600);
-    return { ok: true, orderNo: orderNo, total: q.total };
+    const res = { ok: true, orderNo: orderNo, total: q.total };
+    if (pay) res.pay = ecpayForm_(rows_("orders").find(o => String(o.orderNo) === orderNo), pay);
+    return res;
   } finally {
     lock.releaseLock();
   }
@@ -352,7 +370,8 @@ const ADMIN = {
       line: String(o.line), shipMethod: String(o.shipMethod), address: String(o.address), note: String(o.note),
       items: json_(o.items, []), subtotal: Number(o.subtotal), tierSaving: Number(o.tierSaving), code: String(o.code),
       codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), total: Number(o.total),
-      status: String(o.status), payStatus: String(o.payStatus),
+      status: String(o.status), payStatus: String(o.payStatus), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
+      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""),
     })).reverse(),
   }),
   admin_saveProduct: r => {
@@ -411,9 +430,20 @@ const ADMIN = {
     while (parents.hasNext()) if (parents.next().getId() === folder) { f.setTrashed(true); return; }
     throw new Error("非賣場媒體檔案");
   },
+  // 綠界金鑰：只寫不讀（後台只顯示「已設定」與商店代號）
+  admin_saveEcpay: r => {
+    const p = PropertiesService.getScriptProperties(), e = r.ecpay || {};
+    if (e.mid !== undefined && e.mid !== "") p.setProperty("ECPAY_MID", String(e.mid).trim());
+    if (e.key) p.setProperty("ECPAY_KEY", String(e.key).trim());
+    if (e.iv) p.setProperty("ECPAY_IV", String(e.iv).trim());
+    if (e.stage !== undefined) p.setProperty("ECPAY_STAGE", e.stage ? "TRUE" : "FALSE");
+    if (e.enabled !== undefined) p.setProperty("ECPAY_ON", e.enabled ? "TRUE" : "FALSE");
+    return { ecpay: ecpayCfg_().public };
+  },
+  admin_ecpayStatus: () => ({ ecpay: ecpayCfg_().public }),
   admin_saveSettings: r => {
     const s = r.settings || {};
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const p = PropertiesService.getScriptProperties();
@@ -464,6 +494,7 @@ const ADMIN = {
 // 回一個小頁面把門市帶回賣場網址的 #store=…；Apps Script 頁面在 iframe 裡，跳轉要用使用者點擊（target=_top），自動跳轉當備援。
 const SHOP_PAGE = "https://linpoyes.github.io/lipo-guide/shop.html";
 const GH_REPO = "linpoyes/lipo-guide";
+const EXEC_URL = "https://script.google.com/macros/s/AKfycbxtUHvT661QSFsB8ACP0QSMq-8PCR9GIxFzXRFzArl4vswAy2YBd5ZbaSIrfGtcKls/exec"; // 固定部署網址（綠界回呼用）
 function storeReturn_(p) {
   const pick = keys => { for (const k in p) if (keys.indexOf(k.toLowerCase()) >= 0 && p[k]) return String(p[k]); return ""; };
   const clean = (v, n) => v.replace(/[<>"'`\\]/g, "").slice(0, n);
@@ -480,4 +511,107 @@ function storeReturn_(p) {
     // 新分頁模式：賣場會自己帶回門市，這一頁直接關掉；同頁模式才跳轉
     '<script>' + (p.sk ? 'try{window.top.close()}catch(e){}' : 'try{window.top.location.href=' + JSON.stringify(url) + '}catch(e){}') + '</script>'
   ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* ───────────── 綠界金流（信用卡＋ATM 虛擬帳號）──────────────
+   與欣瀚賣場共用同一組綠界特店（使用者 2026-11-07）。正式金鑰只存指令碼屬性，後台只能寫入不能讀出。
+   流程：下單 → 回傳簽好章的表單 → 前端自動送到綠界 → 客人付款
+         ReturnURL（?cb=ecpay）     付款結果，server→server，驗章後標記 paid 並記手續費，回 1|OK
+         PaymentInfoURL（?cb=ecpayinfo） ATM 取號結果，存虛擬帳號
+         ClientRedirectURL（?cb=ecpayback） ATM 取號後把客人帶回賣場
+         ClientBackURL                  付款完成後回賣場（不代表付款成功，賣場會再查一次狀態） */
+function ecpayCfg_() {
+  const p = PropertiesService.getScriptProperties();
+  const stage = p.getProperty("ECPAY_STAGE") !== "FALSE"; // 預設測試模式，確認正式金鑰後才關
+  const on = p.getProperty("ECPAY_ON") === "TRUE";
+  const mid = stage ? ECPAY_STAGE.mid : p.getProperty("ECPAY_MID") || "";
+  const key = stage ? ECPAY_STAGE.key : p.getProperty("ECPAY_KEY") || "";
+  const iv = stage ? ECPAY_STAGE.iv : p.getProperty("ECPAY_IV") || "";
+  const host = stage ? "https://payment-stage.ecpay.com.tw" : "https://payment.ecpay.com.tw";
+  return { ready: on && !!(mid && key && iv), stage, mid, key, iv, host,
+    public: { enabled: on, stage, mid: p.getProperty("ECPAY_MID") || "", keySet: !!p.getProperty("ECPAY_KEY"), ivSet: !!p.getProperty("ECPAY_IV") } };
+}
+function dotNetEncode_(s) {
+  return encodeURIComponent(s).replace(/%20/g, "+").replace(/%21/g, "!").replace(/%27/g, "'").replace(/%28/g, "(")
+    .replace(/%29/g, ")").replace(/%2a/gi, "*").replace(/%2d/gi, "-").replace(/%2e/gi, ".").replace(/%5f/gi, "_");
+}
+function checkMac_(params, cfg) {
+  const sorted = Object.keys(params).filter(k => k !== "CheckMacValue")
+    .sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : a.toLowerCase() > b.toLowerCase() ? 1 : 0)
+    .map(k => k + "=" + params[k]).join("&");
+  const raw = dotNetEncode_("HashKey=" + cfg.key + "&" + sorted + "&HashIV=" + cfg.iv).toLowerCase();
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw, Utilities.Charset.UTF_8)
+    .map(b => ((b + 256) % 256).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+function ecpayForm_(order, method) {
+  const cfg = ecpayCfg_(), exec = EXEC_URL;
+  // 綠界不收重複單號：每次付款用新的綠界單號（訂單編號＋2 碼），記在 ecpayNo
+  const tradeNo = String(order.orderNo) + Utilities.getUuid().replace(/\D/g, "").slice(0, 2);
+  setOrderField_(String(order.orderNo), { ecpayNo: tradeNo, payMethod: method });
+  const items = json_(order.items, []).map(i => i.name.replace(/[#&]/g, " ") + " x" + i.qty).join("#").slice(0, 200);
+  const p = {
+    MerchantID: cfg.mid, MerchantTradeNo: tradeNo,
+    MerchantTradeDate: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss"),
+    PaymentType: "aio", TotalAmount: String(Math.round(Number(order.total))), TradeDesc: "赤貧軍團線上訂單", ItemName: items,
+    ReturnURL: exec + "?cb=ecpay", ClientBackURL: SHOP_PAGE + "#paid=" + order.orderNo,
+    ChoosePayment: method, EncryptType: "1",
+  };
+  // 只開信用卡與 ATM 虛擬帳號（使用者 2026-11-07）：其他電子支付一律隱藏
+  p.IgnorePayment = "WebATM#CVS#BARCODE#ApplePay#TWQR#BNPL";
+  if (method === "ATM") { p.PaymentInfoURL = exec + "?cb=ecpayinfo"; p.ClientRedirectURL = exec + "?cb=ecpayback"; p.ExpireDate = "3"; }
+  p.CheckMacValue = checkMac_(p, cfg);
+  return { url: cfg.host + "/Cashier/AioCheckOut/V5", fields: p };
+}
+function setOrderField_(orderNo, obj) {
+  const o = rows_("orders").find(x => String(x.orderNo) === orderNo); if (!o) return null;
+  upsert_("orders", "orderNo", Object.assign({ orderNo: orderNo }, obj));
+  return o;
+}
+function orderByTrade_(tradeNo) { return rows_("orders").find(o => String(o.ecpayNo) === String(tradeNo)); }
+// 手續費估算（依後台設定的費率；含 5% 營業稅；信用卡另加每筆處理費）
+function payFee_(method, amount) {
+  const s = getSettings_(), n = x => Number(x) || 0;
+  if (/^Credit/.test(method)) return Math.round(Math.max(amount * n(s.feeCardPct) / 100, n(s.feeCardMin)) * 1.05) + n(s.feeCardOrder);
+  if (/^ATM/.test(method)) return Math.round(Math.max(amount * n(s.feeAtmPct) / 100, n(s.feeAtmMin)) * 1.05);
+  return 0;
+}
+// 網址上的 ?cb= 會混進 e.parameter，算章前要拿掉（只算綠界送來的欄位）
+function verified_(p) {
+  const q = Object.assign({}, p); delete q.cb;
+  return !!q.CheckMacValue && String(q.CheckMacValue).toUpperCase() === checkMac_(q, ecpayCfg_());
+}
+function ecpayReturn_(p) {
+  const text = t => ContentService.createTextOutput(t);
+  if (!verified_(p)) return text("0|CheckMacValue Error");
+  const o = orderByTrade_(p.MerchantTradeNo); if (!o) return text("1|OK");
+  if (String(p.RtnCode) === "1") {
+    const amt = Number(p.TradeAmt) || Number(o.total);
+    setOrderField_(String(o.orderNo), { payStatus: "paid", payMethod: String(p.PaymentType || o.payMethod), payFee: String(payFee_(String(p.PaymentType || o.payMethod), amt)),
+      paidAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm") });
+  } else if (String(o.payStatus) !== "paid" && !/^ATM/.test(String(p.PaymentType))) {
+    setOrderField_(String(o.orderNo), { payStatus: "failed" });
+  }
+  return text("1|OK");
+}
+function ecpayInfo_(p) {
+  const text = t => ContentService.createTextOutput(t);
+  if (!verified_(p)) return text("0|CheckMacValue Error");
+  const o = orderByTrade_(p.MerchantTradeNo);
+  if (o && String(p.RtnCode) === "2") setOrderField_(String(o.orderNo), { vaBank: String(p.BankCode || ""), vaAccount: String(p.vAccount || ""), vaExpire: String(p.ExpireDate || "") });
+  return text("1|OK");
+}
+function ecpayBack_(p) {
+  const o = verified_(p) ? orderByTrade_(p.MerchantTradeNo) : null;
+  if (o && p.vAccount) setOrderField_(String(o.orderNo), { vaBank: String(p.BankCode || ""), vaAccount: String(p.vAccount || ""), vaExpire: String(p.ExpireDate || "") });
+  const url = SHOP_PAGE + "#paid=" + (o ? o.orderNo : "");
+  return HtmlService.createHtmlOutput('<meta name="viewport" content="width=device-width,initial-scale=1"><div style="font-family:-apple-system,sans-serif;text-align:center;padding:40px 16px">' +
+    '<p style="font-size:18px;font-weight:700">已取得轉帳帳號</p><a href="' + url + '" target="_top" style="display:inline-block;margin-top:12px;padding:12px 28px;border-radius:12px;background:#C9362C;color:#fff;font-weight:800;text-decoration:none;font-size:17px">回到賣場查看帳號</a></div>' +
+    '<script>try{window.top.location.href=' + JSON.stringify(url) + '}catch(e){}</script>').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+// 賣場查自己訂單的付款狀態：要訂單編號＋下單時的 clientId（存在客人瀏覽器），別人猜不到
+function orderStatus_(q) {
+  const o = rows_("orders").find(x => String(x.orderNo) === String(q.no || ""));
+  if (!o || !q.cid || String(o.clientId) !== String(q.cid)) return { ok: false, error: "查無訂單" };
+  return { ok: true, orderNo: String(o.orderNo), total: Number(o.total), payStatus: String(o.payStatus), payMethod: String(o.payMethod || ""),
+    vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || "") };
 }

@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'sha256-MpXrLxn4RfetTiwue/emO+IXMO6GwMwG6l/cnJ4gvpc='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw; script-src 'self' 'sha256-8U/rQXs5XHxYxSorfm6uC1ssFBIUNcuC+0MWS4XXPQI='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611072054">
+<meta name="build" content="202611072106">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -161,7 +161,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611072054"></script>
+<script src="shop-core.js?v=202611072106"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -264,7 +264,9 @@ function openOrder(no) {
     <dl class="kv"><dt>下單時間</dt><dd>${esc(o.createdAt)}</dd><dt>姓名</dt><dd>${esc(o.name)}</dd>
       <dt>手機</dt><dd><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></dd>${o.line ? `<dt>LINE</dt><dd>${esc(o.line)}</dd>` : ""}
       <dt>寄送</dt><dd>${esc(o.shipMethod)}${o.address ? `　${esc(o.address)}` : ""}</dd>${o.note ? `<dt>備註</dt><dd>${esc(o.note)}</dd>` : ""}
-      <dt>付款</dt><dd>${o.payStatus === "paid" ? "已付款" : "未付款"}</dd></dl>
+      <dt>付款</dt><dd>${o.payStatus === "paid" ? "已付款" : o.payStatus === "awaiting" ? "待付款" : o.payStatus === "failed" ? "付款失敗" : "未付款"}${o.payMethod ? `（${/^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM 轉帳" : esc(o.payMethod)}）` : ""}${o.paidAt ? `　${esc(o.paidAt)}` : ""}</dd>
+      ${o.payFee ? `<dt>金流手續費</dt><dd>${money(o.payFee)}</dd>` : ""}
+      ${o.vaAccount ? `<dt>虛擬帳號</dt><dd>${esc(o.vaBank)}－${esc(o.vaAccount)}（期限 ${esc(o.vaExpire)}）</dd>` : ""}</dl>
     <table class="otable">${o.items.map(i => `<tr><td>${esc(i.name)}<br><small style="color:var(--dim)">${money(i.unit)} × ${i.qty}</small></td><td>${money(i.total)}</td></tr>`).join("")}
       ${o.tierSaving ? `<tr><td>多件優惠（已含於單價）</td><td>−${money(o.tierSaving)}</td></tr>` : ""}
       ${o.codeDiscount ? `<tr><td>折扣碼 ${esc(o.code)}</td><td>−${money(o.codeDiscount)}</td></tr>` : ""}
@@ -489,14 +491,23 @@ function rptRange() {
 function rptCompute() {
   const [from, to] = rptRange();
   const os = orders.filter(o => o.status !== "已取消" && (!rpt.paidOnly || o.payStatus === "paid") && o.createdAt.slice(0, 10) >= from && o.createdAt.slice(0, 10) <= to);
+  // 金流手續費：依各品項占「訂單總額（含運費）」的比例分攤到品項，運費那一份由我方負擔
+  // 分攤方式（設定 feeSplit）：ratio＝先扣手續費再依分潤比例拆、us＝我方全付、owner＝貨主全付
+  const split = data.settings.feeSplit || "ratio";
   const lines = [];
   for (const o of os) {
-    const base = o.items.reduce((a, i) => a + i.total, 0) || 1;
+    const base = o.items.reduce((a, i) => a + i.total, 0) || 1, tot = o.total || 1;
     for (const i of o.items) {
       const disc = Math.round(o.codeDiscount * i.total / base), net = i.total - disc;
-      const rate = i.supplier ? Number(i.commission) || 0 : 0, fee = Math.round(net * rate / 100);
+      const pf = Math.round((o.payFee || 0) * net / tot);
+      const rate = i.supplier ? Number(i.commission) || 0 : 0;
+      let fee, payable;
+      if (!i.supplier) { fee = 0; payable = 0; }
+      else if (split === "us") { fee = Math.round(net * rate / 100) - pf; payable = net - Math.round(net * rate / 100); }
+      else if (split === "owner") { fee = Math.round(net * rate / 100); payable = net - fee - pf; }
+      else { const b = net - pf; fee = Math.round(b * rate / 100); payable = b - fee; }
       lines.push({date: o.createdAt.slice(0, 10), orderNo: o.orderNo, status: o.status, paid: o.payStatus === "paid", name: i.name, qty: i.qty, unit: i.unit,
-        gross: i.total, disc, net, supplier: i.supplier || "", rate, fee, payable: i.supplier ? net - fee : 0});
+        gross: i.total, disc, net, pf, supplier: i.supplier || "", rate, fee, payable});
     }
   }
   const sum = (arr, k) => arr.reduce((a, x) => a + x[k], 0);
@@ -504,22 +515,23 @@ function rptCompute() {
   for (const l of lines.filter(l => l.supplier)) {
     const g = sup[l.supplier] = sup[l.supplier] || {name: l.supplier, lines: [], prods: {}};
     g.lines.push(l);
-    const pp = g.prods[l.name] = g.prods[l.name] || {name: l.name, qty: 0, net: 0, fee: 0, payable: 0};
-    pp.qty += l.qty; pp.net += l.net; pp.fee += l.fee; pp.payable += l.payable;
+    const pp = g.prods[l.name] = g.prods[l.name] || {name: l.name, qty: 0, net: 0, pf: 0, fee: 0, payable: 0};
+    pp.qty += l.qty; pp.net += l.net; pp.pf += l.pf; pp.fee += l.fee; pp.payable += l.payable;
   }
   return {from, to, os, lines, sum, sup: Object.values(sup),
-    own: lines.filter(l => !l.supplier), ship: os.reduce((a, o) => a + o.shipping, 0), code: os.reduce((a, o) => a + o.codeDiscount, 0)};
+    own: lines.filter(l => !l.supplier), ship: os.reduce((a, o) => a + o.shipping, 0), code: os.reduce((a, o) => a + o.codeDiscount, 0),
+    payFee: os.reduce((a, o) => a + (o.payFee || 0), 0)};
 }
 async function drawReport() {
   const main = $("main");
   if (!orders) { main.innerHTML = '<div class="empty">載入訂單中…</div>'; try { await loadOrders(); } catch (e) { main.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; } }
-  const r = rptCompute(), S = r.sum;
+  const r = rptCompute(), S = r.sum, split = data.settings.feeSplit || "ratio";
   const supRows = r.sup.map(g => `<div class="card rcard">
       <h3 class="rh">${esc(g.name)}<span class="pill on">我方分潤 ${[...new Set(g.lines.map(l => l.rate))].join("／")}%</span></h3>
       <div class="rgrid"><div><small>銷售額（折扣後）</small><b>${money(S(g.lines, "net"))}</b></div><div><small>我方分潤</small><b class="ok">${money(S(g.lines, "fee"))}</b></div>
-        <div><small>應付貨主</small><b>${money(S(g.lines, "payable"))}</b></div><div><small>件數</small><b>${S(g.lines, "qty")}</b></div></div>
-      <table class="otable rt"><tr><th>商品</th><th>件數</th><th>銷售額</th><th>我方分潤</th><th>應付</th></tr>
-        ${Object.values(g.prods).sort((a, b) => b.net - a.net).map(p => `<tr><td>${esc(p.name)}</td><td>${p.qty}</td><td>${money(p.net)}</td><td>${money(p.fee)}</td><td>${money(p.payable)}</td></tr>`).join("")}</table>
+        <div><small>應付貨主</small><b>${money(S(g.lines, "payable"))}</b></div><div><small>金流手續費</small><b>${money(S(g.lines, "pf"))}</b></div></div>
+      <table class="otable rt"><tr><th>商品</th><th>件數</th><th>銷售額</th><th>手續費</th><th>我方分潤</th><th>應付</th></tr>
+        ${Object.values(g.prods).sort((a, b) => b.net - a.net).map(p => `<tr><td>${esc(p.name)}</td><td>${p.qty}</td><td>${money(p.net)}</td><td>${money(p.pf)}</td><td>${money(p.fee)}</td><td>${money(p.payable)}</td></tr>`).join("")}</table>
     </div>`).join("");
   main.innerHTML = `<h2>報表 <span style="display:flex;gap:6px"><button class="btn ghost" id="rCsv">匯出 CSV</button><button class="btn ghost" id="rPrint">列印</button></span></h2>
     <div class="filters">${[["month", "本月"], ["last", "上月"], ["year", "今年"], ["custom", "自訂"]].map(([k, n]) => `<button data-r="${k}" aria-pressed="${rpt.range === k}">${n}</button>`).join("")}
@@ -528,7 +540,7 @@ async function drawReport() {
     <div class="note" style="margin-bottom:8px">${r.from} ～ ${r.to}・排除已取消${rpt.paidOnly ? "・只含已付款" : ""}</div>
     <div class="stats"><div><small>商品銷售額</small><b>${money(S(r.lines, "net"))}</b></div><div><small>訂單</small><b>${r.os.length}</b></div><div><small>件數</small><b>${S(r.lines, "qty")}</b></div></div>
     <div class="stats"><div><small>我方分潤</small><b>${money(S(r.lines, "fee"))}</b></div><div><small>應付貨主</small><b>${money(S(r.lines, "payable"))}</b></div><div><small>自有商品銷售</small><b>${money(S(r.own, "net"))}</b></div></div>
-    <div class="note" style="margin:-4px 0 10px">另計：運費 ${money(r.ship)}・折扣碼折抵 ${money(r.code)}（已依比例自各品項扣除）</div>
+    <div class="note" style="margin:-4px 0 10px">金流手續費 ${money(r.payFee)}（${{ratio: "先扣手續費再依分潤比例拆", us: "我方全額負擔", owner: "貨主全額負擔"}[split]}）・運費 ${money(r.ship)}・折扣碼折抵 ${money(r.code)}（已依比例自各品項扣除）</div>
     <h2>貨主結算</h2>${supRows || '<div class="empty">此期間沒有代營運商品的訂單</div>'}`;
   main.querySelector(".filters").onclick = e => {
     const b = e.target.closest("[data-r]"); if (b) { rpt.range = b.dataset.r; drawReport(); }
@@ -538,8 +550,8 @@ async function drawReport() {
   $("rPrint").onclick = () => print();
   $("rCsv").onclick = () => {
     const q = v => `"${String(v).replace(/"/g, '""')}"`;
-    const head = ["日期", "訂單編號", "狀態", "付款", "商品", "數量", "單價", "金額", "折扣分攤", "銷售額", "貨主", "我方分潤%", "我方分潤", "應付貨主"];
-    const rows = r.lines.map(l => [l.date, l.orderNo, l.status, l.paid ? "已付款" : "未付款", l.name, l.qty, l.unit, l.gross, l.disc, l.net, l.supplier || "自有", l.rate, l.fee, l.payable]);
+    const head = ["日期", "訂單編號", "狀態", "付款", "商品", "數量", "單價", "金額", "折扣分攤", "銷售額", "金流手續費", "貨主", "我方分潤%", "我方分潤", "應付貨主"];
+    const rows = r.lines.map(l => [l.date, l.orderNo, l.status, l.paid ? "已付款" : "未付款", l.name, l.qty, l.unit, l.gross, l.disc, l.net, l.pf, l.supplier || "自有", l.rate, l.fee, l.payable]);
     const csv = "\ufeff" + [head, ...rows].map(x => x.map(q).join(",")).join("\r\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"}));
     a.download = `赤貧軍團報表_${r.from}_${r.to}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
@@ -558,6 +570,24 @@ function drawSettings() {
       <div class="f"><label for="sl">LINE 聯絡網址（選填）</label><input id="sl" value="${esc(s.lineUrl)}" placeholder="https://lin.ee/…"><span class="note">訂單完成頁顯示「LINE 聯絡」按鈕</span></div>
       <div class="f"><label for="sn">賣場公告（選填）</label><input id="sn" value="${esc(s.notice)}" placeholder="例：全館滿 $2,000 免運"></div>
       <div class="err" id="serr"></div><div class="btns"><button class="btn" id="sSave">儲存設定</button></div></div>
+    <h2>綠界金流</h2><div class="card" id="ecCard">
+      <label class="check" style="margin-top:0"><input type="checkbox" id="ecOn">啟用線上付款（信用卡、ATM 虛擬帳號）</label>
+      <label class="check"><input type="checkbox" id="ecStage">測試模式（綠界測試環境，不會真的扣款）</label>
+      <div class="f"><label for="ecMid">商店代號 MerchantID</label><input id="ecMid" autocomplete="off" placeholder="與欣瀚資訊同一組"></div>
+      <div class="f2"><div class="f"><label for="ecKey">HashKey</label><input id="ecKey" type="password" autocomplete="new-password" placeholder="未設定"></div>
+        <div class="f"><label for="ecIv">HashIV</label><input id="ecIv" type="password" autocomplete="new-password" placeholder="未設定"></div></div>
+      <span class="note">金鑰只能寫入、不會顯示；留空＝不變更。綠界廠商後台 → 系統開發管理 → 系統介接設定。</span>
+      <div class="err" id="ecErr"></div><div class="btns"><button class="btn ink" id="ecSave">儲存金流設定</button></div></div>
+    <h2>金流手續費</h2><div class="card">
+      <div class="f2"><div class="f"><label for="fcp">信用卡費率 %</label><input id="fcp" type="number" step="0.01" value="${s.feeCardPct}"></div>
+        <div class="f"><label for="fcm">信用卡每筆最低（元）</label><input id="fcm" type="number" value="${s.feeCardMin}"></div></div>
+      <div class="f2"><div class="f"><label for="fco">信用卡處理費（元／筆，含稅）</label><input id="fco" type="number" value="${s.feeCardOrder}"></div>
+        <div class="f"><label for="fap">ATM 費率 %</label><input id="fap" type="number" step="0.01" value="${s.feeAtmPct}"></div></div>
+      <div class="f2"><div class="f"><label for="fam">ATM 每筆最低（元）</label><input id="fam" type="number" value="${s.feeAtmMin}"></div>
+        <div class="f"><label for="fsp">手續費誰負擔（報表）</label><select id="fsp">
+          <option value="ratio" ${s.feeSplit === "ratio" ? "selected" : ""}>依分潤比例分攤</option><option value="us" ${s.feeSplit === "us" ? "selected" : ""}>我方全額負擔</option><option value="owner" ${s.feeSplit === "owner" ? "selected" : ""}>貨主全額負擔</option></select></div></div>
+      <span class="note">費率未稅，計算時自動加 5% 營業稅。預設為綠界一般會員公告費率；特約會員請依合約修改。</span>
+      <div class="err" id="ferr"></div><div class="btns"><button class="btn ink" id="fSave">儲存手續費設定</button></div></div>
     <h2>登入帳號</h2><div class="card">
       ${isDefault ? '<div class="err">目前為初始密碼，請立即變更</div>' : ""}
       <div class="f"><label for="ou">帳號</label><input id="ou" value="${esc(data.user)}" autocomplete="username"></div>
@@ -568,6 +598,21 @@ function drawSettings() {
     await admin("admin_saveSettings", {settings: {ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim()}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
+  admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {
+    const e = r.ecpay; $("ecOn").checked = e.enabled; $("ecStage").checked = e.stage; $("ecMid").value = e.mid;
+    $("ecKey").placeholder = e.keySet ? "已設定（留空不變更）" : "未設定"; $("ecIv").placeholder = e.ivSet ? "已設定（留空不變更）" : "未設定";
+  }).catch(() => {});
+  $("ecSave").onclick = e => busy(e.target, async () => {
+    $("ecErr").textContent = "";
+    if ($("ecOn").checked && !$("ecStage").checked && !$("ecMid").value.trim()) throw new Error("正式模式需填商店代號與金鑰");
+    const r = await admin("admin_saveEcpay", {ecpay: {enabled: $("ecOn").checked, stage: $("ecStage").checked, mid: $("ecMid").value.trim(), key: $("ecKey").value.trim(), iv: $("ecIv").value.trim()}});
+    if ($("ecOn").checked && !$("ecStage").checked && !(r.ecpay.keySet && r.ecpay.ivSet)) throw new Error("正式模式缺少 HashKey 或 HashIV");
+    $("ecKey").value = $("ecIv").value = ""; toast("已儲存金流設定"); drawSettings();
+  }).catch(err => $("ecErr").textContent = err.message);
+  $("fSave").onclick = e => busy(e.target, async () => {
+    await admin("admin_saveSettings", {settings: {feeCardPct: $("fcp").value, feeCardMin: $("fcm").value, feeCardOrder: $("fco").value, feeAtmPct: $("fap").value, feeAtmMin: $("fam").value, feeSplit: $("fsp").value}});
+    await loadAll(); toast("已儲存");
+  }).catch(err => $("ferr").textContent = err.message);
   $("aSave").onclick = e => busy(e.target, async () => {
     $("aerr").textContent = "";
     await admin("admin_changeLogin", {oldPass: $("op").value, newUser: $("ou").value.trim(), newPass: $("np").value});
