@@ -1391,21 +1391,50 @@ function logiCostOf_(o) {
    follow／message 事件的 replyToken 只有 LINE 真的發出的才能用，所以偽造的請求不會讓我們亂發訊息。 */
 const LINE_SITE = "https://linpoyes.github.io/lipo-guide/";
 const UTM = "?utm_source=LINE&utm_medium=oa";
-const CS_TEXT = "我要聯絡客服";
+const CS_TEXT = "聯絡客服";
+const CS_OLD = ["我要聯絡客服"]; // 舊版選單送出的文字，仍視為聯絡客服
 function lineEvent_(ev) {
   const uid = ev.source && ev.source.userId; if (!uid || !ev.replyToken) return;
   if (ev.type === "follow") {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
     const w = welcomeInfo_();
     if (w) PropertiesService.getScriptProperties().setProperty("WELCOMED_" + hash_(uid), "1"); // 歡迎卡片已含入會禮，LINE 登入時不再重送
-    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [welcomeFlex_(name, w)] });
+    lineApi_("message/reply", { replyToken: ev.replyToken, messages: welcomeMessages_(name, w) });
     return;
   }
-  if (ev.type === "message" && ev.message && ev.message.type === "text" && String(ev.message.text).trim() === CS_TEXT) {
+  if (ev.type === "message" && ev.message && ev.message.type === "text" && (String(ev.message.text).trim() === CS_TEXT || CS_OLD.indexOf(String(ev.message.text).trim()) >= 0)) {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
-    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好" + (name ? " " + name : "") + "，已為您通知客服人員，將盡快在這裡回覆。\n\n詢問訂單請附上訂單編號；詢問商品請告訴我們商品名稱或截圖，可以更快為您處理。" }] });
-    linePush_("【赤貧軍團】客人需要客服\n" + (name || "LINE 使用者") + " 按了「聯絡客服」\n請到 LINE 官方帳號後台的「聊天」回覆：https://chat.line.biz/");
+    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好，已為您轉接客服人員，請稍候。\n\n為加快處理，請提供訂單編號或商品名稱，客服人員將盡快於此回覆您。" }] });
+    linePush_("【客服通知】\n顧客「" + (name || "LINE 使用者") + "」正在等候客服回覆。\n請至 LINE 官方帳號「聊天」回覆：https://chat.line.biz/");
   }
+}
+// 歡迎訊息＝主卡片＋熱門商品圖卡（可左右滑，最多 6 件：熱銷優先、再依後台排序，排除售完）
+function welcomeMessages_(name, w) {
+  const msgs = [welcomeFlex_(name, w)], car = productCarousel_(6);
+  if (car) msgs.push(car);
+  return msgs;
+}
+function productCarousel_(n) {
+  const ps = rows_("products").map(product_).filter(p => p.active && p.stock !== 0 && p.images.length).sort((a, b) => (b.hot - a.hot) || a.sort - b.sort).slice(0, n);
+  if (!ps.length) return null;
+  const img = src => /^drive:/.test(src) ? "https://lh3.googleusercontent.com/d/" + src.slice(6) + "=w1000" : /^https:/.test(src) ? src : LINE_SITE + src;
+  const short = nm => String(nm).replace(/^.*?[｜|]\s*/, "") || nm;
+  const bubble = p => ({ type: "bubble", size: "kilo",
+    hero: { type: "image", url: img(p.images[0]), size: "full", aspectRatio: "4:3", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM + "#p=" + p.id } },
+    body: { type: "box", layout: "vertical", spacing: "xs", paddingAll: "14px", contents: [
+      { type: "text", text: short(p.name), weight: "bold", size: "md", color: "#1A2130", wrap: true, maxLines: 2 },
+      p.brand ? { type: "text", text: p.brand, size: "xxs", color: "#C9362C", weight: "bold" } : { type: "filler" },
+      { type: "box", layout: "baseline", spacing: "sm", contents: [
+        { type: "text", text: "$" + p.price.toLocaleString(), weight: "bold", size: "lg", color: "#D7261E", flex: 0 },
+        p.listPrice > p.price ? { type: "text", text: "$" + p.listPrice.toLocaleString(), size: "xs", color: "#8C8880", decoration: "line-through", flex: 0 } : { type: "filler" },
+        p.preorder ? { type: "text", text: "即將開賣", size: "xxs", color: "#575D69", align: "end" } : (p.hot ? { type: "text", text: "熱銷", size: "xxs", color: "#D7261E", weight: "bold", align: "end" } : { type: "filler" })] }] },
+    footer: { type: "box", layout: "vertical", paddingAll: "10px", contents: [{ type: "button", style: "secondary", height: "sm", action: { type: "uri", label: "查看商品", uri: SHOP_PAGE + UTM + "#p=" + p.id } }] } });
+  const more = { type: "bubble", size: "kilo", body: { type: "box", layout: "vertical", justifyContent: "center", alignItems: "center", spacing: "md", paddingAll: "20px", backgroundColor: "#1D2129", contents: [
+    { type: "image", url: LINE_SITE + "badge.png", size: "sm", aspectRatio: "1:1" },
+    { type: "text", text: "看更多商品", weight: "bold", size: "lg", color: "#FFFFFF", align: "center" },
+    { type: "text", text: "遙控車・鋰電池・改裝配件", size: "xs", color: "#B4AFA6", align: "center" },
+    { type: "button", style: "primary", color: "#D7261E", height: "sm", margin: "md", action: { type: "uri", label: "前往賣場", uri: SHOP_PAGE + UTM } }] } };
+  return { type: "flex", altText: "熱門商品推薦", contents: { type: "carousel", contents: ps.map(bubble).concat([more]) } };
 }
 function welcomeFlex_(name, w) {
   const btn = (label, uri, primary) => ({ type: "button", style: primary ? "primary" : "secondary", color: primary ? "#D7261E" : undefined, height: "sm", action: { type: "uri", label: label, uri: uri } });
@@ -1417,12 +1446,12 @@ function welcomeFlex_(name, w) {
     { type: "text", text: "折扣碼 " + w.code + (w.minSpend ? "・滿 $" + w.minSpend + " 可用" : "") + "・限用一次", size: "xs", color: "#575D69", margin: "sm", wrap: true },
     { type: "text", text: "以 LINE 登入賣場會員，結帳時即可使用", size: "xs", color: "#575D69", wrap: true }] });
   return { type: "flex", altText: "歡迎加入赤貧軍團" + (w ? "，入會禮 " + w.label + " 已送上" : ""), contents: { type: "bubble",
-    hero: { type: "image", url: LINE_SITE + "banner.jpg", size: "full", aspectRatio: "20:9", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
+    hero: { type: "image", url: LINE_SITE + "media/welcome.jpg?v=1", size: "full", aspectRatio: "3:2", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
     body: { type: "box", layout: "vertical", contents: body },
     footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
       btn(w ? "登入會員・領取入會禮" : "登入會員", SHOP_PAGE + UTM + "#member", true), btn("逛賣場", SHOP_PAGE + UTM), btn("電池充電計算", LINE_SITE + UTM + "#calc")] } } };
 }
-const RICH_VER = "2";
+const RICH_VER = "3";
 function lineSetup_() {
   const p = PropertiesService.getScriptProperties();
   if (p.getProperty("RICHMENU_V") === RICH_VER) return { ok: true, done: true, result: p.getProperty("RICHMENU_RESULT") || "" };
@@ -1459,12 +1488,12 @@ function lineSetup_() {
 
 // 驗證歡迎卡片格式，並（只一次）推一則預覽給已綁定通知的管理者
 function welcomePreview_() {
-  const p = PropertiesService.getScriptProperties(), msg = welcomeFlex_("", welcomeInfo_());
-  const v = lineApi_("message/validate/push", { messages: [msg] });
+  const p = PropertiesService.getScriptProperties(), msgs = welcomeMessages_("", welcomeInfo_());
+  const v = lineApi_("message/validate/push", { messages: msgs });
   const res = { ok: true, validate: v ? v.getResponseCode() + " " + v.getContentText().slice(0, 200) : "no token" };
-  if (v && v.getResponseCode() === 200 && !p.getProperty("WELCOME_PREVIEWED")) {
-    p.setProperty("WELCOME_PREVIEWED", "1");
-    json_(p.getProperty("LINE_USERS"), []).forEach(u => lineApi_("message/push", { to: u.id, messages: [{ type: "text", text: "【預覽】新好友加入時會收到下面這則歡迎訊息；下方圖文選單也已上線。" }, msg] }));
+  if (v && v.getResponseCode() === 200 && !p.getProperty("WELCOME_PREVIEWED_2")) {
+    p.setProperty("WELCOME_PREVIEWED_2", "1");
+    json_(p.getProperty("LINE_USERS"), []).forEach(u => lineApi_("message/push", { to: u.id, messages: [{ type: "text", text: "【預覽】新版歡迎訊息（新好友加入時自動送出）" }].concat(msgs) }));
     res.sent = true;
   }
   return res;
