@@ -396,7 +396,7 @@ function placeOrder_(req) {
     cache.put("ord:" + c.phone, String(nPhone + 1), 3600);
     cache.put("ord:all", String(nAll + 1), 600);
     if (req.clientId) cache.put("ordc:" + req.clientId, "1", 3600);
-    if (!pay) lineNotifyOrder_(orderNo, "新訂單"); // 線上付款的單等付款成功才通知
+    if (!pay) lineNotifyOrder_(orderNo, "新訂單通知"); // 線上付款的單等付款成功才通知
     const res = { ok: true, orderNo: orderNo, total: q.total };
     if (pay) res.pay = ecpayForm_(rows_("orders").find(o => String(o.orderNo) === orderNo), pay);
     return res;
@@ -806,7 +806,7 @@ function ecpayReturn_(p) {
     }
     if (String(o.payStatus) !== "paid") {
       if (logiCfg_().auto) try { logiCreate_(String(o.orderNo)); } catch (err) {} // 付款成功自動建綠界寄件單，通知裡就有交貨便代號／託運單號
-      lineNotifyOrder_(String(o.orderNo), "已付款，請出貨");
+      lineNotifyOrder_(String(o.orderNo), "付款完成・待出貨");
     }
   } else if (String(o.payStatus) !== "paid" && !/^ATM/.test(String(p.PaymentType))) {
     setOrderField_(String(o.orderNo), { payStatus: "failed" });
@@ -863,9 +863,9 @@ function lineNotifyOrder_(orderNo, title) {
     const items = json_(o.items, []).map(i => "・" + i.name.replace(/^JXC 1\/43 迷你漂移遙控車｜/, "") + " ×" + i.qty).join("\n");
     const cvs = String(o.shipMethod).indexOf("7-11") === 0;
     const pay = /^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM 轉帳" : "未線上付款";
-    linePush_(["【赤貧軍團】" + title, "訂單 " + o.orderNo, items,
-      "金額 $" + Number(o.total).toLocaleString() + "（" + pay + "）",
-      "寄送：" + o.shipMethod + "・" + (Number(o.packages) || 1) + (cvs ? " 個交貨便" : " 箱宅急便"),
+    linePush_(["【赤貧軍團】" + title, "訂單編號：" + o.orderNo, items,
+      "金額：$" + Number(o.total).toLocaleString() + "（" + pay + "）",
+      "寄送方式：" + o.shipMethod + "・" + (Number(o.packages) || 1) + (cvs ? " 個交貨便" : " 箱宅急便"),
       "收件人：" + o.name + "　" + o.phone, (cvs ? "門市：" : "地址：") + o.address, o.note ? "備註：" + o.note : "",
       shipLines_(o),
       "開啟訂單／列印出貨單：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo].filter(Boolean).join("\n"));
@@ -885,7 +885,7 @@ function lineWebhook_(e) {
     if (!users.some(u => u.id === ev.source.userId)) users.push({ id: ev.source.userId, name: name });
     p.setProperty("LINE_USERS", JSON.stringify(users));
     CacheService.getScriptCache().remove("lineBind");
-    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "已綁定！之後有新訂單或付款成功，會在這裡通知你。" }] });
+    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "綁定完成。之後有新訂單或付款完成時，將於此通知您。" }] });
   });
   return ok;
 }
@@ -985,7 +985,7 @@ function welcomePush_(rec) {
     if (p.getProperty(k)) return;
     p.setProperty(k, "1");
     lineApi_("message/push", { to: rec.uid, messages: [{ type: "text", text:
-      "歡迎加入赤貧軍團會員" + (rec.name ? "，" + rec.name : "") + "！\n\n入會禮：" + w.label + "\n折扣碼：" + w.code +
+      "【赤貧軍團】歡迎加入會員\n" + (rec.name ? rec.name + " 您好，" : "您好，") + "感謝您加入赤貧軍團會員。\n\n入會禮：" + w.label + "\n折扣碼：" + w.code +
       (w.minSpend ? "\n使用條件：消費滿 $" + w.minSpend : "") + "\n每位會員限用一次，結帳時輸入折扣碼即可折抵。\n\n" + SHOP_PAGE }] });
   } catch (e) {}
 }
@@ -1301,15 +1301,15 @@ function logiReply_(q) {
     const key = "LGN_" + sh.id + "_" + (done ? "d" : arrived ? "a" : shipped ? "s" : back ? "b" + hash_(msg).slice(0, 6) : "");
     if (back && !PropertiesService.getScriptProperties().getProperty(key)) { // 退件、門市閉店等異常：通知管理者處理
       PropertiesService.getScriptProperties().setProperty(key, "1");
-      linePush_("【赤貧軍團】物流異常，請處理\n訂單 " + o.orderNo + "\n" + msg + "\n單號 " + sh.no + "\nhttps://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo);
+      linePush_("【赤貧軍團】物流異常通知\n訂單編號：" + o.orderNo + "\n物流狀態：" + msg + "\n物流單號：" + sh.no + "\n請盡速處理：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo);
     }
     const pp = PropertiesService.getScriptProperties();
     if ((shipped || arrived || done) && !pp.getProperty(key)) {
       pp.setProperty(key, "1");
       const cvs = sh.sub === "UNIMARTC2C";
-      if (shipped) push("【赤貧軍團】您的訂單 " + o.orderNo + " 已出貨\n" + (cvs ? "7-11 交貨便代號：" : "黑貓託運單號：") + sh.no + (cvs ? "\n商品到店後會再通知您取貨" : "\n可至黑貓宅急便官網查詢配送進度"));
-      if (arrived) push("【赤貧軍團】您的訂單 " + o.orderNo + " 已送達取貨門市\n" + String(o.address).replace(/（店號.*?）/, "") + "\n請攜帶證件於 7 天內取貨");
-      if (done) push("【赤貧軍團】訂單 " + o.orderNo + " 已完成取件，感謝您的支持！");
+      if (shipped) push("【赤貧軍團】出貨通知\n訂單編號：" + o.orderNo + "\n您訂購的商品已寄出。\n" + (cvs ? "7-11 交貨便代號：" : "黑貓宅急便託運單號：") + sh.no + (cvs ? "\n商品送達取貨門市後，將再次通知您。" : "\n可至黑貓宅急便官網查詢配送進度。"));
+      if (arrived) push("【赤貧軍團】到店通知\n訂單編號：" + o.orderNo + "\n商品已送達取貨門市：" + String(o.address).replace(/（店號.*?）/, "") + "\n請於 7 日內攜帶身分證件至門市取貨。");
+      if (done) push("【赤貧軍團】取件完成\n訂單編號：" + o.orderNo + "\n感謝您的訂購，期待再次為您服務。");
     }
   } catch (e) {}
   return text("1|OK");
@@ -1366,7 +1366,7 @@ function expireOrders_(force) {
       if (now < deadline) return;
       setOrderField_(String(o.orderNo), { status: "已取消" });
       releaseOrder_(o);
-      if (o.lineUid) try { lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: "【赤貧軍團】訂單 " + o.orderNo + " 因未於期限內完成付款，已自動取消。\n如仍需要，歡迎重新下單：" + SHOP_PAGE }] }); } catch (e) {}
+      if (o.lineUid) try { lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: "【赤貧軍團】訂單取消通知\n訂單編號：" + o.orderNo + "\n因未於付款期限內完成付款，本訂單已自動取消。\n如仍有需要，歡迎重新下單：" + SHOP_PAGE }] }); } catch (e) {}
     });
   } finally { lock.releaseLock(); }
 }
@@ -1442,11 +1442,11 @@ function welcomeFlex_(name, w) {
   const btn = (label, uri, primary) => ({ type: "button", style: primary ? "primary" : "secondary", color: primary ? "#D7261E" : undefined, height: "sm", action: { type: "uri", label: label, uri: uri } });
   const body = [
     { type: "text", text: "歡迎加入赤貧軍團", weight: "bold", size: "xl", color: "#1A2130" },
-    { type: "text", text: (name ? name + "，" : "") + "感謝您加入好友！新品上架、限時優惠與訂單出貨進度，都會在這裡第一時間通知您。", size: "sm", color: "#575D69", wrap: true, margin: "md" }];
+    { type: "text", text: (name ? name + " 您好，" : "您好，") + "感謝您加入赤貧軍團官方帳號。新品上架、優惠活動及訂單出貨進度，將於此即時通知您。", size: "sm", color: "#575D69", wrap: true, margin: "md" }];
   if (w) body.push({ type: "box", layout: "vertical", margin: "lg", paddingAll: "14px", cornerRadius: "10px", backgroundColor: "#FFF1EF", borderColor: "#D7261E", borderWidth: "1px", contents: [
     { type: "text", text: "入會禮　" + w.label, weight: "bold", size: "lg", color: "#D7261E" },
     { type: "text", text: "折扣碼 " + w.code + (w.minSpend ? "・滿 $" + w.minSpend + " 可用" : "") + "・限用一次", size: "xs", color: "#575D69", margin: "sm", wrap: true },
-    { type: "text", text: "以 LINE 登入賣場會員，結帳時即可使用", size: "xs", color: "#575D69", wrap: true }] });
+    { type: "text", text: "以 LINE 登入賣場會員後，結帳時即可使用", size: "xs", color: "#575D69", wrap: true }] });
   return { type: "flex", altText: "歡迎加入赤貧軍團" + (w ? "，入會禮 " + w.label + " 已送上" : ""), contents: { type: "bubble",
     hero: { type: "image", url: LINE_SITE + "media/welcome.jpg?v=1", size: "full", aspectRatio: "3:2", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
     body: { type: "box", layout: "vertical", contents: body },
