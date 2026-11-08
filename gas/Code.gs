@@ -78,6 +78,7 @@ function doGet(e) {
   const a = (e.parameter || {}).action;
   if (a === "catalog") return out_(catalog_());
   if (a === "ping") return out_({ ok: true });
+  if (a === "lineSetup") return out_(lineSetup_());
   if (a === "orderStatus") return out_(orderStatus_(e.parameter));
   if ((e.parameter || {}).cb === "linelogin") return lineLoginReturn_(e.parameter);
   if (a === "member") return out_(memberCheck_(e.parameter.mt));
@@ -873,6 +874,7 @@ function lineWebhook_(e) {
   const ok = ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
   let body; try { body = JSON.parse(e.postData.contents); } catch (err) { return ok; }
   const code = CacheService.getScriptCache().get("lineBind");
+  (body.events || []).forEach(ev => { try { lineEvent_(ev); } catch (err) {} });
   (body.events || []).forEach(ev => {
     if (!code || ev.type !== "message" || !ev.message || ev.message.type !== "text") return;
     if (String(ev.message.text).trim() !== code || !ev.source || !ev.source.userId) return;
@@ -1378,4 +1380,78 @@ function logiCostOf_(o) {
   const list = json_(o.shipments, []), cvs = String(o.shipMethod) === SHIP_CVS;
   if (list.length) return list.reduce((a, x) => a + (Number(x.cost) || logiFee_(x.sub === "UNIMARTC2C")), 0);
   return (Number(o.packages) || 1) * logiFee_(cvs);
+}
+
+
+/* ───────────── LINE 官方帳號：歡迎詞、客服、圖文選單（2026-11-08）─────────────
+   歡迎詞：加好友（follow 事件）時回覆一張卡片（主視覺、入會禮、按鈕）；官方帳號後台內建的「加入好友的歡迎訊息」已關閉，避免重複。
+   客服：圖文選單「聯絡客服」送出固定文字 → 自動回覆客人，並推播通知管理者到官方帳號後台回覆。
+   圖文選單：?action=lineSetup 只會建立一次（RICHMENU_V 記版本；改版就把 RICH_VER 加一），圖在網站 media/richmenu.jpg。
+   follow／message 事件的 replyToken 只有 LINE 真的發出的才能用，所以偽造的請求不會讓我們亂發訊息。 */
+const LINE_SITE = "https://linpoyes.github.io/lipo-guide/";
+const UTM = "?utm_source=LINE&utm_medium=oa";
+const CS_TEXT = "我要聯絡客服";
+function lineEvent_(ev) {
+  const uid = ev.source && ev.source.userId; if (!uid || !ev.replyToken) return;
+  if (ev.type === "follow") {
+    let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
+    const w = welcomeInfo_();
+    if (w) PropertiesService.getScriptProperties().setProperty("WELCOMED_" + hash_(uid), "1"); // 歡迎卡片已含入會禮，LINE 登入時不再重送
+    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [welcomeFlex_(name, w)] });
+    return;
+  }
+  if (ev.type === "message" && ev.message && ev.message.type === "text" && String(ev.message.text).trim() === CS_TEXT) {
+    let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
+    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好" + (name ? " " + name : "") + "，已為您通知客服人員，將盡快在這裡回覆。\n\n詢問訂單請附上訂單編號；詢問商品請告訴我們商品名稱或截圖，可以更快為您處理。" }] });
+    linePush_("【赤貧軍團】客人需要客服\n" + (name || "LINE 使用者") + " 按了「聯絡客服」\n請到 LINE 官方帳號後台的「聊天」回覆：https://chat.line.biz/");
+  }
+}
+function welcomeFlex_(name, w) {
+  const btn = (label, uri, primary) => ({ type: "button", style: primary ? "primary" : "secondary", color: primary ? "#D7261E" : undefined, height: "sm", action: { type: "uri", label: label, uri: uri } });
+  const body = [
+    { type: "text", text: "歡迎加入赤貧軍團", weight: "bold", size: "xl", color: "#1A2130" },
+    { type: "text", text: (name ? name + "，" : "") + "感謝您加入好友！新品上架、限時優惠與訂單出貨進度，都會在這裡第一時間通知您。", size: "sm", color: "#575D69", wrap: true, margin: "md" }];
+  if (w) body.push({ type: "box", layout: "vertical", margin: "lg", paddingAll: "14px", cornerRadius: "10px", backgroundColor: "#FFF1EF", borderColor: "#D7261E", borderWidth: "1px", contents: [
+    { type: "text", text: "入會禮　" + w.label, weight: "bold", size: "lg", color: "#D7261E" },
+    { type: "text", text: "折扣碼 " + w.code + (w.minSpend ? "・滿 $" + w.minSpend + " 可用" : "") + "・限用一次", size: "xs", color: "#575D69", margin: "sm", wrap: true },
+    { type: "text", text: "以 LINE 登入賣場會員，結帳時即可使用", size: "xs", color: "#575D69", wrap: true }] });
+  return { type: "flex", altText: "歡迎加入赤貧軍團" + (w ? "，入會禮 " + w.label + " 已送上" : ""), contents: { type: "bubble",
+    hero: { type: "image", url: LINE_SITE + "banner.jpg", size: "full", aspectRatio: "20:9", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
+    body: { type: "box", layout: "vertical", contents: body },
+    footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
+      btn(w ? "登入會員・領取入會禮" : "登入會員", SHOP_PAGE + UTM + "#member", true), btn("逛賣場", SHOP_PAGE + UTM), btn("電池充電計算", LINE_SITE + UTM + "#calc")] } } };
+}
+const RICH_VER = "1";
+function lineSetup_() {
+  const p = PropertiesService.getScriptProperties();
+  if (p.getProperty("RICHMENU_V") === RICH_VER) return { ok: true, done: true, result: p.getProperty("RICHMENU_RESULT") || "" };
+  p.setProperty("RICHMENU_V", RICH_VER);
+  const tk = p.getProperty("LINE_TOKEN"); if (!tk) return { ok: false, error: "no token" };
+  const H = { Authorization: "Bearer " + tk };
+  const W = 2500, Hh = 1686, cw = Math.floor(W / 3), rh = Math.floor(Hh / 2);
+  const area = (c, r, action) => ({ bounds: { x: c * cw, y: r * rh, width: c === 2 ? W - 2 * cw : cw, height: r === 1 ? Hh - rh : rh }, action: action });
+  const uri = (label, u) => ({ type: "uri", label: label, uri: u });
+  const menu = { size: { width: W, height: Hh }, selected: true, name: "赤貧軍團主選單 v" + RICH_VER, chatBarText: "選單", areas: [
+    area(0, 0, uri("逛賣場", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu")),
+    area(1, 0, uri("新品上架", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu#new")),
+    area(2, 0, uri("入會禮", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu#member")),
+    area(0, 1, uri("我的訂單", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu#orders")),
+    area(1, 1, uri("電池充電", LINE_SITE + "?utm_source=LINE&utm_medium=richmenu#calc")),
+    area(2, 1, { type: "message", label: "聯絡客服", text: CS_TEXT })] };
+  const log = [];
+  try {
+    const old = p.getProperty("RICHMENU_ID");
+    const c = UrlFetchApp.fetch("https://api.line.me/v2/bot/richmenu", { method: "post", contentType: "application/json", headers: H, payload: JSON.stringify(menu), muteHttpExceptions: true });
+    log.push("create " + c.getResponseCode());
+    const id = JSON.parse(c.getContentText()).richMenuId; if (!id) throw new Error(c.getContentText().slice(0, 200));
+    const img = UrlFetchApp.fetch(LINE_SITE + "media/richmenu.jpg?v=" + RICH_VER).getBlob().getBytes();
+    const u = UrlFetchApp.fetch("https://api-data.line.me/v2/bot/richmenu/" + id + "/content", { method: "post", contentType: "image/jpeg", headers: H, payload: img, muteHttpExceptions: true });
+    log.push("image " + u.getResponseCode());
+    const d = UrlFetchApp.fetch("https://api.line.me/v2/bot/user/all/richmenu/" + id, { method: "post", headers: H, muteHttpExceptions: true });
+    log.push("default " + d.getResponseCode());
+    p.setProperty("RICHMENU_ID", id);
+    if (old && old !== id) { const x = UrlFetchApp.fetch("https://api.line.me/v2/bot/richmenu/" + old, { method: "delete", headers: H, muteHttpExceptions: true }); log.push("delete old " + x.getResponseCode()); }
+  } catch (e) { log.push("error " + String(e.message || e).slice(0, 200)); p.deleteProperty("RICHMENU_V"); }
+  p.setProperty("RICHMENU_RESULT", log.join(", "));
+  return { ok: true, result: log.join(", ") };
 }

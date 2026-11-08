@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-XRWSvVP0JOiE7FbYyI5uAiGKucgof/dE8w4BBk8I6F0='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-qpZm25T88pOGubUTH8xDzOIKQAznbA+DFW5TxFFQFd4='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611081459">
+<meta name="build" content="202611081503">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
@@ -531,9 +531,9 @@ input,select,textarea{font-size:max(16px,1em)}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611081459"></script>
-<script src="shop-core.js?v=202611081459"></script>
-<script src="tw-zip.js?v=202611081459"></script>
+<script src="track.js?v=202611081503"></script>
+<script src="shop-core.js?v=202611081503"></script>
+<script src="tw-zip.js?v=202611081503"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -1300,6 +1300,10 @@ api(null, {tries: 3, timeout: 45000}).then(async d => {
   if (lineBack && member && !lsGet("cp-afterlogin", "")) openMember("coupons"); // 登入完直接看到入會禮與會員權益
   if (lsGet("cp-afterlogin", "") && cart.length) { lsSet("cp-afterlogin", ""); step = "form"; drawCart(); open("cSheet"); refreshQuote(); }
   if (location.hash.startsWith("#paid=")) { const no = location.hash.slice(6); history.replaceState(null, "", location.pathname); showPaid(no); }
+  // LINE 圖文選單／歡迎卡片的捷徑：#member 會員中心（有入會禮就開優惠券）、#orders 我的訂單、#new 新品
+  const hs = location.hash;
+  if (/^#(member|orders|coupons)$/.test(hs)) { history.replaceState(null, "", location.pathname); openMember(hs === "#member" ? (member && member.friend ? "coupons" : undefined) : hs.slice(1)); }
+  if (hs === "#new") { history.replaceState(null, "", location.pathname); const nb = document.querySelector('[data-sort="new"]'); if (nb) nb.click(); setTimeout(() => $("grid").scrollIntoView({behavior: "smooth", block: "start"}), 300); }
   // 從 7-11 電子地圖回來：#store={id,name,addr} → 存起來、回到填寫資料那一步
   if (location.hash.startsWith("#store=")) {
     try { store = JSON.parse(decodeURIComponent(location.hash.slice(7))); lsSet("cp-store", store); ship = SHIP_CVS; lsSet("cp-ship", ship); } catch (e) {}
