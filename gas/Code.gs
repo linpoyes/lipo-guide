@@ -15,15 +15,19 @@ const SHEETS = {
   products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note", "member"],
-  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments"],
+  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments", "restocked"],
   settings: ["key", "value"],
   // 流量（2026-11-08）：前台 track.js 送來的事件，一列一筆；ts＝台北時間 yyyy-MM-dd HH:mm:ss
   traffic:  ["ts", "vid", "sid", "type", "page", "pid", "q", "n", "src", "ref", "dev", "os"],
   // LINE 會員名冊：登入時寫入／更新（uid＝LINE userId）
   members:  ["uid", "name", "pic", "friend", "firstAt", "lastAt", "logins"],
+  // 其他支出（報表拆帳用；scope＝all 全部商品分攤，或貨主名稱只攤該貨主）
+  expenses: ["id", "date", "item", "amount", "note", "scope"],
+  // 綠界物流貨態回報原始紀錄（核對貨態判斷用）
+  logilog:  ["ts", "orderNo", "id", "code", "msg"],
 };
 // 試算表分頁的中文名稱（給使用者自己打開試算表時看得懂）
-const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定", traffic: "流量", members: "會員" };
+const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定", traffic: "流量", members: "會員", expenses: "支出", logilog: "物流紀錄" };
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 // ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
@@ -36,6 +40,8 @@ const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lin
   pointsOn: "TRUE", pointRate: "100", pointMaxPct: "50",
   // 綠界物流（2026-11-08）：寄件人資料、預設材積（0001=60cm…0004=150cm）、付款後自動建寄件單、測試模式
   logiOn: "FALSE", logiStage: "TRUE", logiAuto: "TRUE", senderName: "", senderPhone: "", senderZip: "", senderAddr: "", logiSize: "0001",
+  // 物流成本（未稅，綠界一般會員 2026-11 公告；記帳時 ×1.05）：交貨便每件、黑貓 60/90/120/150cm
+  logiFeeCvs: "65", logiFeeHome: "130,170,210,250",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
   //   信用卡一次付清 2.75%、每筆最低 5 元，另加訂單處理費 1 元（含稅）；ATM 虛擬帳號 1%、每筆最低 15 元
   feeCardPct: "2.75", feeCardMin: "5", feeCardOrder: "1", feeAtmPct: "1", feeAtmMin: "15",
@@ -226,8 +232,20 @@ function migrate_() {
     upsert_("codes", "code", { code: "WELCOME50", type: "amount", value: "50", minSpend: "0", startAt: "", endAt: "", limit: "0", used: "0", active: "TRUE", note: "LINE 入會禮", member: "TRUE" });
   if (!String(getSettings_().welcomeCode || "")) setSetting_("welcomeCode", "WELCOME50");
 }
+// 2026-11-08：AE86 加一張繁體中文版的「配件內容」圖（原圖簡體，重製後放網站 media/），排第 2 張
+function migrateAe86_() {
+  const p = PropertiesService.getScriptProperties();
+  if (p.getProperty("MIG_AE86PACK")) return;
+  p.setProperty("MIG_AE86PACK", "1");
+  const r = rows_("products").find(x => /AE86/.test(String(x.name))); if (!r) return;
+  const imgs = json_(r.images, []), src = "media/ae86-pack.jpg";
+  if (imgs.indexOf(src) >= 0) return;
+  imgs.splice(Math.min(1, imgs.length), 0, src);
+  upsert_("products", "id", { id: String(r.id), images: JSON.stringify(imgs), updatedAt: new Date().toISOString() });
+}
 function catalog_() {
-  migrate_();
+  migrate_(); migrateAe86_();
+  try { expireOrders_(); } catch (e) {}
   const bySort = (a, b) => a.sort - b.sort;
   const s = getSettings_();
   return {
@@ -398,7 +416,7 @@ const ROLES = { owner: "超級管理員", staff: "營運", shipper: "出貨", vi
    超級管理員（owner）永遠全部權限，另外獨有：帳號管理、重設他人密碼。
    其他帳號＝角色預設（ROLE_PERMS）或「自訂」逐項勾選（USERS[name].perms）。前端 PERMS 要跟這裡一致。 */
 const PERMS = [
-  ["營運總覽", [["dash", "儀表板", ["admin_dashboard"]], ["report", "報表與拆帳", ["admin_orders"]]]],
+  ["營運總覽", [["dash", "儀表板", ["admin_dashboard"]], ["report", "報表與拆帳", ["admin_orders", "admin_expenses"]], ["expense", "登錄其他支出", ["admin_expenses", "admin_saveExpense", "admin_deleteExpense"]]]],
   ["訂單", [["orders", "查看訂單", ["admin_orders"]], ["ship", "出貨處理（狀態、寄件單、列印）", ["admin_orderStatus", "admin_logiCreate", "admin_logiPrint"]],
             ["pay", "標記付款", ["admin_orderStatus"]], ["orderDel", "刪除訂單", ["admin_deleteOrder"]]]],
   ["商品與行銷", [["products", "商品", ["admin_saveProduct", "admin_deleteProduct", "admin_upload", "admin_trashFile"]],
@@ -531,14 +549,14 @@ const ADMIN = {
     if (u[name].role === "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個超級管理員");
     delete u[name]; saveUsers_(u); revokeUser_(name);
   },
-  admin_orders: () => ({
+  admin_orders: () => (expireOrders_(true), {
     orders: rows_("orders").map(o => ({
       orderNo: String(o.orderNo), createdAt: String(o.createdAt), name: String(o.name), phone: String(o.phone),
       line: String(o.line), shipMethod: String(o.shipMethod), address: String(o.address), note: String(o.note),
       items: json_(o.items, []), subtotal: Number(o.subtotal), tierSaving: Number(o.tierSaving), code: String(o.code),
       codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), packages: Number(o.packages) || 1, total: Number(o.total),
       status: String(o.status), payStatus: String(o.payStatus), lineName: String(o.lineName || ""), lineUid: String(o.lineUid || ""), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
-      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""), pointsUsed: Number(o.pointsUsed) || 0, shipments: json_(o.shipments, []),
+      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""), pointsUsed: Number(o.pointsUsed) || 0, shipments: json_(o.shipments, []), logiCost: logiCostOf_(o),
     })).reverse(),
   }),
   admin_saveProduct: r => {
@@ -585,8 +603,25 @@ const ADMIN = {
     if (!has_(r.me, r.field === "payStatus" ? "pay" : "ship")) throw new Error("此帳號沒有權限");
     const nos = r.orderNos || [r.orderNo];
     const sh = sheet_("orders"), col = SHEETS.orders.indexOf(r.field === "payStatus" ? "payStatus" : "status") + 1;
-    rows_("orders").forEach(o => { if (nos.indexOf(String(o.orderNo)) >= 0) sh.getRange(o._row, col).setNumberFormat("@").setValue(String(r.value)); });
+    rows_("orders").forEach(o => {
+      if (nos.indexOf(String(o.orderNo)) < 0) return;
+      sh.getRange(o._row, col).setNumberFormat("@").setValue(String(r.value));
+      // 改成已取消＝退回庫存與折扣碼次數；從已取消改回來＝重新扣
+      if (r.field !== "payStatus" && String(r.value) === "已取消" && String(o.status) !== "已取消") releaseOrder_(o);
+      if (r.field !== "payStatus" && String(r.value) !== "已取消" && String(o.status) === "已取消") reclaimOrder_(o);
+    });
   },
+  admin_expenses: () => ({ expenses: rows_("expenses").map(x => ({ id: String(x.id), date: String(x.date), item: String(x.item), amount: Number(x.amount) || 0, note: String(x.note || ""), scope: String(x.scope || "all") })) }),
+  admin_saveExpense: r => {
+    const x = r.expense || {}, amt = Math.round(Number(x.amount) || 0);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(x.date || ""))) throw new Error("請選擇日期");
+    if (!String(x.item || "").trim()) throw new Error("請填寫項目");
+    if (!(amt > 0)) throw new Error("金額需大於 0");
+    const id = x.id || "e" + Date.now().toString(36);
+    upsert_("expenses", "id", { id: id, date: x.date, item: String(x.item).trim().slice(0, 40), amount: String(amt), note: String(x.note || "").slice(0, 100), scope: String(x.scope || "all").slice(0, 40) });
+    return { id: id };
+  },
+  admin_deleteExpense: r => { remove_("expenses", "id", r.id); },
   // 一次性設定 GitHub 權杖（只存在指令碼屬性，不進版控）；需要 repo contents 寫入權限
   admin_setGithubToken: r => { PropertiesService.getScriptProperties().setProperty("GH_TOKEN", String(r.ghToken || "")); },
   admin_deleteOrder: r => { remove_("orders", "orderNo", r.orderNo); },
@@ -622,11 +657,11 @@ const ADMIN = {
   admin_lineTest: () => { const n = linePush_("【赤貧軍團】LINE 通知測試成功"); if (!n) throw new Error("沒有已綁定的 LINE 或權杖無效"); return { sent: n }; },
   admin_saveSettings: r => {
     const s = r.settings || {};
-    const integ = ["logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize"];
+    const integ = ["logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome"];
     const keys = Object.keys(s);
     if (keys.some(k => integ.indexOf(k) >= 0) && !has_(r.me, "integrations")) throw new Error("此帳號沒有權限");
     if (keys.some(k => integ.indexOf(k) < 0) && !has_(r.me, "settings")) throw new Error("此帳號沒有權限");
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
@@ -764,6 +799,9 @@ function ecpayReturn_(p) {
     const amt = Number(p.TradeAmt) || Number(o.total);
     setOrderField_(String(o.orderNo), { payStatus: "paid", payMethod: String(p.PaymentType || o.payMethod), payFee: String(payFee_(String(p.PaymentType || o.payMethod), amt)),
       paidAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm") });
+    if (String(o.status) === "已取消" && String(o.restocked) === "TRUE") { // 逾期取消後才付款成功：恢復訂單、重新扣庫存
+      reclaimOrder_(o); setOrderField_(String(o.orderNo), { status: "新訂單" });
+    }
     if (String(o.payStatus) !== "paid") {
       if (logiCfg_().auto) try { logiCreate_(String(o.orderNo)); } catch (err) {} // 付款成功自動建綠界寄件單，通知裡就有交貨便代號／託運單號
       lineNotifyOrder_(String(o.orderNo), "已付款，請出貨");
@@ -1218,7 +1256,7 @@ function logiCreate_(orderNo, again) {
     if (res.indexOf("1|") !== 0) { if (list.length) break; throw new Error("綠界建單失敗：" + res.replace(/^0\|/, "").slice(0, 120)); }
     const r = {}; res.slice(2).split("&").forEach(kv => { const j = kv.indexOf("="); r[kv.slice(0, j)] = kv.slice(j + 1); });
     list.push({ id: r.AllPayLogisticsID, no: cvs ? r.CVSPaymentNo + (r.CVSValidationNo || "") : r.BookingNote, pno: r.CVSPaymentNo || "", vno: r.CVSValidationNo || "",
-      sub: cvs ? "UNIMARTC2C" : "TCAT", trade: p.MerchantTradeNo, at: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm"), st: r.RtnMsg || "", stage: cfg.stage });
+      sub: cvs ? "UNIMARTC2C" : "TCAT", trade: p.MerchantTradeNo, cost: logiFee_(cvs, cvs ? "" : base.Specification, !cvs && base.Distance === "02"), at: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm"), st: r.RtnMsg || "", stage: cfg.stage });
   }
   setOrderField_(orderNo, { shipments: JSON.stringify(list) });
   return list;
@@ -1242,18 +1280,24 @@ function logiReply_(q) {
   if (!o) return text("1|OK");
   const list = json_(o.shipments, []), sh = list.find(s => String(s.id) === String(p.AllPayLogisticsID));
   const msg = String(p.RtnMsg || ""); sh.st = msg; sh.code = String(p.RtnCode || ""); sh.upd = String(p.UpdateStatusDate || "");
+  try { const lg = sheet_("logilog"); lg.getRange(lg.getLastRow() + 1, 1, 1, 5).setNumberFormat("@").setValues([[ts_(new Date()), String(o.orderNo), String(sh.id), sh.code, safeCell_(msg)]]); } catch (e) {}
   const upd = { shipments: JSON.stringify(list) };
-  const back = /退|拒收|未取|逾期|異常|遺失|取消/.test(msg);
-  const done = !back && /取件成功|已取件|取貨成功|配達完成|已配達|順利送達|簽收/.test(msg);
-  const arrived = !back && !done && /到店|配達.*門市|抵達.*門市|已到/.test(msg);
-  const shipped = !back && !done && !arrived && /收件|已寄件|配送中|出貨|轉運|集貨|出庫/.test(msg);
+  // 綠界沒有公開完整貨態代碼表（各處說法矛盾），以訊息文字判斷；原始回報都記在「物流紀錄」分頁供核對
+  const back = /退|拒收|未取|逾期|異常|遺失|取消|閉店|無法/.test(msg);
+  const done = !back && /(成功|已)取(件|貨)|取(件|貨)成功|到店取(件|貨)|順利送達|配達完成|已配達(?!.*門市)|簽收/.test(msg);
+  const arrived = !back && !done && /取貨門市|取件門市|送達門市|到達門市|抵達門市|已到店|配達.*門市/.test(msg);
+  const shipped = !back && !done && !arrived && /寄件|收件|配送中|出貨|轉運|集貨|出庫|物流中心|運送中/.test(msg);
   const st = String(o.status), uid = String(o.lineUid || "");
   const push = t => { if (uid) lineApi_("message/push", { to: uid, messages: [{ type: "text", text: t }] }); };
   if (done && st !== "已完成" && st !== "已取消") upd.status = "已完成";
   if ((shipped || arrived) && (st === "新訂單" || st === "已確認")) upd.status = "已出貨";
   setOrderField_(String(o.orderNo), upd);
   try {
-    const key = "LGN_" + sh.id + "_" + (done ? "d" : arrived ? "a" : shipped ? "s" : "");
+    const key = "LGN_" + sh.id + "_" + (done ? "d" : arrived ? "a" : shipped ? "s" : back ? "b" + hash_(msg).slice(0, 6) : "");
+    if (back && !PropertiesService.getScriptProperties().getProperty(key)) { // 退件、門市閉店等異常：通知管理者處理
+      PropertiesService.getScriptProperties().setProperty(key, "1");
+      linePush_("【赤貧軍團】物流異常，請處理\n訂單 " + o.orderNo + "\n" + msg + "\n單號 " + sh.no + "\nhttps://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo);
+    }
     const pp = PropertiesService.getScriptProperties();
     if ((shipped || arrived || done) && !pp.getProperty(key)) {
       pp.setProperty(key, "1");
@@ -1269,4 +1313,69 @@ function shipLines_(o) {
   const list = json_(o.shipments, []); if (!list.length) return "";
   const cvs = list[0].sub === "UNIMARTC2C";
   return (cvs ? "交貨便代號：" : "黑貓託運單號：") + list.map(s => s.no).join("、") + (list[0].stage ? "（測試）" : "");
+}
+
+
+/* ───────────── 逾期未付款自動取消、退回庫存（2026-11-08）─────────────
+   下單當下就扣庫存（避免超賣），所以沒付款的單要放掉：
+     付款失敗 → 30 分鐘後取消；信用卡待付款 → 2 小時；ATM → 繳費期限過後 1 小時（沒取到帳號比照 2 小時）
+   取消時退回庫存與折扣碼次數，restocked＝TRUE 防止重複；之後若綠界仍通知付款成功（reclaimOrder_）會恢復訂單並重新扣庫存。
+   檢查時機：賣場載入型錄、後台讀訂單時順便做，10 分鐘最多一次（不需要額外授權觸發器）。 */
+function adjustStock_(items, sign) {
+  const sh = sheet_("products"), col = SHEETS.products.indexOf("stock") + 1;
+  rows_("products").forEach(r => {
+    const qty = items.filter(i => String(i.id) === String(r.id)).reduce((a, i) => a + (Number(i.qty) || 0), 0);
+    if (qty && r.stock !== "" && Number(r.stock) >= 0) sh.getRange(r._row, col).setNumberFormat("@").setValue(String(Math.max(0, Number(r.stock) + sign * qty)));
+  });
+}
+function adjustCode_(code, sign) {
+  if (!code) return;
+  const cr = rows_("codes").find(x => String(x.code) === String(code));
+  if (cr) sheet_("codes").getRange(cr._row, SHEETS.codes.indexOf("used") + 1).setNumberFormat("@").setValue(String(Math.max(0, (Number(cr.used) || 0) + sign)));
+}
+function releaseOrder_(o) {
+  if (String(o.restocked) === "TRUE") return;
+  adjustStock_(json_(o.items, []), +1); adjustCode_(String(o.code || ""), -1);
+  setOrderField_(String(o.orderNo), { restocked: "TRUE" });
+}
+function reclaimOrder_(o) {
+  if (String(o.restocked) !== "TRUE") return;
+  adjustStock_(json_(o.items, []), -1); adjustCode_(String(o.code || ""), +1);
+  setOrderField_(String(o.orderNo), { restocked: "" });
+}
+function expireOrders_(force) {
+  const cache = CacheService.getScriptCache();
+  if (!force && cache.get("expchk")) return;
+  cache.put("expchk", "1", 600);
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return;
+  try {
+    const now = Date.now(), t = s => Date.parse(String(s).replace(" ", "T") + ":00+08:00") || 0;
+    rows_("orders").forEach(o => {
+      const ps = String(o.payStatus);
+      if (String(o.status) === "已取消" || (ps !== "awaiting" && ps !== "failed")) return;
+      const made = t(o.createdAt); if (!made) return;
+      let deadline;
+      if (ps === "failed") deadline = made + 30 * 60000;
+      else if (/^ATM/.test(String(o.payMethod)) && o.vaExpire) deadline = (Date.parse(String(o.vaExpire).replace(/\//g, "-").slice(0, 10) + "T23:59:59+08:00") || made + 3 * 86400000) + 3600000;
+      else deadline = made + 2 * 3600000;
+      if (now < deadline) return;
+      setOrderField_(String(o.orderNo), { status: "已取消" });
+      releaseOrder_(o);
+      if (o.lineUid) try { lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: "【赤貧軍團】訂單 " + o.orderNo + " 因未於期限內完成付款，已自動取消。\n如仍需要，歡迎重新下單：" + SHOP_PAGE }] }); } catch (e) {}
+    });
+  } finally { lock.releaseLock(); }
+}
+
+/* ───────────── 物流成本（報表用，2026-11-08）─────────────
+   已建綠界寄件單：用建單當下記的 cost；沒建單（手動寄）：依包裹數與設定費率估算。費率未稅，×1.05 營業稅。 */
+function logiFee_(cvs, spec, island) {
+  const s = getSettings_(), tax = v => Math.round((Number(v) || 0) * 1.05);
+  if (cvs) return tax(s.logiFeeCvs || 65);
+  const list = String(s.logiFeeHome || "130,170,210,250").split(",").map(Number), i = Math.max(0, ["0001", "0002", "0003", "0004"].indexOf(spec || s.logiSize || "0001"));
+  return tax((list[i] || list[0] || 130) + (island ? 90 : 0));
+}
+function logiCostOf_(o) {
+  const list = json_(o.shipments, []), cvs = String(o.shipMethod) === SHIP_CVS;
+  if (list.length) return list.reduce((a, x) => a + (Number(x.cost) || logiFee_(x.sub === "UNIMARTC2C")), 0);
+  return (Number(o.packages) || 1) * logiFee_(cvs);
 }
