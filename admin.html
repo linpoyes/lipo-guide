@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-6A/RuPcX1v1TyGIiQGIgWpQIrM4EY6UbXug75RXSNkc='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-XKA13hCbNJG8AMeb7GdgRx6AYE4GkYYk8MRa3q8PXPs='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611081532">
+<meta name="build" content="202611081534">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -233,7 +233,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611081532"></script>
+<script src="shop-core.js?v=202611081534"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -430,7 +430,7 @@ async function drawOrders() {
 /* 寄件資料：每一欄點一下就複製，貼進黑貓宅急便／7-11 交貨便的對應欄位 */
 function shipFields(o) {
   const goods = o.items.map(i => (i.name.replace(/^.*?[｜|]\s*/, "") || i.name) + (i.qty > 1 ? "×" + i.qty : "")).join("、");
-  const name = goods.length > 20 ? goods.slice(0, 19) + "…" : goods; // 品名欄位短，過長截斷
+  const name = goods.length > 30 ? goods.slice(0, 29) + "…" : goods; // 品名欄位短，過長截斷
   if (o.shipMethod.startsWith("7-11")) {
     const m = o.address.match(/^7-11 (.+?)門市（店號 (\w*)）(.*)$/) || [];
     return [["收件人", o.name], ["手機", o.phone], ["門市", m[1] ? m[1] + "門市" : o.address], ["店號", m[2] || ""], ["包裹數", `${o.packages || 1} 個交貨便`], ["品名", name]];
