@@ -2,10 +2,10 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-17uf+9jpXelcc+diSrd1aG/qAhijL1rHC/F/dzyT+9M='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-RJzYcv/eQUFKvexZzUomcGyoQRidiqduN1aZWDdykq0='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611081520">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="build" content="202611081524">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
 <link rel="icon" type="image/png" href="favicon.png?v=2">
@@ -197,6 +197,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 /* 2026-11-08：iPhone 點到小於 16px 的輸入框會自動放大，放大後整頁可以左右滑——輸入框一律 16px；
    連點不觸發雙擊縮放；任何內容都不可撐出橫向捲動 */
 html{touch-action:manipulation}
+html{overflow-x:hidden}
 html,body{overflow-x:clip;max-width:100%}
 input,select,textarea,.f input,.f select,.f textarea{font-size:16px}
 main,.card,.dgrid>*{min-width:0}
@@ -223,7 +224,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611081520"></script>
+<script src="shop-core.js?v=202611081524"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -250,8 +251,9 @@ function logout() { token = ""; lsSet("cp-admin", ""); drawLogin(); }
 function drawLogin() {
   $("app").innerHTML = `<div class="wrap login"><img src="badge.png?v=1" alt=""><h1>管理後台</h1><div style="color:var(--dim);font-weight:700">赤貧軍團</div>
     <form class="card" id="loginForm">
-      <div class="f"><label for="lu">帳號</label><input id="lu" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required></div>
-      <div class="f"><label for="lp">密碼</label><input id="lp" type="password" autocomplete="current-password" required></div>
+      <div class="f"><label for="lu">帳號</label><input id="lu" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required value="${esc(lsGet("cp-admin-user", ""))}"></div>
+      <div class="f"><label for="lp">密碼</label><input id="lp" name="password" type="password" autocomplete="current-password" required></div>
+      <label class="check" style="margin-top:0"><input type="checkbox" id="lrem" ${lsGet("cp-admin-rem", true) ? "checked" : ""}>記住帳號</label>
       <div class="err" id="lerr"></div>
       <button class="btn" style="width:100%" id="lbtn">登入</button>
     </form><p><a href="shop.html" style="color:var(--dim);font-size:13px">返回賣場</a></p></div>`;
@@ -264,6 +266,9 @@ function drawLogin() {
         const half = v => v.normalize("NFKC").trim();
         const r = await api({action: "login", user: half($("lu").value), pass: half($("lp").value)});
         token = r.token; lsSet("cp-admin", token);
+        // 記住帳號（11-08 使用者）：只存帳號名稱；密碼交給瀏覽器的密碼管理（支援的瀏覽器會詢問是否儲存）
+        lsSet("cp-admin-rem", $("lrem").checked); lsSet("cp-admin-user", $("lrem").checked ? half($("lu").value) : "");
+        try { if (window.PasswordCredential) navigator.credentials.store(new PasswordCredential({id: half($("lu").value), password: $("lp").value})); } catch (e) {}
         lsSet("cp-default-pw", r.isDefault ? "1" : "");
         await loadAll(); drawApp(); await openFromHash();
       } catch (err) { $("lerr").textContent = err.message; }
@@ -932,6 +937,8 @@ function drawSettings() {
         <div class="f"><label for="spM">單筆最多折抵 %</label><input id="spM" type="number" inputmode="numeric" value="${esc(s.pointMaxPct || 50)}"></div></div>
       <span class="note" style="display:block;margin:-4px 0 10px">1 點折抵 $1；已付款訂單才給點，取消或付款失敗自動收回</span>
       <div class="f"><label for="swc">LINE 入會禮</label><select id="swc"><option value="">不送</option>${data.codes.map(c => `<option value="${esc(c.code)}" ${String(s.welcomeCode || "").toUpperCase() === c.code.toUpperCase() ? "selected" : ""}>${esc(c.code)}・${c.type === "amount" ? "折 $" + c.value : "打 " + (100 - c.value) + " 折"}${c.minSpend ? "・滿 $" + c.minSpend : ""}${c.active ? "" : "（未啟用）"}</option>`).join("")}</select><span class="note">LINE 登入＋加好友即送，自動傳到會員的 LINE；每位會員限用一次</span>
+        <div class="f2" style="margin-top:8px"><div class="f"><label for="swd">有效天數（自領取起算）</label><input id="swd" type="number" inputmode="numeric" value="${esc(s.welcomeDays || 30)}"></div>
+          <div class="f"><label for="swr">到期前幾天提醒</label><input id="swr" type="number" inputmode="numeric" value="${esc(s.welcomeRemind || 3)}"></div></div>
         ${has("codes") ? '<button type="button" class="btn ghost" data-newcode style="margin-top:6px;height:38px;flex:none">＋ 建立新的折扣碼</button>' : ""}</div>
       <div class="err" id="serr"></div><div class="btns"><button class="btn" id="sSave">儲存設定</button></div></div>
     </section><section data-sec="pay" ${st === "pay" ? "" : "hidden"}>
@@ -991,7 +998,7 @@ function drawSettings() {
     await loadAll(); toast("已儲存"); drawSettings();
   }).catch(err => $("lgErr").textContent = err.message);
   $("sSave").onclick = e => busy(e.target, async () => {
-    await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim(), welcomeCode: $("swc").value, hotWords: $("shw").value.trim(), pointsOn: $("spOn").checked ? "TRUE" : "FALSE", pointRate: Number($("spR").value) || 100, pointMaxPct: Number($("spM").value) || 50}});
+    await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim(), welcomeCode: $("swc").value, welcomeDays: String(Math.max(1, Number($("swd").value) || 30)), welcomeRemind: String(Math.max(1, Number($("swr").value) || 3)), hotWords: $("shw").value.trim(), pointsOn: $("spOn").checked ? "TRUE" : "FALSE", pointRate: Number($("spR").value) || 100, pointMaxPct: Number($("spM").value) || 50}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
   if (has("integrations") && st === "pay") admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {

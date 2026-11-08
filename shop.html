@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-be+tboGHLI3m4Ja76PZeNseVtB1loJDXtJ804ZX2nkw='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-25MhWF8ma2f4xGcbmmsl1hVMeu7kP1k/kI1vN9BtyYE='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611081520">
+<meta name="build" content="202611081524">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 (function(){try{
@@ -18,7 +18,7 @@
   location.replace("https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=2012457738&redirect_uri="+encodeURIComponent("https://linpoyes.github.io/lipo-guide/shop.html")+"&state="+st+"&scope=openid%20profile&nonce="+nc+"&bot_prompt=aggressive");
 }catch(e){}})();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>赤貧軍團｜RC 玩車商城</title>
 <meta name="description" content="RC 鋰電池、遙控車、改裝配件。">
 <meta property="og:title" content="赤貧軍團｜RC 玩車商城">
@@ -114,7 +114,8 @@ a{color:inherit}
 .mcod{padding:0 12px 12px;border-top:1px dashed var(--line)}.mcod p{display:flex;justify-content:space-between;gap:10px;margin:8px 0 0;font-size:14px}
 .mcod p.m span:last-child{color:var(--red)}.mcod .note{display:block;color:var(--dim);font-size:12px}.mcod .va{display:block;background:var(--wash);border-radius:8px;padding:8px 10px;font-weight:700}
 .mcod .btn{width:100%;margin-top:10px;height:42px}
-.gift.used{opacity:.55;border-color:var(--line)}.gift small+small{margin-top:0}
+.gift.used{opacity:.55;border-color:var(--line)}
+.gift .soon,.gift small.soon{color:var(--red);font-weight:800}.gift small+small{margin-top:0}
 .ptsbig{background:var(--ink);color:#fff;border-radius:14px;padding:16px;text-align:center}.ptsbig small{color:#C9CBD2;font-weight:700}.ptsbig b{display:block;font-size:40px;font-weight:900;line-height:1.2}.ptsbig span{font-size:13px;color:#C9CBD2}
 .rules{margin:10px 0;font-size:13px;color:var(--dim)}.rules p{margin:4px 0;padding-left:14px;position:relative}.rules p::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--red)}
 .plog{display:flex;justify-content:space-between;font-size:14px;border-bottom:1px solid var(--line);padding:8px 0;margin:0}.plog b{margin-left:10px}.plog .up{color:#1F7A4A}.plog .down{color:var(--red)}
@@ -471,6 +472,7 @@ footer nav a{color:var(--faint);text-decoration:none}
   .membtn .nm{display:block}.membtn .av{width:38px;height:38px}.membtn .on{left:38px;bottom:8px}}
 /* 2026-11-08：連點頁尾徽章不觸發雙擊縮放；iPhone 點小於 16px 的輸入框會自動放大 → 輸入框一律 ≥16px；不允許橫向捲動（clip 不會破壞 sticky） */
 html{touch-action:manipulation}
+html{overflow-x:hidden}
 html,body{overflow-x:clip}
 input,select,textarea{font-size:max(16px,1em)}
 </style>
@@ -544,9 +546,9 @@ input,select,textarea{font-size:max(16px,1em)}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611081520"></script>
-<script src="shop-core.js?v=202611081520"></script>
-<script src="tw-zip.js?v=202611081520"></script>
+<script src="track.js?v=202611081524"></script>
+<script src="shop-core.js?v=202611081524"></script>
+<script src="tw-zip.js?v=202611081524"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -1069,9 +1071,9 @@ async function loadMember() {
 const giftInfo = () => catalog && catalog.settings.welcome;
 function giftBox() {
   const w = member && member.friend && member.welcome;
-  if (!w || w.used) return "";
+  if (!w || w.used || w.expired) return "";
   const on = code === w.code;
-  return `<div class="gift"><div><b>入會禮　${esc(w.label)}</b><small>折扣碼 <code>${esc(w.code)}</code>${w.minSpend ? `・滿 ${money(w.minSpend)} 可用` : ""}・限用一次</small></div><button type="button" data-usegift ${on ? "disabled" : ""}>${on ? "已套用" : "套用"}</button></div>`;
+  return `<div class="gift"><div><b>入會禮　${esc(w.label)}</b><small>折扣碼 <code>${esc(w.code)}</code>${w.minSpend ? `・滿 ${money(w.minSpend)} 可用` : ""}・限用一次</small>${w.expires ? `<small class="${w.daysLeft <= 3 ? "soon" : ""}">${esc(w.expires)} 前有效${w.daysLeft <= 3 ? `・剩 ${w.daysLeft} 天` : ""}</small>` : ""}</div><button type="button" data-usegift ${on ? "disabled" : ""}>${on ? "已套用" : "套用"}</button></div>`;
 }
 function memberBox(always) {
   if (!always && (!catalog || !catalog.settings.requireLine)) return "";
@@ -1140,8 +1142,8 @@ function drawMC() {
           ${o.vaAccount && o.payStatus !== "paid" ? `<p class="va">轉帳帳號 ${esc(o.vaBank)}－${esc(o.vaAccount)}<br>繳費期限 ${esc(o.vaExpire)}</p>` : ""}
           ${o.earn && o.status !== "已取消" ? `<p class="note">${o.payStatus === "paid" ? "已獲得" : "付款後可得"} ${o.earn} 點</p>` : ""}
           <button type="button" class="btn ghost" data-rebuy="${esc(o.orderNo)}">再買一次</button></div></details>`).join("") : '<div class="empty">還沒有訂單</div>';
-  else if (mcTab === "coupons") body = d.coupons.length ? d.coupons.map(c => `<div class="gift${c.used ? " used" : ""}"><div><b>${esc(c.label)}</b><small>${c.minSpend ? `滿 ${money(c.minSpend)} 可用・` : ""}${c.endAt ? `${esc(c.endAt)} 前有效・` : ""}${esc(c.note || "")}</small><small>折扣碼 <code>${esc(c.code)}</code></small></div>
-        <button type="button" data-usecode="${esc(c.code)}" ${c.used ? "disabled" : ""}>${c.used ? "已使用" : code === c.code ? "已套用" : "套用"}</button></div>`).join("") : '<div class="empty">目前沒有可用的優惠券</div>';
+  else if (mcTab === "coupons") body = d.coupons.length ? d.coupons.map(c => { const off = c.used || c.expired; return `<div class="gift${off ? " used" : ""}"><div><b>${esc(c.label)}</b><small>${c.minSpend ? `滿 ${money(c.minSpend)} 可用・` : ""}${c.endAt ? `${esc(c.endAt)} 前有效・` : ""}${esc(c.note || "")}</small><small>折扣碼 <code>${esc(c.code)}</code>${!off && c.daysLeft !== undefined && c.daysLeft <= 3 ? `<span class="soon">・剩 ${c.daysLeft} 天到期</span>` : ""}</small></div>
+        <button type="button" data-usecode="${esc(c.code)}" ${off ? "disabled" : ""}>${c.used ? "已使用" : c.expired ? "已過期" : code === c.code ? "已套用" : "套用"}</button></div>`; }).join("") : '<div class="empty">目前沒有可用的優惠券</div>';
   else if (mcTab === "points") body = `<div class="ptsbig"><small>可用積分</small><b>${d.points.balance.toLocaleString()}</b><span>1 點折抵 $1・結帳時勾選使用</span></div>
       <div class="rules"><p>每消費 $${d.points.rate} 回饋 1 點（以折扣後商品金額計，不含運費）</p><p>訂單付款完成即入帳；取消訂單點數自動收回</p><p>單筆最多折抵商品金額 ${d.points.maxPct}%</p></div>
       ${d.orders.filter(o => o.earn || o.pointsUsed).map(o => `<p class="plog"><span>${esc(o.createdAt.slice(0, 10))}　${esc(o.orderNo)}</span><span>${o.earn && o.status !== "已取消" ? `<b class="up">${o.payStatus === "paid" ? "+" : "待 +"}${o.earn}</b>` : ""}${o.pointsUsed && o.status !== "已取消" ? `<b class="down">−${o.pointsUsed}</b>` : ""}</span></p>`).join("") || '<div class="empty">尚無積分紀錄</div>'}`;

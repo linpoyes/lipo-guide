@@ -36,6 +36,8 @@ const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lin
   welcomeCode: "",
   // 賣場熱門搜尋關鍵字（逗號分隔）；空白＝前台依品牌與分類自動產生
   hotWords: "",
+  // 入會禮有效天數（自領取起算）與到期前幾天提醒（2026-11-08 使用者：要有期限、要提醒）
+  welcomeDays: "30", welcomeRemind: "3",
   // 會員積分（2026-11-08）：已付款訂單每消費 pointRate 元回饋 1 點；1 點折抵 1 元；單筆最多折抵商品金額的 pointMaxPct %
   pointsOn: "TRUE", pointRate: "100", pointMaxPct: "50",
   // 綠界物流（2026-11-08）：寄件人資料、預設材積（0001=60cm…0004=150cm）、付款後自動建寄件單、測試模式
@@ -80,6 +82,7 @@ function doGet(e) {
   if (a === "ping") return out_({ ok: true });
   if (a === "lineSetup") return out_(lineSetup_());
   if (a === "welcomePreview") return out_(welcomePreview_());
+  if (a === "csPreview") return out_(csPreview_());
   if (a === "orderStatus") return out_(orderStatus_(e.parameter));
   if ((e.parameter || {}).cb === "linelogin") return lineLoginReturn_(e.parameter);
   if (a === "member") return out_(memberCheck_(e.parameter.mt));
@@ -248,6 +251,7 @@ function migrateAe86_() {
 function catalog_() {
   migrate_(); migrateAe86_();
   try { expireOrders_(); } catch (e) {}
+  try { remindWelcome_(); } catch (e) {}
   const bySort = (a, b) => a.sort - b.sort;
   const s = getSettings_();
   return {
@@ -300,6 +304,7 @@ function quote_(items, codeStr, shipMethod, mem, usePoints) {
     if (!codeError && isWelcome_(c.code)) {
       if (!mem || !mem.friend) codeError = "此為 LINE 會員入會禮，請先以 LINE 登入並加入官方帳號好友";
       else if (welcomeUsed_(mem.uid)) codeError = "入會禮每位會員限用一次";
+      else if (welcomeGrant_(mem.uid, true).expired) codeError = "入會禮已超過使用期限";
     }
     if (!codeError) {
       code = c.code;
@@ -663,7 +668,7 @@ const ADMIN = {
     const keys = Object.keys(s);
     if (keys.some(k => integ.indexOf(k) >= 0) && !has_(r.me, "integrations")) throw new Error("此帳號沒有權限");
     if (keys.some(k => integ.indexOf(k) < 0) && !has_(r.me, "settings")) throw new Error("此帳號沒有權限");
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "welcomeDays", "welcomeRemind", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
@@ -954,7 +959,36 @@ function memberCheck_(mt) {
   if (!m) return { ok: true, member: null };
   const w = m.friend ? welcomeInfo_() : null;
   return { ok: true, member: { name: m.name, pic: m.pic, friend: m.friend,
-    welcome: w ? Object.assign({ code: w.code, used: welcomeUsed_(m.uid) }, { label: w.label, minSpend: w.minSpend }) : null } };
+    welcome: w ? (g => ({ code: w.code, used: welcomeUsed_(m.uid), label: w.label, minSpend: w.minSpend, expires: g.date, daysLeft: g.left, expired: g.expired }))(welcomeGrant_(m.uid, true)) : null } };
+}
+/* 入會禮期限：每位會員從「領取」起算 welcomeDays 天。領取時間存 WELCOMED_<uid 雜湊>＝JSON {t: 毫秒, uid, r: 已提醒}；
+   舊資料只有 "1" 的，以會員名冊的加入時間為準。到期前 welcomeRemind 天推播提醒一次（remindWelcome_，型錄載入時最多每 6 小時檢查一次）。 */
+function welcomeDays_() { return Math.max(1, Number(getSettings_().welcomeDays) || 30); }
+function welcomeGrant_(uid, create) {
+  const p = PropertiesService.getScriptProperties(), k = "WELCOMED_" + hash_(uid);
+  let v = json_(p.getProperty(k), null);
+  if (v === 1 || (v && !v.t)) { // 舊格式
+    const m = rows_("members").find(x => String(x.uid) === uid);
+    const t = m ? Date.parse(String(m.firstAt).replace(" ", "T") + ":00+08:00") || Date.now() : Date.now();
+    v = { t: t, uid: uid, r: 0 }; p.setProperty(k, JSON.stringify(v));
+  }
+  if (!v && create) { v = { t: Date.now(), uid: uid, r: 0 }; p.setProperty(k, JSON.stringify(v)); }
+  if (!v) return { date: "", left: welcomeDays_(), expired: false };
+  const end = v.t + welcomeDays_() * 86400000;
+  return { date: Utilities.formatDate(new Date(end), "Asia/Taipei", "yyyy/MM/dd"), left: Math.max(0, Math.ceil((end - Date.now()) / 86400000)), expired: Date.now() > end, end: end };
+}
+function remindWelcome_() {
+  const cache = CacheService.getScriptCache(); if (cache.get("wrem")) return; cache.put("wrem", "1", 21600);
+  const w = welcomeInfo_(); if (!w) return;
+  const p = PropertiesService.getScriptProperties(), all = p.getProperties(), before = Math.max(1, Number(getSettings_().welcomeRemind) || 3) * 86400000, now = Date.now();
+  Object.keys(all).filter(k => k.indexOf("WELCOMED_") === 0).forEach(k => {
+    const v = json_(all[k], null); if (!v || !v.t || !v.uid || v.r) return;
+    const end = v.t + welcomeDays_() * 86400000;
+    if (now < end - before || now > end || welcomeUsed_(v.uid)) return;
+    v.r = 1; p.setProperty(k, JSON.stringify(v));
+    lineApi_("message/push", { to: v.uid, messages: [{ type: "text", text: "【赤貧軍團】入會禮即將到期\n您的入會禮 " + w.label + " 將於 " + Utilities.formatDate(new Date(end), "Asia/Taipei", "yyyy/MM/dd") +
+      " 到期，提醒您把握使用。\n折扣碼：" + w.code + (w.minSpend ? "\n使用條件：消費滿 $" + w.minSpend : "") + "\n\n立即選購：" + SHOP_PAGE }] });
+  });
 }
 /* ── LINE 入會禮 ──
    設定 welcomeCode 指向折扣碼分頁的一組碼；這組碼只限「LINE 登入＋已加好友」的會員、每個 LINE 帳號限用一次（用訂單的 lineUid 判斷）。
@@ -983,10 +1017,10 @@ function welcomePush_(rec) {
     const w = welcomeInfo_(); if (!w || !rec || !rec.uid || !rec.friend) return;
     const p = PropertiesService.getScriptProperties(), k = "WELCOMED_" + hash_(rec.uid);
     if (p.getProperty(k)) return;
-    p.setProperty(k, "1");
+    const g = welcomeGrant_(rec.uid, true);
     lineApi_("message/push", { to: rec.uid, messages: [{ type: "text", text:
       "【赤貧軍團】歡迎加入會員\n" + (rec.name ? rec.name + " 您好，" : "您好，") + "感謝您加入赤貧軍團會員。\n\n入會禮：" + w.label + "\n折扣碼：" + w.code +
-      (w.minSpend ? "\n使用條件：消費滿 $" + w.minSpend : "") + "\n每位會員限用一次，結帳時輸入折扣碼即可折抵。\n\n" + SHOP_PAGE }] });
+      (w.minSpend ? "\n使用條件：消費滿 $" + w.minSpend : "") + "\n使用期限：" + g.date + " 前\n每位會員限用一次，結帳時輸入折扣碼即可折抵。\n\n" + SHOP_PAGE }] });
   } catch (e) {}
 }
 // 產生登入網址（含一次性 state／nonce）
@@ -1187,7 +1221,7 @@ function memberCenter_(req) {
     earn: orderLive_(o) ? Math.floor(goods_(o) / pc.rate) : 0, vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || "") }));
   // 優惠券：入會禮（未用過）＋後台勾「會員中心顯示」且仍有效的折扣碼
   const d = today_(), coupons = [], w = welcomeInfo_();
-  if (w && m.friend) coupons.push({ code: w.code, label: w.label, minSpend: w.minSpend, endAt: "", note: "入會禮・限用一次", used: welcomeUsed_(m.uid) });
+  if (w && m.friend) { const g = welcomeGrant_(m.uid, true); coupons.push({ code: w.code, label: w.label, minSpend: w.minSpend, endAt: g.date.replace(/\//g, "-"), note: "入會禮・限用一次", used: welcomeUsed_(m.uid), expired: g.expired, daysLeft: g.left }); }
   rows_("codes").map(code_).filter(c => c.member && c.active && !isWelcome_(c.code) && !(c.endAt && d > c.endAt) && !(c.limit > 0 && c.used >= c.limit)).forEach(c => {
     const off = 100 - c.value;
     coupons.push({ code: c.code, label: c.type === "amount" ? "折 $" + c.value : (off % 10 === 0 ? off / 10 : off) + " 折", minSpend: c.minSpend, startAt: c.startAt, endAt: c.endAt, note: c.note, used: false });
@@ -1400,7 +1434,7 @@ function lineEvent_(ev) {
   if (ev.type === "follow") {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
     const w = welcomeInfo_();
-    if (w) PropertiesService.getScriptProperties().setProperty("WELCOMED_" + hash_(uid), "1"); // 歡迎卡片已含入會禮，LINE 登入時不再重送
+    if (w) w.expires = welcomeGrant_(uid, true).date; // 歡迎卡片已含入會禮（從現在起算期限），LINE 登入時不再重送
     lineApi_("message/reply", { replyToken: ev.replyToken, messages: welcomeMessages_(name, w) });
     return;
   }
@@ -1446,6 +1480,7 @@ function welcomeFlex_(name, w) {
   if (w) body.push({ type: "box", layout: "vertical", margin: "lg", paddingAll: "14px", cornerRadius: "10px", backgroundColor: "#FFF1EF", borderColor: "#D7261E", borderWidth: "1px", contents: [
     { type: "text", text: "入會禮　" + w.label, weight: "bold", size: "lg", color: "#D7261E" },
     { type: "text", text: "折扣碼 " + w.code + (w.minSpend ? "・滿 $" + w.minSpend + " 可用" : "") + "・限用一次", size: "xs", color: "#575D69", margin: "sm", wrap: true },
+    { type: "text", text: "使用期限：" + (w.expires || Utilities.formatDate(new Date(Date.now() + welcomeDays_() * 86400000), "Asia/Taipei", "yyyy/MM/dd")) + " 前", size: "xs", color: "#D7261E", weight: "bold", wrap: true },
     { type: "text", text: "以 LINE 登入賣場會員後，結帳時即可使用", size: "xs", color: "#575D69", wrap: true }] });
   return { type: "flex", altText: "歡迎加入赤貧軍團" + (w ? "，入會禮 " + w.label + " 已送上" : ""), contents: { type: "bubble",
     hero: { type: "image", url: LINE_SITE + "media/welcome.jpg?v=1", size: "full", aspectRatio: "3:2", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
@@ -1501,13 +1536,24 @@ function welcomePreview_() {
   return res;
 }
 
-// 客服通知（給管理者）：卡片顯示顧客、時間，按鈕直接開官方帳號聊天
-function csNotify_(name) {
+// 客服通知（給管理者）：卡片顯示顧客、時間、來源；不附網址（使用者 11-08）
+function csNotify_(name, preview) {
   const t = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm");
   const row = (k, v) => ({ type: "box", layout: "baseline", spacing: "md", contents: [{ type: "text", text: k, size: "sm", color: "#8C8880", flex: 2 }, { type: "text", text: v, size: "sm", color: "#1A2130", weight: "bold", flex: 5, wrap: true }] });
   const msg = { type: "flex", altText: "【客服通知】顧客 " + name + " 等候回覆", contents: { type: "bubble", size: "kilo",
     header: { type: "box", layout: "vertical", backgroundColor: "#D7261E", paddingAll: "14px", contents: [{ type: "text", text: "客服通知", color: "#FFFFFF", weight: "bold", size: "lg" }, { type: "text", text: "顧客正在等候回覆", color: "#FFE3DF", size: "xs" }] },
-    body: { type: "box", layout: "vertical", spacing: "sm", paddingAll: "16px", contents: [row("顧客", name), row("時間", t), row("來源", "圖文選單「聯絡客服」")] },
-    footer: { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", color: "#D7261E", height: "sm", action: { type: "uri", label: "前往聊天回覆", uri: "https://chat.line.biz/" } }] } } };
+    body: { type: "box", layout: "vertical", spacing: "sm", paddingAll: "16px", contents: [row("顧客", name), row("時間", t), row("來源", "聯絡客服"),
+      { type: "separator", margin: "md" }, { type: "text", text: "請至官方帳號聊天室回覆顧客", size: "xs", color: "#8C8880", margin: "md", wrap: true }] } } };
+  if (preview) return msg;
   json_(PropertiesService.getScriptProperties().getProperty("LINE_USERS"), []).forEach(u => lineApi_("message/push", { to: u.id, messages: [msg] }));
+}
+function csPreview_() {
+  const p = PropertiesService.getScriptProperties(), msg = csNotify_("（範例顧客）", true);
+  const v = lineApi_("message/validate/push", { messages: [msg] }), res = { ok: true, validate: v ? v.getResponseCode() + " " + v.getContentText().slice(0, 200) : "" };
+  if (v && v.getResponseCode() === 200 && !p.getProperty("CS_PREVIEWED")) {
+    p.setProperty("CS_PREVIEWED", "1");
+    json_(p.getProperty("LINE_USERS"), []).forEach(u => lineApi_("message/push", { to: u.id, messages: [{ type: "text", text: "【預覽】客服通知樣式" }, msg] }));
+    res.sent = true;
+  }
+  return res;
 }
