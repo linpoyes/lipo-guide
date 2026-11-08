@@ -107,7 +107,7 @@ function doPost(e) {
       if (!me) return out_({ ok: false, error: "auth" });
       const fn = ADMIN[a];
       if (!fn) return out_({ ok: false, error: "unknown action" });
-      if (!can_(me.role, a)) return out_({ ok: false, error: "此帳號沒有權限" });
+      if (!can_(me, a)) return out_({ ok: false, error: "此帳號沒有權限" });
       req.me = me;
       return out_(Object.assign({ ok: true }, fn(req) || {}));
     }
@@ -217,7 +217,17 @@ function withSold_(products) {
   products.forEach(p => p.sold = sold[p.id] || 0);
   return products;
 }
+// 一次性資料調整（只跑一次，用指令碼屬性記號）：2026-11-08 建立入會禮折扣碼 WELCOME50（折 $50）並設為 LINE 入會禮
+function migrate_() {
+  const p = PropertiesService.getScriptProperties();
+  if (p.getProperty("MIG_WELCOME50")) return;
+  p.setProperty("MIG_WELCOME50", "1");
+  if (!rows_("codes").some(c => String(c.code).toUpperCase() === "WELCOME50"))
+    upsert_("codes", "code", { code: "WELCOME50", type: "amount", value: "50", minSpend: "0", startAt: "", endAt: "", limit: "0", used: "0", active: "TRUE", note: "LINE 入會禮", member: "TRUE" });
+  if (!String(getSettings_().welcomeCode || "")) setSetting_("welcomeCode", "WELCOME50");
+}
 function catalog_() {
+  migrate_();
   const bySort = (a, b) => a.sort - b.sort;
   const s = getSettings_();
   return {
@@ -383,14 +393,33 @@ function hash_(s) {
    帳號存在指令碼屬性 USERS（JSON：名稱 → {salt, hash, role}），密碼只存加鹽雜湊。
    角色：owner 管理者（全部）／staff 營運（訂單、商品、短影音、折扣碼）／shipper 出貨（看訂單、改出貨狀態）／viewer 報表（看報表）。
    權限一律在後端檢查（ROLE_ACTIONS），前端只是把看不到的分頁藏起來。 */
-const ROLES = { owner: "管理者", staff: "營運", shipper: "出貨", viewer: "報表" };
-const ROLE_ACTIONS = {
-  staff: ["admin_all", "admin_dashboard", "admin_orders", "admin_logiCreate", "admin_logiPrint", "admin_orderStatus", "admin_saveProduct", "admin_deleteProduct", "admin_saveVideo", "admin_deleteVideo",
-          "admin_saveCode", "admin_deleteCode", "admin_upload", "admin_changeLogin", "admin_me"],
-  shipper: ["admin_all", "admin_orders", "admin_orderStatus", "admin_logiCreate", "admin_logiPrint", "admin_changeLogin", "admin_me"],
-  viewer: ["admin_all", "admin_orders", "admin_changeLogin", "admin_me", "admin_dashboard"],
-};
-const can_ = (role, action) => role === "owner" || (ROLE_ACTIONS[role] || []).indexOf(action) >= 0;
+const ROLES = { owner: "超級管理員", staff: "營運", shipper: "出貨", viewer: "報表", custom: "自訂" };
+/* 權限項目（2026-11-08 使用者：超級管理員可逐項設定權限，並分類）。
+   超級管理員（owner）永遠全部權限，另外獨有：帳號管理、重設他人密碼。
+   其他帳號＝角色預設（ROLE_PERMS）或「自訂」逐項勾選（USERS[name].perms）。前端 PERMS 要跟這裡一致。 */
+const PERMS = [
+  ["營運總覽", [["dash", "儀表板", ["admin_dashboard"]], ["report", "報表與拆帳", ["admin_orders"]]]],
+  ["訂單", [["orders", "查看訂單", ["admin_orders"]], ["ship", "出貨處理（狀態、寄件單、列印）", ["admin_orderStatus", "admin_logiCreate", "admin_logiPrint"]],
+            ["pay", "標記付款", ["admin_orderStatus"]], ["orderDel", "刪除訂單", ["admin_deleteOrder"]]]],
+  ["商品與行銷", [["products", "商品", ["admin_saveProduct", "admin_deleteProduct", "admin_upload", "admin_trashFile"]],
+                ["videos", "短影音", ["admin_saveVideo", "admin_deleteVideo", "admin_upload", "admin_trashFile"]], ["codes", "折扣碼", ["admin_saveCode", "admin_deleteCode"]]]],
+  ["系統設定", [["settings", "賣場設定", ["admin_saveSettings"]],
+              ["integrations", "金流、物流、LINE 通知", ["admin_ecpayStatus", "admin_saveEcpay", "admin_logiStatus", "admin_lineStatus", "admin_lineSave", "admin_lineBind", "admin_lineUnbind", "admin_lineTest", "admin_saveSettings"]]]],
+];
+const PERM_KEYS = [].concat.apply([], PERMS.map(g => g[1].map(p => p[0])));
+const ROLE_PERMS = { staff: ["dash", "orders", "ship", "pay", "products", "videos", "codes"], shipper: ["orders", "ship"], viewer: ["dash", "report"] };
+const BASE_ACTIONS = ["admin_all", "admin_me", "admin_changeLogin"];
+function permsOf_(rec) {
+  if (!rec) return [];
+  if (rec.role === "owner") return PERM_KEYS.slice();
+  return (rec.role === "custom" && Array.isArray(rec.perms) ? rec.perms : ROLE_PERMS[rec.role] || []).filter(k => PERM_KEYS.indexOf(k) >= 0);
+}
+const has_ = (me, p) => me.role === "owner" || (me.perms || []).indexOf(p) >= 0;
+function can_(me, action) {
+  if (me.role === "owner") return true;
+  if (BASE_ACTIONS.indexOf(action) >= 0) return true;
+  return PERMS.some(g => g[1].some(p => (me.perms || []).indexOf(p[0]) >= 0 && p[2].indexOf(action) >= 0));
+}
 function users_() {
   const p = PropertiesService.getScriptProperties();
   let u = json_(p.getProperty("USERS"), null);
@@ -404,7 +433,7 @@ function users_() {
 function saveUsers_(u) { PropertiesService.getScriptProperties().setProperty("USERS", JSON.stringify(u)); }
 function setAdmin_(user, pass, role) {
   const u = users_(), salt = Utilities.getUuid();
-  u[user] = { salt: salt, hash: hash_(salt + ":" + pass), role: role || (u[user] && u[user].role) || "owner" };
+  u[user] = Object.assign({}, u[user] || {}, { salt: salt, hash: hash_(salt + ":" + pass), role: role || (u[user] && u[user].role) || "owner" });
   saveUsers_(u);
 }
 // 讓某帳號的所有登入失效（刪帳號、改密碼時用）；keepToken＝保留目前這台
@@ -450,7 +479,7 @@ function checkToken_(t) {
   }
   if (user === "1") user = p.getProperty("ADMIN_USER") || ""; // 舊快取值
   const rec = users_()[user];
-  return rec ? { user: user, role: rec.role } : null;
+  return rec ? { user: user, role: rec.role, perms: permsOf_(rec) } : null;
 }
 
 /* ───────────── 後台動作 ───────────── */
@@ -478,23 +507,28 @@ const ADMIN = {
     for (let i = n - 1; i >= 0; i--) if (String(col[i][0]) === vid) { sh.deleteRow(i + 2); removed++; }
     return { removed: removed };
   },
-  admin_users: () => ({ users: Object.keys(users_()).map(n => ({ name: n, role: users_()[n].role })), roles: ROLES }),
+  admin_users: () => { const u = users_(); return { users: Object.keys(u).map(n => ({ name: n, role: u[n].role, perms: permsOf_(u[n]) })), roles: ROLES,
+    perms: PERMS.map(g => [g[0], g[1].map(p => [p[0], p[1]])]), rolePerms: ROLE_PERMS }; },
   admin_saveUser: r => {
     const name = String(r.name || "").normalize("NFKC").trim(), role = String(r.role || ""), pass = String(r.pass || "").normalize("NFKC").trim();
     if (!/^[\w.@-]{2,20}$/.test(name)) throw new Error("帳號限英數字 2–20 碼");
     if (!ROLES[role]) throw new Error("請選擇權限");
     const u = users_(), isNew = !u[name];
     if (isNew && pass.length < 4) throw new Error("新帳號密碼至少 4 碼");
-    if (!isNew && u[name].role === "owner" && role !== "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個管理者");
+    if (!isNew && u[name].role === "owner" && role !== "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個超級管理員");
     if (name === r.me.user && role !== "owner") throw new Error("不能降低自己的權限");
     if (pass) { setAdmin_(name, pass, role); if (!isNew) revokeUser_(name); }
     else { u[name].role = role; saveUsers_(u); }
+    // 自訂權限：只存合法的項目；改回預設角色就清掉
+    const u2 = users_();
+    if (role === "custom") u2[name].perms = (Array.isArray(r.perms) ? r.perms : []).filter(k => PERM_KEYS.indexOf(k) >= 0); else delete u2[name].perms;
+    saveUsers_(u2);
   },
   admin_deleteUser: r => {
     const u = users_(), name = String(r.name || "");
     if (!u[name]) return;
     if (name === r.me.user) throw new Error("不能刪除自己");
-    if (u[name].role === "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個管理者");
+    if (u[name].role === "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個超級管理員");
     delete u[name]; saveUsers_(u); revokeUser_(name);
   },
   admin_orders: () => ({
@@ -548,7 +582,7 @@ const ADMIN = {
   },
   admin_deleteCode: r => { remove_("codes", "code", r.code); },
   admin_orderStatus: r => {
-    if (r.field === "payStatus" && r.me.role !== "owner" && r.me.role !== "staff") throw new Error("此帳號沒有權限");
+    if (!has_(r.me, r.field === "payStatus" ? "pay" : "ship")) throw new Error("此帳號沒有權限");
     const nos = r.orderNos || [r.orderNo];
     const sh = sheet_("orders"), col = SHEETS.orders.indexOf(r.field === "payStatus" ? "payStatus" : "status") + 1;
     rows_("orders").forEach(o => { if (nos.indexOf(String(o.orderNo)) >= 0) sh.getRange(o._row, col).setNumberFormat("@").setValue(String(r.value)); });
@@ -588,6 +622,10 @@ const ADMIN = {
   admin_lineTest: () => { const n = linePush_("【赤貧軍團】LINE 通知測試成功"); if (!n) throw new Error("沒有已綁定的 LINE 或權杖無效"); return { sent: n }; },
   admin_saveSettings: r => {
     const s = r.settings || {};
+    const integ = ["logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize"];
+    const keys = Object.keys(s);
+    if (keys.some(k => integ.indexOf(k) >= 0) && !has_(r.me, "integrations")) throw new Error("此帳號沒有權限");
+    if (keys.some(k => integ.indexOf(k) < 0) && !has_(r.me, "settings")) throw new Error("此帳號沒有權限");
     ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {

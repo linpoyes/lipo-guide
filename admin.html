@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-Ma05k9nMWdreRdV+bED6UYtazrTMFt0om5Gu7IUtMVk='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-jLhAxaGtD1TXlCgVX/uB3vYaQlmSYlIEP0j81MG5gz0='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611080222">
+<meta name="build" content="202611081441">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -194,6 +194,26 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
   .otable{font-size:16px}
   .modal .panel{max-width:760px}
 }
+/* 2026-11-08：iPhone 點到小於 16px 的輸入框會自動放大，放大後整頁可以左右滑——輸入框一律 16px；
+   連點不觸發雙擊縮放；任何內容都不可撐出橫向捲動 */
+html{touch-action:manipulation}
+html,body{overflow-x:clip;max-width:100%}
+input,select,textarea,.f input,.f select,.f textarea{font-size:16px}
+main,.card,.dgrid>*{min-width:0}
+.dt{display:block;overflow-x:auto}
+details.fold summary,.ucard summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}
+details.fold summary::-webkit-details-marker,.ucard summary::-webkit-details-marker{display:none}
+details.fold summary span,.ucard summary span:first-child{min-width:0}
+details.fold summary b,.ucard summary b{display:block;font-size:16px}
+details.fold summary small,.ucard summary small{display:block;color:var(--faint);font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.fold summary i{font-style:normal;font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap}
+details.fold[open] summary,.ucard[open] summary{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+details.fold[open] summary i{color:var(--faint)}
+.ucard{margin-bottom:8px}
+.pgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin:4px 0 12px}
+.pg{border:1px solid var(--line);border-radius:10px;padding:6px 10px 8px;margin:0}
+.pg legend{font-size:12px;font-weight:900;color:var(--dim);padding:0 4px}
+.pg .check{margin:6px 0 0;font-size:14px}
 </style>
 </head>
 <body>
@@ -202,16 +222,19 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611080222"></script>
+<script src="shop-core.js?v=202611081441"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
 let token = lsGet("cp-admin", "") || "";
 // 分級權限：分頁依角色顯示（後端也會擋，這裡只是不顯示用不到的）
 const TABS = [["dash", "儀表板"], ["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["report", "報表"], ["settings", "設定"]];
-const ROLE_TABS = {owner: TABS.map(t => t[0]), staff: ["dash", "orders", "products", "videos", "codes", "settings"], shipper: ["orders", "settings"], viewer: ["dash", "report", "settings"]};
-const ROLE_NAME = {owner: "管理者", staff: "營運", shipper: "出貨", viewer: "報表"};
+const ROLE_NAME = {owner: "超級管理員", staff: "營運", shipper: "出貨", viewer: "報表", custom: "自訂"};
 const role = () => (data && data.me && data.me.role) || "owner";
+// 權限（後端 PERMS 為準）：超級管理員全部；其他帳號看 data.me.perms
+const has = p => role() === "owner" || ((data && data.me && data.me.perms) || []).includes(p);
+const TAB_PERM = {dash: "dash", orders: "orders", products: "products", videos: "videos", codes: "codes", report: "report"};
+const myTabs = () => TABS.map(t => t[0]).filter(k => !TAB_PERM[k] || has(TAB_PERM[k]));
 let data = null, orders = null, tab = sessionStorage.getItem("cp-tab") || "dash", orderFilter = "新訂單";
 const STATUSES = ["新訂單", "已確認", "已出貨", "已完成", "已取消"];
 
@@ -252,11 +275,11 @@ async function loadAll() { data = await admin("admin_all", {}, {tries: 3}); lsSe
 async function loadOrders() { orders = (await admin("admin_orders", {}, {tries: 3})).orders; }
 
 function drawApp() {
-  if (!ROLE_TABS[role()].includes(tab)) tab = ROLE_TABS[role()][0];
+  if (!myTabs().includes(tab)) tab = myTabs()[0];
   $("app").innerHTML = `<header class="top"><div class="wrap"><img src="badge.png?v=1" alt=""><b>赤貧軍團</b><span>${esc(data.me ? data.me.user : "")}・${ROLE_NAME[role()]}</span>
       <a href="shop.html" target="_blank" rel="noopener">賣場</a><button id="outBtn">登出</button></div></header>
     <nav class="tabs"><div class="wrap">
-      ${TABS.filter(([k]) => ROLE_TABS[role()].includes(k))
+      ${TABS.filter(([k]) => myTabs().includes(k))
         .map(([k, n]) => `<button data-tab="${k}" aria-pressed="${tab === k}">${n}</button>`).join("")}</div></nav>
     ${lsGet("cp-default-pw", "") === "1" && role() === "owner" ? '<div class="wrap"><button class="pwwarn" data-gopw>目前為初始密碼，任何人都可能登入，請立即變更 ›</button></div>' : ""}
     <main class="wrap" id="main"></main>`;
@@ -455,10 +478,10 @@ function openOrder(no) {
       <tr><td>運費（${o.packages || 1} 個包裹）</td><td>${o.shipping ? money(o.shipping) : "免運"}</td></tr>
       <tr><td><b>應付金額</b></td><td><b style="color:var(--red);font-size:18px">${money(o.total)}</b></td></tr></table>
     ${shipBlock(o)}
-    ${logiBlock(o)}
+    ${has("ship") ? logiBlock(o) : ""}
     <button class="btn ghost" data-print style="width:100%;margin-top:8px">列印出貨單（撿貨用）</button>
-    <div class="statusbar">${STATUSES.map(s => `<button data-s="${s}" aria-pressed="${o.status === s}">${s}</button>`).join("")}</div>
-    <div class="btns">${role() === "owner" ? '<button class="btn danger" data-odel style="flex:none">刪除</button>' : ""}${/^(owner|staff)$/.test(role()) ? `<button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button>` : ""}</div>`;
+    ${has("ship") ? `<div class="statusbar">${STATUSES.map(s => `<button data-s="${s}" aria-pressed="${o.status === s}">${s}</button>`).join("")}</div>` : ""}
+    <div class="btns">${has("orderDel") ? '<button class="btn danger" data-odel style="flex:none">刪除</button>' : ""}${has("pay") ? `<button class="btn ${o.payStatus === "paid" ? "ghost" : "ink"}" data-pay>${o.payStatus === "paid" ? "改為未付款" : "標記已付款"}</button>` : ""}</div>`;
   openModal();
   $("mPanel").onclick = e => {
     if (e.target.closest("[data-x]")) return closeModal();
@@ -766,13 +789,14 @@ async function drawReport() {
 }
 
 /* ── 設定 ── */
+// 我的帳號：平常收合（使用者 11-08：改完了、怕誤觸），初始密碼時才自動展開
 function accountCard(isDefault) {
-  return `<h2>我的帳號</h2><div class="card">
+  return `<h2>我的帳號</h2><details class="card fold" ${isDefault ? "open" : ""}><summary><span><b>${esc(data.me ? data.me.user : "")}</b><small>${ROLE_NAME[role()] || ""}</small></span><i>變更帳號密碼</i></summary>
       ${isDefault ? '<div class="err">目前為初始密碼，請立即變更</div>' : ""}
       <div class="f"><label for="ou">帳號</label><input id="ou" value="${esc(data.me ? data.me.user : "")}" autocomplete="username"></div>
       <div class="f"><label for="op">目前密碼</label><input id="op" type="password" autocomplete="current-password"></div>
       <div class="f"><label for="np">新密碼</label><input id="np" type="password" autocomplete="new-password"><span class="note">至少 2 碼</span></div>
-      <div class="err" id="aerr"></div><div class="btns"><button class="btn ink" id="aSave">變更帳號密碼</button></div></div>`;
+      <div class="err" id="aerr"></div><div class="btns"><button class="btn ink" id="aSave">變更帳號密碼</button></div></details>`;
 }
 function bindAccount() {
   $("aSave").onclick = e => busy(e.target, async () => {
@@ -804,38 +828,68 @@ async function drawLine() {
   box.onclick = e => { const b = e.target.closest("[data-lunb]"); if (!b) return; if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "確認移除"; return; }
     busy(b, async () => { await admin("admin_lineUnbind", {id: b.dataset.lunb}); drawLine(); }).catch(err => toast(err.message)); };
 }
-/* ── 帳號管理（只有管理者）── */
+/* ── 帳號與權限（只有超級管理員）──
+   每個帳號一張可展開的卡：角色（預設組合或自訂）、分類勾選權限、重設密碼、刪除。勾任何一項就自動切成「自訂」。 */
 async function drawUsers() {
   const box = $("usersBox"); if (!box) return;
-  let r; try { r = await admin("admin_users", {}, {tries: 2}); } catch (e) { box.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
-  const opts = sel => Object.entries(ROLE_NAME).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${n}</option>`).join("");
-  box.innerHTML = `<div class="list">${r.users.map(u => `<div class="row" style="cursor:default"><div class="info"><b>${esc(u.name)}${u.name === data.me.user ? "（我）" : ""}</b><small>${ROLE_NAME[u.role] || u.role}</small></div>
-      <div class="right" style="display:flex;gap:6px"><select data-urole="${esc(u.name)}" ${u.name === data.me.user ? "disabled" : ""}>${opts(u.role)}</select>
-      ${u.name === data.me.user ? "" : `<button class="btn danger" data-udel="${esc(u.name)}" style="padding:6px 10px">刪除</button>`}</div></div>`).join("")}</div>
-    <h3 style="margin:14px 0 4px;font-size:16px">新增帳號</h3>
-    <div class="f2"><div class="f"><label for="nuName">帳號</label><input id="nuName" autocomplete="off" placeholder="英數字 2–20 碼"></div>
-      <div class="f"><label for="nuPass">密碼</label><input id="nuPass" type="password" autocomplete="new-password" placeholder="至少 4 碼"></div></div>
-    <div class="f"><label for="nuRole">權限</label><select id="nuRole">${opts("shipper")}</select></div>
-    <div class="note">管理者：全部｜營運：訂單、商品、短影音、折扣碼｜出貨：看訂單、改出貨狀態、複製寄件資料｜報表：看報表與拆帳</div>
-    <div class="err" id="uerr"></div><div class="btns"><button class="btn ink" id="nuSave">新增帳號</button></div>`;
-  box.onchange = e => { const s = e.target.closest("[data-urole]"); if (s) admin("admin_saveUser", {name: s.dataset.urole, role: s.value}).then(() => toast("已變更權限")).catch(err => { toast(err.message); drawUsers(); }); };
+  let r; try { r = await admin("admin_users", {}, {tries: 2}); } catch (e) { box.innerHTML = `<div class="card err">${esc(e.message)}</div>`; return; }
+  const roleOpts = sel => Object.entries(ROLE_NAME).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${n}</option>`).join("");
+  const grid = (u, id) => r.perms.map(([g, ps]) => `<fieldset class="pg"><legend>${esc(g)}</legend>${ps.map(([k, n]) =>
+      `<label class="check"><input type="checkbox" data-pk="${k}" ${u.role === "owner" || u.perms.includes(k) ? "checked" : ""} ${u.role === "owner" ? "disabled" : ""}>${esc(n)}</label>`).join("")}</fieldset>`).join("");
+  const summary = u => u.role === "owner" ? "全部權限・帳號管理" : r.perms.flatMap(([, ps]) => ps).filter(([k]) => u.perms.includes(k)).map(([, n]) => n.replace(/（.*）/, "")).join("、") || "無權限";
+  box.innerHTML = r.users.map(u => `<details class="card ucard" data-u="${esc(u.name)}">
+      <summary><span><b>${esc(u.name)}${u.name === data.me.user ? "（我）" : ""}</b><small>${esc(summary(u))}</small></span><span class="pill ${u.role === "owner" ? "new" : "on"}">${ROLE_NAME[u.role] || u.role}</span></summary>
+      ${u.role === "owner" && u.name === data.me.user ? '<div class="note">超級管理員擁有全部權限；自己的密碼請在上方「我的帳號」變更</div>' : `
+      <div class="f"><label>角色</label><select data-role>${roleOpts(u.role)}</select></div>
+      <div class="pgs">${grid(u)}</div>
+      <div class="f"><label>重設密碼</label><input type="password" data-pw autocomplete="new-password" placeholder="留空＝不變更（至少 4 碼）"><span class="note">重設後該帳號所有裝置需重新登入</span></div>
+      <div class="err" data-err></div>
+      <div class="btns"><button class="btn danger" data-udel style="flex:none">刪除帳號</button><button class="btn ink" data-usave>儲存</button></div>`}
+    </details>`).join("") + `<details class="card ucard"><summary><span><b>＋ 新增帳號</b><small>設定登入帳號、密碼與權限</small></span></summary>
+      <div class="f2"><div class="f"><label for="nuName">帳號</label><input id="nuName" autocomplete="off" placeholder="英數字 2–20 碼"></div>
+        <div class="f"><label for="nuPass">密碼</label><input id="nuPass" type="password" autocomplete="new-password" placeholder="至少 4 碼"></div></div>
+      <div class="f"><label>角色</label><select data-role>${roleOpts("shipper")}</select></div>
+      <div class="pgs">${grid({role: "shipper", perms: r.rolePerms.shipper})}</div>
+      <div class="err" id="uerr"></div><div class="btns"><button class="btn ink" id="nuSave">新增帳號</button></div></details>`;
+  const card = el => el.closest(".ucard");
+  const permsIn = c => [...c.querySelectorAll("[data-pk]:checked")].map(i => i.dataset.pk);
+  box.onchange = e => {
+    const c = card(e.target); if (!c) return;
+    if (e.target.matches("[data-role]")) { // 選預設角色＝套用該組合；選超級管理員＝全勾
+      const v = e.target.value, preset = v === "owner" ? r.perms.flatMap(([, ps]) => ps.map(p => p[0])) : r.rolePerms[v];
+      if (preset) c.querySelectorAll("[data-pk]").forEach(i => i.checked = preset.includes(i.dataset.pk));
+      c.querySelectorAll("[data-pk]").forEach(i => i.disabled = v === "owner");
+    }
+    if (e.target.matches("[data-pk]")) c.querySelector("[data-role]").value = "custom";
+  };
   box.onclick = e => {
-    const d = e.target.closest("[data-udel]"); if (!d) return;
-    if (d.dataset.confirm !== "1") { d.dataset.confirm = "1"; d.textContent = "確認刪除"; return; }
-    busy(d, async () => { await admin("admin_deleteUser", {name: d.dataset.udel}); toast("已刪除帳號"); drawUsers(); }).catch(err => toast(err.message));
+    const c = card(e.target); if (!c) return;
+    const d = e.target.closest("[data-udel]");
+    if (d) { if (d.dataset.confirm !== "1") { d.dataset.confirm = "1"; d.textContent = "確認刪除"; return; }
+      return busy(d, async () => { await admin("admin_deleteUser", {name: c.dataset.u}); toast("已刪除帳號"); drawUsers(); }).catch(err => c.querySelector("[data-err]").textContent = err.message); }
+    const sv = e.target.closest("[data-usave]");
+    if (sv) busy(sv, async () => {
+      c.querySelector("[data-err]").textContent = "";
+      const pw = c.querySelector("[data-pw]").value.normalize("NFKC").trim();
+      if (pw && pw.length < 4) throw new Error("密碼至少 4 碼");
+      await admin("admin_saveUser", {name: c.dataset.u, role: c.querySelector("[data-role]").value, perms: permsIn(c), pass: pw});
+      toast(pw ? "已儲存並重設密碼" : "已儲存權限"); drawUsers();
+    }).catch(err => c.querySelector("[data-err]").textContent = err.message);
   };
   $("nuSave").onclick = e => busy(e.target, async () => {
-    $("uerr").textContent = "";
-    await admin("admin_saveUser", {name: $("nuName").value.trim(), pass: $("nuPass").value, role: $("nuRole").value});
+    const c = card(e.target); $("uerr").textContent = "";
+    await admin("admin_saveUser", {name: $("nuName").value.trim(), pass: $("nuPass").value, role: c.querySelector("[data-role]").value, perms: permsIn(c)});
     toast("已新增帳號"); drawUsers();
   }).catch(err => $("uerr").textContent = err.message);
 }
 let setTab = sessionStorage.getItem("cp-settab") || "shop";
 function drawSettings() {
   const s = data.settings, isDefault = lsGet("cp-default-pw", "") === "1";
-  if (role() !== "owner") { $("main").innerHTML = accountCard(isDefault); bindAccount(); return; }
+  if (!has("settings") && !has("integrations")) { $("main").innerHTML = accountCard(isDefault); bindAccount(); return; }
+  const subs = [["shop", "賣場", "settings"], ["pay", "金流", "integrations"], ["logi", "物流", "integrations"], ["line", "LINE", "integrations"], ["acct", "帳號", ""]].filter(x => !x[2] || has(x[2]));
+  if (!subs.some(x => x[0] === setTab)) setTab = subs[0][0];
   const st = setTab;
-  $("main").innerHTML = `<div class="filters subtabs" style="margin-top:14px">${[["shop", "賣場"], ["pay", "金流"], ["logi", "物流"], ["line", "LINE"], ["acct", "帳號"]].map(([k, n]) => `<button data-st="${k}" aria-pressed="${st === k}">${n}</button>`).join("")}</div>
+  $("main").innerHTML = `<div class="filters subtabs" style="margin-top:14px">${subs.map(([k, n]) => `<button data-st="${k}" aria-pressed="${st === k}">${n}</button>`).join("")}</div>
     <section data-sec="shop" ${st === "shop" ? "" : "hidden"}><h2>賣場設定</h2><div class="card">
       <label class="check" style="margin-top:0"><input type="checkbox" id="sopen" ${s.ordersOpen ? "checked" : ""}>開放下單</label>
       <span class="note" style="display:block;margin:-6px 0 8px 28px">未勾選＝商品照常展示，購物車與結帳顯示「尚未開放下單」</span>
@@ -851,7 +905,8 @@ function drawSettings() {
       <div class="f2"><div class="f"><label for="spR">每消費多少元得 1 點</label><input id="spR" type="number" inputmode="numeric" value="${esc(s.pointRate || 100)}"></div>
         <div class="f"><label for="spM">單筆最多折抵 %</label><input id="spM" type="number" inputmode="numeric" value="${esc(s.pointMaxPct || 50)}"></div></div>
       <span class="note" style="display:block;margin:-4px 0 10px">1 點折抵 $1；已付款訂單才給點，取消或付款失敗自動收回</span>
-      <div class="f"><label for="swc">LINE 入會禮</label><select id="swc"><option value="">不送</option>${data.codes.map(c => `<option value="${esc(c.code)}" ${String(s.welcomeCode || "").toUpperCase() === c.code.toUpperCase() ? "selected" : ""}>${esc(c.code)}・${c.type === "amount" ? "折 $" + c.value : "打 " + (100 - c.value) + " 折"}${c.minSpend ? "・滿 $" + c.minSpend : ""}${c.active ? "" : "（未啟用）"}</option>`).join("")}</select><span class="note">LINE 登入＋加好友即送，自動傳到會員的 LINE；每位會員限用一次。折扣碼在「折扣碼」分頁建立</span></div>
+      <div class="f"><label for="swc">LINE 入會禮</label><select id="swc"><option value="">不送</option>${data.codes.map(c => `<option value="${esc(c.code)}" ${String(s.welcomeCode || "").toUpperCase() === c.code.toUpperCase() ? "selected" : ""}>${esc(c.code)}・${c.type === "amount" ? "折 $" + c.value : "打 " + (100 - c.value) + " 折"}${c.minSpend ? "・滿 $" + c.minSpend : ""}${c.active ? "" : "（未啟用）"}</option>`).join("")}</select><span class="note">LINE 登入＋加好友即送，自動傳到會員的 LINE；每位會員限用一次</span>
+        ${has("codes") ? '<button type="button" class="btn ghost" data-newcode style="margin-top:6px;height:38px;flex:none">＋ 建立新的折扣碼</button>' : ""}</div>
       <div class="err" id="serr"></div><div class="btns"><button class="btn" id="sSave">儲存設定</button></div></div>
     </section><section data-sec="pay" ${st === "pay" ? "" : "hidden"}>
     <h2>綠界金流</h2><div class="card" id="ecStatus"><div class="note">讀取中…</div></div><div class="card" id="ecCard" hidden>
@@ -889,9 +944,11 @@ function drawSettings() {
     <h2>LINE 下單通知</h2><div class="card" id="lineBox"><div class="note">讀取中…</div></div>
     </section><section data-sec="acct" ${st === "acct" ? "" : "hidden"}>
     ${accountCard(isDefault)}
-    <h2>帳號管理</h2><div class="card" id="usersBox"><div class="note">載入中…</div></div></section>`;
+    ${role() === "owner" ? '<h2>帳號與權限</h2><div id="usersBox"><div class="card note">載入中…</div></div>' : ""}</section>`;
+  const nc = $("main").querySelector("[data-newcode]");
+  if (nc) nc.onclick = () => { tab = "codes"; sessionStorage.setItem("cp-tab", tab); drawApp(); editCode(null); };
   $("main").querySelector(".subtabs").onclick = e => { const b = e.target.closest("[data-st]"); if (b) { setTab = b.dataset.st; sessionStorage.setItem("cp-settab", setTab); drawSettings(); } };
-  bindAccount(); drawUsers(); if (st === "line") drawLine();
+  bindAccount(); if (role() === "owner" && st === "acct") drawUsers(); if (st === "line") drawLine();
   if (st === "logi") admin("admin_logiStatus", {}, {tries: 2}).then(r => {
     const l = r.logi, ok = l.enabled && l.senderOk && l.keySet;
     $("lgStatus").innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div><b style="font-size:17px">${!l.enabled ? "未啟用" : !l.senderOk ? "寄件人資料不完整" : l.stage ? "已啟用（測試模式）" : "已連接（正式）"}</b>
@@ -909,7 +966,7 @@ function drawSettings() {
     await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim(), welcomeCode: $("swc").value, hotWords: $("shw").value.trim(), pointsOn: $("spOn").checked ? "TRUE" : "FALSE", pointRate: Number($("spR").value) || 100, pointMaxPct: Number($("spM").value) || 50}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
-  admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {
+  if (has("integrations") && st === "pay") admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {
     const e = r.ecpay, live = e.enabled && !e.stage && e.keySet && e.ivSet;
     $("ecStatus").innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div><b style="font-size:17px">${!e.enabled ? "未啟用" : live ? "已連接（正式）" : e.stage ? "已啟用（測試模式）" : "缺少金鑰"}</b>
