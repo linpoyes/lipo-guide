@@ -913,12 +913,14 @@ function lineLoginReturn_(q) {
 const LOGIN_SHOP = SHOP_PAGE;
 function lineLoginPost_(req) {
   try {
-    const r = lineExchange_(String(req.code || ""), String(req.state || ""), LOGIN_SHOP);
-    return r.mt ? { ok: true, mt: r.mt } : { ok: false, error: "LINE 登入未完成，請再試一次" };
+    const r = lineExchange_(String(req.code || ""), String(req.state || ""), LOGIN_SHOP, String(req.nonce || ""));
+    // 一併回傳會員資料，賣場不必再查一次（2026-11-08：從 LINE 進來登入要等太久）
+    return r.mt ? { ok: true, mt: r.mt, member: memberCheck_(r.mt).member } : { ok: false, error: "LINE 登入未完成，請再試一次" };
   } catch (e) { return { ok: false, error: "LINE 登入未完成，請再試一次" }; }
 }
-function lineExchange_(code, state, redirect) {
-  const cache = CacheService.getScriptCache(), st = cache.get("lls:" + state); // state 防 CSRF（一次性）
+// state／nonce：舊流程由後端產生存快取；新流程由賣場產生（state 由賣場自行比對防 CSRF），nonce 隨 code 送來，交給 LINE 驗 id_token
+function lineExchange_(code, state, redirect, nonce) {
+  const cache = CacheService.getScriptCache(), st = cache.get("lls:" + state) || nonce;
   if (!st) return { err: "state" };
   cache.remove("lls:" + state);
   const secret = PropertiesService.getScriptProperties().getProperty("LINE_LOGIN_SECRET");
@@ -1405,7 +1407,7 @@ function lineEvent_(ev) {
   if (ev.type === "message" && ev.message && ev.message.type === "text" && (String(ev.message.text).trim() === CS_TEXT || CS_OLD.indexOf(String(ev.message.text).trim()) >= 0)) {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
     lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好，已為您轉接客服人員，請稍候。\n\n為加快處理，請提供訂單編號或商品名稱，客服人員將盡快於此回覆您。" }] });
-    linePush_("【客服通知】\n顧客「" + (name || "LINE 使用者") + "」正在等候客服回覆。\n請至 LINE 官方帳號「聊天」回覆：https://chat.line.biz/");
+    csNotify_(name || "LINE 使用者");
   }
 }
 // 歡迎訊息＝主卡片＋熱門商品圖卡（可左右滑，最多 6 件：熱銷優先、再依後台排序，排除售完）
@@ -1497,4 +1499,15 @@ function welcomePreview_() {
     res.sent = true;
   }
   return res;
+}
+
+// 客服通知（給管理者）：卡片顯示顧客、時間，按鈕直接開官方帳號聊天
+function csNotify_(name) {
+  const t = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm");
+  const row = (k, v) => ({ type: "box", layout: "baseline", spacing: "md", contents: [{ type: "text", text: k, size: "sm", color: "#8C8880", flex: 2 }, { type: "text", text: v, size: "sm", color: "#1A2130", weight: "bold", flex: 5, wrap: true }] });
+  const msg = { type: "flex", altText: "【客服通知】顧客 " + name + " 等候回覆", contents: { type: "bubble", size: "kilo",
+    header: { type: "box", layout: "vertical", backgroundColor: "#D7261E", paddingAll: "14px", contents: [{ type: "text", text: "客服通知", color: "#FFFFFF", weight: "bold", size: "lg" }, { type: "text", text: "顧客正在等候回覆", color: "#FFE3DF", size: "xs" }] },
+    body: { type: "box", layout: "vertical", spacing: "sm", paddingAll: "16px", contents: [row("顧客", name), row("時間", t), row("來源", "圖文選單「聯絡客服」")] },
+    footer: { type: "box", layout: "vertical", paddingAll: "12px", contents: [{ type: "button", style: "primary", color: "#D7261E", height: "sm", action: { type: "uri", label: "前往聊天回覆", uri: "https://chat.line.biz/" } }] } } };
+  json_(PropertiesService.getScriptProperties().getProperty("LINE_USERS"), []).forEach(u => lineApi_("message/push", { to: u.id, messages: [msg] }));
 }
