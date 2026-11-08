@@ -79,6 +79,7 @@ function doGet(e) {
   if (a === "catalog") return out_(catalog_());
   if (a === "ping") return out_({ ok: true });
   if (a === "lineSetup") return out_(lineSetup_());
+  if (a === "welcomePreview") return out_(welcomePreview_());
   if (a === "orderStatus") return out_(orderStatus_(e.parameter));
   if ((e.parameter || {}).cb === "linelogin") return lineLoginReturn_(e.parameter);
   if (a === "member") return out_(memberCheck_(e.parameter.mt));
@@ -1421,7 +1422,7 @@ function welcomeFlex_(name, w) {
     footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
       btn(w ? "登入會員・領取入會禮" : "登入會員", SHOP_PAGE + UTM + "#member", true), btn("逛賣場", SHOP_PAGE + UTM), btn("電池充電計算", LINE_SITE + UTM + "#calc")] } } };
 }
-const RICH_VER = "1";
+const RICH_VER = "2";
 function lineSetup_() {
   const p = PropertiesService.getScriptProperties();
   if (p.getProperty("RICHMENU_V") === RICH_VER) return { ok: true, done: true, result: p.getProperty("RICHMENU_RESULT") || "" };
@@ -1454,4 +1455,17 @@ function lineSetup_() {
   } catch (e) { log.push("error " + String(e.message || e).slice(0, 200)); p.deleteProperty("RICHMENU_V"); }
   p.setProperty("RICHMENU_RESULT", log.join(", "));
   return { ok: true, result: log.join(", ") };
+}
+
+// 驗證歡迎卡片格式，並（只一次）推一則預覽給已綁定通知的管理者
+function welcomePreview_() {
+  const p = PropertiesService.getScriptProperties(), msg = welcomeFlex_("", welcomeInfo_());
+  const v = lineApi_("message/validate/push", { messages: [msg] });
+  const res = { ok: true, validate: v ? v.getResponseCode() + " " + v.getContentText().slice(0, 200) : "no token" };
+  if (v && v.getResponseCode() === 200 && !p.getProperty("WELCOME_PREVIEWED")) {
+    p.setProperty("WELCOME_PREVIEWED", "1");
+    json_(p.getProperty("LINE_USERS"), []).forEach(u => lineApi_("message/push", { to: u.id, messages: [{ type: "text", text: "【預覽】新好友加入時會收到下面這則歡迎訊息；下方圖文選單也已上線。" }, msg] }));
+    res.sent = true;
+  }
+  return res;
 }
