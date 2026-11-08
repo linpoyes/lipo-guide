@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-JToI08GegZpjncMto2HrGNORd9XgI1VnCoX59cylKFo='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-xBV7asm7oWho5pA20mzakvqQlZhbKa8azTVjbXSiYxE='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611081527">
+<meta name="build" content="202611081529">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -38,7 +38,7 @@ svg{width:20px;height:20px}
 .top .wrap{display:flex;align-items:center;gap:10px;height:54px}
 .top img{width:32px;height:32px;border-radius:8px}
 .top b{font-size:17px;font-weight:900;letter-spacing:.06em}
-.top span{flex:1;color:#C9CBD2;font-size:13px;font-weight:700}
+.top span{flex:1;min-width:0;color:#C9CBD2;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top a,.top button{color:#fff;background:transparent;border:1px solid #444;border-radius:8px;padding:4px 10px;font-size:13px;text-decoration:none}
 .tabs{position:sticky;top:54px;z-index:9;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}
 .tabs .wrap{display:flex;gap:4px}
@@ -223,6 +223,7 @@ details.fold[open] summary i{color:var(--faint)}
 .pg{border:1px solid var(--line);border-radius:10px;padding:6px 10px 8px;margin:0}
 .pg legend{font-size:12px;font-weight:900;color:var(--dim);padding:0 4px}
 .pg .check{margin:6px 0 0;font-size:14px}
+.note{font-size:12px;color:var(--faint);font-weight:600;line-height:1.5}
 </style>
 </head>
 <body>
@@ -231,7 +232,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611081527"></script>
+<script src="shop-core.js?v=202611081529"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -568,9 +569,9 @@ function editProduct(id) {
           <span>${zhe(t.price, Number(p.price)) || ""}</span><button data-trm="${i}" aria-label="刪除">×</button></div>`).join("")}</div>
         <button class="btn ghost" data-tadd style="align-self:flex-start">＋ 新增級距</button><span class="note">例：2 件以上每件 $900、3 件以上每件 $850</span></div>
       <div class="f"><label for="pd">商品介紹</label><textarea id="pd">${esc(p.desc)}</textarea></div>
-      <div class="f2"><div class="f"><label for="psu">貨主（替別人賣的商品填寫）</label><input id="psu" list="supList" value="${esc(p.supplier || "")}" placeholder="例：赤貧軍團；空白＝自有商品">
+      <div class="f2"><div class="f"><label for="psu">貨主（代售商品）</label><input id="psu" list="supList" value="${esc(p.supplier || "")}" placeholder="例：赤貧軍團；空白＝自有商品">
           <datalist id="supList">${[...new Set(data.products.map(x => x.supplier).filter(Boolean))].map(b => `<option value="${esc(b)}">`).join("")}</datalist></div>
-        <div class="f"><label for="pcm">我方分潤 %</label><input id="pcm" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="${p.supplier ? p.commission : ""}" placeholder="例：5"><span class="note">例：代營運 5、對分 50；報表依此計算我方分潤與應付貨主</span></div></div>
+        <div class="f"><label for="pcm">我方分潤 %</label><input id="pcm" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="${p.supplier ? p.commission : ""}" placeholder="例：5"><span class="note">代營運 5、對分 50</span></div></div>
       <label class="check"><input type="checkbox" id="pa" ${p.active ? "checked" : ""}>上架</label>
       <label class="check"><input type="checkbox" id="ppo" ${p.preorder ? "checked" : ""}>即將開賣（顯示但不能下單）</label>
       <label class="check"><input type="checkbox" id="ph" ${p.hot ? "checked" : ""}>標示熱銷</label>
