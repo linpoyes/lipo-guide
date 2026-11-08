@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-RJzYcv/eQUFKvexZzUomcGyoQRidiqduN1aZWDdykq0='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-JToI08GegZpjncMto2HrGNORd9XgI1VnCoX59cylKFo='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611081524">
+<meta name="build" content="202611081527">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -47,13 +47,20 @@ svg{width:20px;height:20px}
 
 h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-.list{display:grid;gap:8px}
+.list{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
 .row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:left;color:var(--text);width:100%}
 .row img,.row .ph{flex:none;width:52px;height:52px;border-radius:9px;object-fit:cover;background:var(--wash)}
 .row .info{flex:1;min-width:0}
 .row .info b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .info small{display:block;color:var(--dim);font-size:13px}
 .row .right{text-align:right;flex:none}
+.row{min-width:0;max-width:100%}
+/* 商品列表（11-08 手機吃字）：名稱最多兩行、價格庫存一行、標籤可換行 */
+.row .info b.pn{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
+.row .info .pm .pr{color:var(--red);font-weight:900}
+.ptags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.ptags i{font-style:normal;font-size:12px;font-weight:800;color:var(--dim);background:var(--wash);border-radius:6px;padding:1px 7px;white-space:nowrap}
+.ptags i.w{color:var(--warn);background:rgba(168,90,0,.12)}.ptags i.r{color:#fff;background:var(--red)}
 .pill{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:1px 9px;white-space:nowrap}
 .pill.on{background:rgba(31,122,74,.14);color:var(--ok)} .pill.off{background:var(--wash);color:var(--faint)}
 .pill.new{background:var(--red);color:#fff} .pill.warn{background:rgba(168,90,0,.14);color:var(--warn)}
@@ -68,7 +75,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .f input,.f select,.f textarea{font:inherit;color:var(--text);background:var(--bg);border:1.5px solid var(--faint);border-radius:10px;padding:8px 10px;width:100%}
 .f textarea{min-height:90px;resize:vertical}
 .f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--accent)}
-.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .f2 .f{margin:0}
 .f .note{font-size:12px;color:var(--faint);font-weight:600}
 .check{display:flex;align-items:center;gap:8px;font-weight:800;margin:10px 0}
@@ -224,7 +231,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611081524"></script>
+<script src="shop-core.js?v=202611081527"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -531,8 +538,10 @@ function drawProducts() {
   $("main").innerHTML = `<h2>商品 ${ps.length} 項 <button class="btn" id="newP">新增商品</button></h2>
     <div class="list">${ps.length ? ps.map(p => `<button class="row" data-p="${esc(p.id)}">
       ${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 150))}" alt="">` : '<div class="ph"></div>'}
-      <div class="info"><b>${esc(p.name)}</b><small>${p.preorder ? "即將開賣・" : ""}${p.cvsPer || p.homePer ? `交貨便 ${p.cvsPer || "∞"}／宅急便 ${p.homePer || "∞"} 件・` : ""}${p.supplier ? `貨主 ${esc(p.supplier)} ${p.commission}%・` : ""}${p.brand ? esc(p.brand) + "・" : ""}${esc(catName(p.category))}・${money(p.price)}・${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}${p.tiers.length ? `・多件優惠 ${p.tiers.length} 段` : ""}・庫存 ${p.stock < 0 ? "不限" : p.stock}・已售 ${p.sold || 0}</small></div>
-      <div class="right"><span class="pill ${p.active ? "on" : "off"}">${p.active ? "上架" : "下架"}</span>${p.hot ? '<br><span class="pill new">熱銷</span>' : ""}</div></button>`).join("") : '<div class="empty">尚無商品</div>'}</div>`;
+      <div class="info"><b class="pn">${esc(p.name)}</b>
+        <small class="pm"><span class="pr">${money(p.price)}</span>・庫存 ${p.stock < 0 ? "不限" : p.stock}・已售 ${p.sold || 0}</small>
+        <span class="ptags">${[p.preorder && '<i class="w">即將開賣</i>', p.hot && '<i class="r">熱銷</i>', p.supplier && `<i>${esc(p.supplier)} ${p.commission}%</i>`, `<i>${p.cvsOk ? "黑貓／7-11" : "僅黑貓"}</i>`, p.tiers.length && `<i>多件優惠 ${p.tiers.length} 段</i>`, p.brand && `<i>${esc(p.brand)}</i>`].filter(Boolean).join("")}</span></div>
+      <div class="right"><span class="pill ${p.active ? "on" : "off"}">${p.active ? "上架" : "下架"}</span></div></button>`).join("") : '<div class="empty">尚無商品</div>'}</div>`;
   $("newP").onclick = () => editProduct(null);
   $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-p]"); if (b) editProduct(b.dataset.p); };
 }
@@ -566,10 +575,10 @@ function editProduct(id) {
       <label class="check"><input type="checkbox" id="ppo" ${p.preorder ? "checked" : ""}>即將開賣（顯示但不能下單）</label>
       <label class="check"><input type="checkbox" id="ph" ${p.hot ? "checked" : ""}>標示熱銷</label>
       <label class="check"><input type="checkbox" id="pv" ${p.cvsOk ? "checked" : ""}>可 7-11 店到店（小件）</label>
+      <span class="note" style="margin:-6px 0 10px 28px;display:block">未勾選＝僅限黑貓宅配；7-11 限 45×30×30 公分、5 公斤內</span>
       <div class="f2"><div class="f"><label for="pcv">一個交貨便可裝幾件</label><input id="pcv" type="number" inputmode="numeric" min="0" value="${p.cvsPer || ""}" placeholder="不限"></div>
         <div class="f"><label for="phm">一箱宅急便可裝幾件</label><input id="phm" type="number" inputmode="numeric" min="0" value="${p.homePer || ""}" placeholder="不限"></div></div>
-      <span class="note" style="display:block;margin-top:-4px">訂單自動算出要寄幾個包裹，運費依包裹數計算；空白＝不限（整單一個包裹）</span>
-      <span class="note" style="margin:-6px 0 0 28px;display:block">未勾選＝僅限黑貓宅配；7-11 限 45×30×30 公分、5 公斤內</span>
+      <span class="note" style="display:block;margin:4px 0 8px">依此自動計算包裹數與運費；空白＝不限</span>
       <div class="err" id="perr"></div>
       <div class="btns">${id ? '<button class="btn danger" data-del style="flex:none">刪除</button>' : ""}<button class="btn" data-save>儲存</button></div>`;
   };
