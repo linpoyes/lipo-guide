@@ -341,7 +341,13 @@ function migrateIgMp4_() {
 }
 // 2026-11-09 使用者：沒有 LINE 會員也能下單（結帳時提醒一次，不強制）
 function migrateNoRequireLine_() { const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_NOREQLINE")) return; p.setProperty("MIG_NOREQLINE", "1"); setSetting_("requireLine", "FALSE"); }
+// 2026-11-09 使用者：保時捷（GT3RS 三款）與 1087X 不賣，只賣 5 款 → 下架（不刪除，訂單與報表保留）
+function migrateNoPorsche_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_NOPORSCHE2")) return; p.setProperty("MIG_NOPORSCHE2", "1");
+  rows_("products").filter(r => /GT3RS|1087X/.test(String(r.name))).forEach(r => upsert_("products", "id", { id: String(r.id), active: "FALSE", updatedAt: new Date().toISOString() }));
+}
 function catalog_() {
+  migrateNoPorsche_();
   migrateNoRequireLine_();
   migrateIg_(); migrateIgMp4_();
   migrateGoLive_();
@@ -1606,12 +1612,12 @@ function welcomeFlex_(name, w) {
     { type: "text", text: "使用期限：" + (w.expires || Utilities.formatDate(new Date(Date.now() + welcomeDays_() * 86400000), "Asia/Taipei", "yyyy/MM/dd")) + " 前", size: "xs", color: "#D7261E", weight: "bold", wrap: true },
     { type: "text", text: "以 LINE 登入賣場會員後，結帳時即可使用", size: "xs", color: "#575D69", wrap: true }] });
   return { type: "flex", altText: "歡迎加入赤貧軍團" + (w ? "，入會禮 " + w.label + " 已送上" : ""), contents: { type: "bubble",
-    hero: { type: "image", url: LINE_SITE + "media/welcome.jpg?v=1", size: "full", aspectRatio: "3:2", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
+    hero: { type: "image", url: LINE_SITE + "media/welcome.jpg?v=2", size: "full", aspectRatio: "3:2", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
     body: { type: "box", layout: "vertical", contents: body },
     footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
       btn(w ? "登入會員・領取入會禮" : "登入會員", SHOP_PAGE + UTM + "#member", true), btn("逛賣場", SHOP_PAGE + UTM), btn("電池充電計算", LINE_SITE + UTM + "#calc")] } } };
 }
-const RICH_VER = "3";
+const RICH_VER = "4";
 function lineSetup_() {
   const p = PropertiesService.getScriptProperties();
   if (p.getProperty("RICHMENU_V") === RICH_VER) return { ok: true, done: true, result: p.getProperty("RICHMENU_RESULT") || "" };
@@ -1726,13 +1732,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson6");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson8");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson6", j, 3600);
+  if (j.length < 95000) c.put("catalogJson8", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson6"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson8"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────
