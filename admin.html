@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-F5HKnNFTZ6fdNlfoP9LpVoVaMWMl81gDIv4KZ0/0bSs='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-dpbV3OuCJ0LUX7xmR5DKIa78u406LkGH6lMNBXwoets='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092157">
+<meta name="build" content="202611092158">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -251,7 +251,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611092157"></script>
+<script src="shop-core.js?v=202611092158"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -891,7 +891,7 @@ function printReport(r) {
     ${r.os.map(o => `<tr><td>${esc(o.createdAt.slice(0, 10))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.items.map(i => short(i.name) + "×" + i.qty).join("、"))}</td><td>${/^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM" : "—"}</td><td>${m(o.total)}</td></tr>`).join("") || '<tr><td colspan="5">—</td></tr>'}</tbody></table></section>`;
   const base = location.href.replace(/[^/]*$/, ""), made = new Date().toLocaleString("sv-SE", {timeZone: "Asia/Taipei"}).slice(0, 16);
   const html = `<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>赤貧軍團營運報表_${r.from}_${r.to}</title><style>
-    @page{size:A4;margin:16mm 14mm 18mm}:root{color-scheme:light}*{box-sizing:border-box}html,body{background:#fff}body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;color:#1A2130;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4;margin:16mm 14mm 18mm}:root{color-scheme:light}*{box-sizing:border-box}html,body{background:#fff}body{margin:0;padding-bottom:12mm;font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;color:#1A2130;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     header{display:flex;align-items:center;gap:14px;padding-bottom:12px;border-bottom:3px solid #17181D}
     header img{width:56px;height:56px;border-radius:12px}header .t{flex:1}header b{display:block;font-size:24px;letter-spacing:.2em}header small{font-size:13px;color:#575D69;font-weight:700;letter-spacing:.08em}
     header .p{text-align:right;font-size:12px;color:#575D69}header .p b{font-size:15px;letter-spacing:0;color:#1A2130}
@@ -901,7 +901,7 @@ function printReport(r) {
     table{width:100%;border-collapse:collapse}th{background:#17181D;color:#fff;font-size:11px;padding:6px 8px;text-align:right}td{padding:6px 8px;border-bottom:1px solid #E6DED1;text-align:right;font-variant-numeric:tabular-nums}
     th:first-child,td:first-child{text-align:left}table.sm td:nth-child(3){text-align:left}table.sm th:nth-child(3){text-align:left}tbody tr:nth-child(even) td{background:#FBF9F5}
     tfoot td{font-weight:800;border-top:2px solid #17181D;border-bottom:0}
-    footer{position:fixed;left:0;right:0;bottom:-10mm;display:flex;justify-content:space-between;font-size:10px;color:#575D69;border-top:1px solid #E2D6C0;padding-top:6px}
+    footer{position:fixed;left:0;right:0;bottom:0;background:#fff;display:flex;justify-content:space-between;font-size:10px;color:#575D69;border-top:1px solid #E2D6C0;padding-top:6px}
     footer b{color:#94701F;letter-spacing:.1em}footer i{font-style:normal;color:#5F6472;letter-spacing:.1em}
   </style><body>
   <header><img src="${base}badge.png"><div class="t"><b>赤貧軍團</b><small>營運報表</small></div><div class="p"><b>${r.from} ～ ${r.to}</b><br>${rpt.withUnpaid ? "含未付款" : "已付款訂單"}・製表 ${made}</div></header>
