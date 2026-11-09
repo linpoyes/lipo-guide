@@ -286,8 +286,20 @@ function migrateOfficialImgs_() {
     upsert_("products", "id", { id: String(r.id), images: JSON.stringify([imgs[0]].concat(add, imgs.slice(1))), updatedAt: new Date().toISOString() });
   });
 }
+// 2026-11-09：1087X 實際是 Supra 車身 → 封面改用原廠 Supra 1087X 重製（media/1087x-cover.jpg），拿掉舊的 GT3RS 外型廣告圖；
+// 全系列九宮格也重做（media/series.jpg）取代各商品原本雲端硬碟那張
+function migrate1087_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_1087SUPRA")) return; p.setProperty("MIG_1087SUPRA", "1");
+  const OLD_SERIES = "drive:1IeQcnaVxbYqbR8-z_dE1Ov6WZNOhcf38";
+  rows_("products").forEach(r => {
+    let imgs = json_(r.images, []);
+    if (/1087X/.test(String(r.name))) imgs = ["media/1087x-cover.jpg", "media/1087x-side.jpg", "media/1087x-alt.jpg", "media/1087x-box.jpg", "media/series.jpg"];
+    else imgs = imgs.map(x => x === OLD_SERIES ? "media/series.jpg" : x);
+    upsert_("products", "id", { id: String(r.id), images: JSON.stringify(imgs), updatedAt: new Date().toISOString() });
+  });
+}
 function catalog_() {
-  migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_(); migrateOfficialImgs_();
+  migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_(); migrateOfficialImgs_(); migrate1087_();
   try { expireOrders_(); } catch (e) {}
   try { remindWelcome_(); } catch (e) {}
   const bySort = (a, b) => a.sort - b.sort;
