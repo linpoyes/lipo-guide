@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-HsVOFZAomdrfym+uiI9Jyn1p4aPjnGSd3eY3G2aUMG4='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-/aXPt4i38FSorDzhde7r0xvNte6nQx+WlI6qGIMnIWc='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092322">
+<meta name="build" content="202611092327">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -262,14 +262,14 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611092322"></script>
+<script src="shop-core.js?v=202611092327"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
 let token = lsGet("cp-admin", "") || "";
 // 分級權限：分頁依角色顯示（後端也會擋，這裡只是不顯示用不到的）
 const TABS = [["dash", "儀表板"], ["orders", "訂單"], ["products", "商品"], ["videos", "短影音"], ["codes", "折扣碼"], ["report", "報表"], ["settings", "設定"]];
-const ROLE_NAME = {owner: "超級管理員", staff: "營運", shipper: "出貨", viewer: "報表", custom: "自訂"};
+const ROLE_NAME = {owner: "超級管理員", staff: "營運", shipper: "出貨", viewer: "報表", custom: "自訂", customer: "顧客", system: "系統"};
 const role = () => (data && data.me && data.me.role) || "owner";
 // 權限（後端 PERMS 為準）：超級管理員全部；其他帳號看 data.me.perms
 const has = p => role() === "owner" || ((data && data.me && data.me.perms) || []).includes(p);
@@ -1064,7 +1064,7 @@ async function drawLine() {
 }
 /* ── 操作紀錄（只有超級管理員）：每個帳號的每個後台動作；可依帳號、類別篩選與搜尋 ── */
 let auditF = {user: "", kind: "", q: ""}, auditLogs = null;
-const AUDIT_KIND = {"訂單": /訂單|寄件|託運/, "商品": /商品|短影音|上傳|檔案/, "折扣碼": /折扣碼/, "設定": /設定|LINE|GitHub|金流|物流連線/, "帳號": /帳號|登入|密碼/, "報表": /支出|流量/};
+const AUDIT_KIND = {"顧客": /顧客下單|會員登入|聯絡客服/, "系統": /付款完成|逾期取消|物流狀態/, "訂單": /訂單|寄件|託運/, "商品": /商品|短影音|上傳|檔案/, "折扣碼": /折扣碼/, "設定": /設定|LINE|GitHub|金流|物流連線/, "帳號": /帳號|登入|密碼/, "報表": /支出|流量/};
 async function drawAudit(reload) {
   const box = $("auditBox"); if (!box) return;
   if (!auditLogs || reload) { try { auditLogs = (await admin("admin_audit", {}, {tries: 2})).logs; } catch (e) { box.innerHTML = `<div class="card err">${esc(e.message)}</div>`; return; } }

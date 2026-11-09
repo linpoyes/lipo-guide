@@ -505,6 +505,7 @@ function placeOrder_(req) {
     if (req.clientId) cache.put("ordc:" + req.clientId, "1", 3600);
     if (!pay) lineNotifyOrder_(orderNo, "新訂單通知"); // 線上付款的單等付款成功才通知
     dropCatalog_(); // 庫存、已售數字變了
+    sysLog_("顧客", "customer", "顧客下單", orderNo + "・" + c.name + "・" + q.lines.map(l => String(l.name).replace(/^.*?[｜|]\s*/, "") + "×" + l.qty).join("、") + "・$" + q.total + (pay ? "（" + (pay === "Credit" ? "信用卡" : "ATM") + "）" : ""), orderNo);
     const res = { ok: true, orderNo: orderNo, total: q.total };
     if (pay) res.pay = ecpayForm_(rows_("orders").find(o => String(o.orderNo) === orderNo), pay);
     return res;
@@ -924,6 +925,7 @@ function ecpayReturn_(p) {
     if (String(o.payStatus) !== "paid") {
       if (logiCfg_().auto) try { logiCreate_(String(o.orderNo)); } catch (err) {} // 付款成功自動建綠界寄件單，通知裡就有交貨便代號／託運單號
       lineNotifyOrder_(String(o.orderNo), "付款完成・待出貨");
+      sysLog_("綠界", "system", "付款完成", o.orderNo + "・$" + (Number(p.TradeAmt) || o.total) + "・" + (/^Credit/.test(String(p.PaymentType)) ? "信用卡" : "ATM"), String(o.orderNo));
     }
   } else if (String(o.payStatus) !== "paid" && !/^ATM/.test(String(p.PaymentType))) {
     setOrderField_(String(o.orderNo), { payStatus: "failed" });
@@ -1054,6 +1056,7 @@ function lineExchange_(code, state, redirect, nonce) {
   PropertiesService.getScriptProperties().setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
   welcomePush_(rec);
   memberLog_(rec, true);
+  sysLog_(rec.name || "LINE 會員", "customer", "會員登入", (rec.name || "LINE 會員") + (rec.friend ? "・已加好友" : "・未加好友"), "");
   return { mt: mt };
 }
 function memberOf_(mt) {
@@ -1461,6 +1464,7 @@ function logiReply_(q) {
   setOrderField_(String(o.orderNo), upd);
   try {
     const key = "LGN_" + sh.id + "_" + (done ? "d" : arrived ? "a" : shipped ? "s" : back ? "b" + hash_(msg).slice(0, 6) : "");
+    if (shipped || arrived || done || back) sysLog_("綠界物流", "system", "物流狀態", o.orderNo + "・" + msg, String(o.orderNo));
     if (back && !PropertiesService.getScriptProperties().getProperty(key)) { // 退件、門市閉店等異常：通知管理者處理
       PropertiesService.getScriptProperties().setProperty(key, "1");
       linePush_("【赤貧軍團】物流異常通知\n訂單編號：" + o.orderNo + "\n物流狀態：" + msg + "\n物流單號：" + sh.no + "\n請盡速處理：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo);
@@ -1528,6 +1532,7 @@ function expireOrders_(force) {
       else deadline = made + 2 * 3600000;
       if (now < deadline) return;
       setOrderField_(String(o.orderNo), { status: "已取消" });
+      sysLog_("系統", "system", "逾期取消訂單", o.orderNo + "・未於期限內付款，已退回庫存", String(o.orderNo));
       releaseOrder_(o);
       if (o.lineUid) try { lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: "【赤貧軍團】訂單取消通知\n訂單編號：" + o.orderNo + "\n因未於付款期限內完成付款，本訂單已自動取消。\n如仍有需要，歡迎重新下單：" + SHOP_PAGE }] }); } catch (e) {}
     });
@@ -1571,6 +1576,7 @@ function lineEvent_(ev) {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
     lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好，已為您轉接客服人員，請稍候。\n\n為加快處理，請提供訂單編號或商品名稱，客服人員將盡快於此回覆您。" }] });
     csNotify_(name || "LINE 使用者");
+    sysLog_(name || "LINE 使用者", "customer", "聯絡客服", "透過官方帳號選單要求客服", "");
   }
 }
 // 歡迎訊息＝主卡片＋熱門商品圖卡（可左右滑，最多 6 件：熱銷優先、再依後台排序，排除售完）
@@ -1842,4 +1848,9 @@ function syncFees_() {
     if (real !== null) { setOrderField_(String(o.orderNo), { payFee: String(real), feeSrc: "ecpay" }); done++; }
   });
   return done + "/" + n;
+}
+
+// 顧客與系統事件也寫進操作紀錄（2026-11-09 使用者：超級管理員要看到任何人留下的紀錄）
+function sysLog_(who, role, action, detail, target) {
+  try { const sh = sheet_("audit"); sh.getRange(sh.getLastRow() + 1, 1, 1, 6).setNumberFormat("@").setValues([[ts_(new Date()), safeCell_(String(who).slice(0, 40)), role, action, safeCell_(String(detail).slice(0, 500)), safeCell_(String(target || ""))]]); } catch (e) {}
 }
