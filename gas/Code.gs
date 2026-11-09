@@ -265,8 +265,16 @@ function migrateNoFreeShip_() {
   const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_NOFREESHIP")) return; p.setProperty("MIG_NOFREESHIP", "1");
   setSetting_("freeShipOver", "0");
 }
+// 2026-11-09：Supra 性能白原廣告圖下半被截斷 → 換成 JXC 官網（jxcmodel.com/product/toyota-supra）的完整原廠圖（前側＋後側）
+function migrateSupraWhite_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_SUPRAWHITE")) return; p.setProperty("MIG_SUPRAWHITE", "1");
+  const r = rows_("products").find(x => /Supra/.test(String(x.name)) && /性能白/.test(String(x.name))); if (!r) return;
+  const imgs = json_(r.images, []);
+  const out = [imgs[0], "media/supra-white-front.jpg", "media/supra-white-rear.jpg"].concat(imgs.slice(2)).filter(Boolean);
+  upsert_("products", "id", { id: String(r.id), images: JSON.stringify(out), updatedAt: new Date().toISOString() });
+}
 function catalog_() {
-  migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_();
+  migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_();
   try { expireOrders_(); } catch (e) {}
   try { remindWelcome_(); } catch (e) {}
   const bySort = (a, b) => a.sort - b.sort;
