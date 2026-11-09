@@ -1646,7 +1646,7 @@ function welcomeFlex_(name, w) {
     footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
       btn(w ? "登入會員・領取入會禮" : "登入會員", SHOP_PAGE + UTM + "#member", true), btn("逛賣場", SHOP_PAGE + UTM), btn("電池充電計算", LINE_SITE + UTM + "#calc")] } } };
 }
-const RICH_VER = "4";
+const RICH_VER = "5";
 function lineSetup_() {
   const p = PropertiesService.getScriptProperties();
   if (p.getProperty("RICHMENU_V") === RICH_VER) return { ok: true, done: true, result: p.getProperty("RICHMENU_RESULT") || "" };
