@@ -85,6 +85,7 @@ function doGet(e) {
   if (a === "ping") return out_({ ok: true });
   if (a === "cron") return out_(cron_()); // GitHub Actions 每小時呼叫（.github/workflows/cron.yml）
   if (a === "lineSetup") return out_(lineSetup_());
+  if (a === "liffSetup") return out_(liffSetup_());
   if (a === "welcomePreview") return out_(welcomePreview_());
   if (a === "csPreview") return out_(csPreview_());
   if (a === "orderStatus") return out_(orderStatus_(e.parameter));
@@ -122,6 +123,7 @@ function doPost(e) {
     if (a === "login") { const r = login_(req.user, req.pass); audit_({ user: String(req.user || "").normalize("NFKC").trim(), role: r.role || "" }, r.ok ? "login" : "loginFail", req, null); return out_(r); }
     if (a === "track") return out_(track_(req));
     if (a === "lineLogin") return out_(lineLoginPost_(req));
+    if (a === "liffLogin") return out_(liffLogin_(req));
     if (a && a.indexOf("admin_") === 0) {
       const me = checkToken_(req.token);
       if (!me) return out_({ ok: false, error: "auth" });
@@ -1073,9 +1075,13 @@ function lineExchange_(code, state, redirect, nonce) {
   const idt = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/verify", { method: "post", muteHttpExceptions: true,
     payload: { id_token: tok.id_token, client_id: LINE_LOGIN_ID, nonce: st } }).getContentText());
   if (!idt.sub) return { err: "verify" };
-  const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + tok.access_token } }).getContentText());
+  return memberFromLine_(idt, tok.access_token);
+}
+// 用 LINE 身分（id_token 驗證結果＋access token）發會員權杖：OAuth 登入與 LIFF 共用
+function memberFromLine_(idt, accessToken) {
+  const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + accessToken } }).getContentText());
   const mt = Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, "");
-  const rec = { uid: idt.sub, name: idt.name || "", pic: idt.picture || "", friend: !!fr.friendFlag, at: tok.access_token, exp: Date.now() + 30 * 86400000 };
+  const rec = { uid: idt.sub, name: idt.name || "", pic: idt.picture || "", friend: !!fr.friendFlag, at: accessToken, exp: Date.now() + 30 * 86400000 };
   PropertiesService.getScriptProperties().setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
   welcomePush_(rec);
   memberLog_(rec, true);
@@ -1584,6 +1590,7 @@ function logiCostOf_(o) {
    follow／message 事件的 replyToken 只有 LINE 真的發出的才能用，所以偽造的請求不會讓我們亂發訊息。 */
 const LINE_SITE = "https://linpoyes.github.io/lipo-guide/";
 const UTM = "?utm_source=LINE&utm_medium=oa";
+const LIFF_URL = "https://liff.line.me/2012457738-sW2OqmOO"; // 從 LINE 開賣場一律走 LIFF（免跳轉登入）
 const CS_TEXT = "聯絡客服";
 const CS_OLD = ["我要聯絡客服"]; // 舊版選單送出的文字，仍視為聯絡客服
 function lineEvent_(ev) {
@@ -1614,7 +1621,7 @@ function productCarousel_(n) {
   const img = src => /^drive:/.test(src) ? "https://lh3.googleusercontent.com/d/" + src.slice(6) + "=w1000" : /^https:/.test(src) ? src : LINE_SITE + src;
   const short = nm => String(nm).replace(/^.*?[｜|]\s*/, "") || nm;
   const bubble = p => ({ type: "bubble", size: "kilo",
-    hero: { type: "image", url: img(p.images[0]), size: "full", aspectRatio: "4:3", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM + "#p=" + p.id } },
+    hero: { type: "image", url: img(p.images[0]), size: "full", aspectRatio: "4:3", aspectMode: "cover", action: { type: "uri", uri: LIFF_URL + UTM + "#p=" + p.id } },
     body: { type: "box", layout: "vertical", spacing: "xs", paddingAll: "14px", contents: [
       { type: "text", text: short(p.name), weight: "bold", size: "md", color: "#1A2130", wrap: true, maxLines: 2 },
       p.brand ? { type: "text", text: p.brand, size: "xxs", color: "#C9362C", weight: "bold" } : { type: "filler" },
@@ -1622,12 +1629,12 @@ function productCarousel_(n) {
         { type: "text", text: "$" + p.price.toLocaleString(), weight: "bold", size: "lg", color: "#D7261E", flex: 0 },
         p.listPrice > p.price ? { type: "text", text: "$" + p.listPrice.toLocaleString(), size: "xs", color: "#8C8880", decoration: "line-through", flex: 0 } : { type: "filler" },
         p.preorder ? { type: "text", text: "即將開賣", size: "xxs", color: "#575D69", align: "end" } : (p.hot ? { type: "text", text: "熱銷", size: "xxs", color: "#D7261E", weight: "bold", align: "end" } : { type: "filler" })] }] },
-    footer: { type: "box", layout: "vertical", paddingAll: "10px", contents: [{ type: "button", style: "secondary", height: "sm", action: { type: "uri", label: "查看商品", uri: SHOP_PAGE + UTM + "#p=" + p.id } }] } });
+    footer: { type: "box", layout: "vertical", paddingAll: "10px", contents: [{ type: "button", style: "secondary", height: "sm", action: { type: "uri", label: "查看商品", uri: LIFF_URL + UTM + "#p=" + p.id } }] } });
   const more = { type: "bubble", size: "kilo", body: { type: "box", layout: "vertical", justifyContent: "center", alignItems: "center", spacing: "md", paddingAll: "20px", backgroundColor: "#1D2129", contents: [
     { type: "image", url: LINE_SITE + "badge.png", size: "sm", aspectRatio: "1:1" },
     { type: "text", text: "看更多商品", weight: "bold", size: "lg", color: "#FFFFFF", align: "center" },
     { type: "text", text: "遙控車・鋰電池・改裝配件", size: "xs", color: "#B4AFA6", align: "center" },
-    { type: "button", style: "primary", color: "#D7261E", height: "sm", margin: "md", action: { type: "uri", label: "前往賣場", uri: SHOP_PAGE + UTM } }] } };
+    { type: "button", style: "primary", color: "#D7261E", height: "sm", margin: "md", action: { type: "uri", label: "前往賣場", uri: LIFF_URL + UTM } }] } };
   return { type: "flex", altText: "熱門商品推薦", contents: { type: "carousel", contents: ps.map(bubble).concat([more]) } };
 }
 function welcomeFlex_(name, w) {
@@ -1641,12 +1648,12 @@ function welcomeFlex_(name, w) {
     { type: "text", text: "使用期限：" + (w.expires || Utilities.formatDate(new Date(Date.now() + welcomeDays_() * 86400000), "Asia/Taipei", "yyyy/MM/dd")) + " 前", size: "xs", color: "#D7261E", weight: "bold", wrap: true },
     { type: "text", text: "以 LINE 登入賣場會員後，結帳時即可使用", size: "xs", color: "#575D69", wrap: true }] });
   return { type: "flex", altText: "歡迎加入赤貧軍團" + (w ? "，入會禮 " + w.label + " 已送上" : ""), contents: { type: "bubble",
-    hero: { type: "image", url: LINE_SITE + "media/welcome.jpg?v=2", size: "full", aspectRatio: "3:2", aspectMode: "cover", action: { type: "uri", uri: SHOP_PAGE + UTM } },
+    hero: { type: "image", url: LINE_SITE + "media/welcome.jpg?v=2", size: "full", aspectRatio: "3:2", aspectMode: "cover", action: { type: "uri", uri: LIFF_URL + UTM } },
     body: { type: "box", layout: "vertical", contents: body },
     footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
-      btn(w ? "登入會員・領取入會禮" : "登入會員", SHOP_PAGE + UTM + "#member", true), btn("逛賣場", SHOP_PAGE + UTM), btn("電池充電計算", LINE_SITE + UTM + "#calc")] } } };
+      btn(w ? "登入會員・領取入會禮" : "登入會員", LIFF_URL + UTM + "#member", true), btn("逛賣場", LIFF_URL + UTM), btn("電池充電計算", LINE_SITE + UTM + "#calc")] } } };
 }
-const RICH_VER = "7";
+const RICH_VER = "8";
 function lineSetup_() {
   const p = PropertiesService.getScriptProperties();
   if (p.getProperty("RICHMENU_V") === RICH_VER) return { ok: true, done: true, result: p.getProperty("RICHMENU_RESULT") || "" };
@@ -1657,10 +1664,10 @@ function lineSetup_() {
   const area = (c, r, action) => ({ bounds: { x: c * cw, y: r * rh, width: c === 2 ? W - 2 * cw : cw, height: r === 1 ? Hh - rh : rh }, action: action });
   const uri = (label, u) => ({ type: "uri", label: label, uri: u });
   const menu = { size: { width: W, height: Hh }, selected: true, name: "赤貧軍團主選單 v" + RICH_VER, chatBarText: "選單", areas: [
-    area(0, 0, uri("逛賣場", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu")),
-    area(1, 0, uri("新品上架", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu#new")),
-    area(2, 0, uri("入會禮", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu#member")),
-    area(0, 1, uri("我的訂單", SHOP_PAGE + "?utm_source=LINE&utm_medium=richmenu#orders")),
+    area(0, 0, uri("逛賣場", LIFF_URL + "?utm_source=LINE&utm_medium=richmenu")),
+    area(1, 0, uri("新品上架", LIFF_URL + "?utm_source=LINE&utm_medium=richmenu#new")),
+    area(2, 0, uri("入會禮", LIFF_URL + "?utm_source=LINE&utm_medium=richmenu#member")),
+    area(0, 1, uri("我的訂單", LIFF_URL + "?utm_source=LINE&utm_medium=richmenu#orders")),
     area(1, 1, uri("電池充電", LINE_SITE + "?utm_source=LINE&utm_medium=richmenu#calc")),
     area(2, 1, { type: "message", label: "聯絡客服", text: CS_TEXT })] };
   const log = [];
@@ -1918,3 +1925,32 @@ function adminLine_(req) {
   return Object.assign(issueSession_(name), { role: u[name].role, isDefault: false, lineName: id.name });
 }
 function sysLogDetail_(who, role, action, detail, target) { sysLog_(who, role, action, detail, target); }
+
+
+/* ───────────── LIFF（2026-11-09）─────────────
+   在 LINE 裡開賣場改走 LIFF：不必跳轉 LINE 登入頁，LIFF SDK 直接給 id_token＋access token，後端驗證後發會員權杖（liffLogin_）。
+   LIFF app 建在 LINE Login channel 2012457738，endpoint＝shop.html，botPrompt aggressive（同時邀加好友）。liffSetup_ 只建一次，ID 存 LIFF_ID。 */
+function liffSetup_() {
+  const p = PropertiesService.getScriptProperties();
+  if (p.getProperty("LIFF_ID")) return { ok: true, liffId: p.getProperty("LIFF_ID") };
+  const secret = p.getProperty("LINE_LOGIN_SECRET");
+  const tk = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v3/token", { method: "post", muteHttpExceptions: true,
+    payload: { grant_type: "client_credentials", client_id: LINE_LOGIN_ID, client_secret: secret } }).getContentText());
+  if (!tk.access_token) return { ok: false, error: "token", detail: JSON.stringify(tk).slice(0, 200) };
+  const r = UrlFetchApp.fetch("https://api.line.me/liff/v1/apps", { method: "post", contentType: "application/json", muteHttpExceptions: true,
+    headers: { Authorization: "Bearer " + tk.access_token },
+    payload: JSON.stringify({ view: { type: "full", url: SHOP_PAGE }, description: "赤貧軍團賣場", features: { qrCode: false }, permanentLinkPattern: "concat", scope: ["openid", "profile"], botPrompt: "aggressive" }) });
+  const j = json_(r.getContentText(), {});
+  if (!j.liffId) return { ok: false, error: "create " + r.getResponseCode(), detail: r.getContentText().slice(0, 300) };
+  p.setProperty("LIFF_ID", j.liffId);
+  return { ok: true, liffId: j.liffId };
+}
+function liffLogin_(req) {
+  try {
+    const idt = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/verify", { method: "post", muteHttpExceptions: true,
+      payload: { id_token: String(req.idToken || ""), client_id: LINE_LOGIN_ID } }).getContentText());
+    if (!idt.sub) return { ok: false, error: "LINE 驗證失敗" };
+    const r = memberFromLine_(idt, String(req.accessToken || ""));
+    return { ok: true, mt: r.mt, member: memberCheck_(r.mt).member };
+  } catch (e) { return { ok: false, error: "LINE 驗證失敗" }; }
+}
