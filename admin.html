@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-/kLoRiuqG+I3uVqEp0343Z/eBljbTIEhPljUnAFDlw8='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-PxpHPi44p5qaNJHp7ifZ/EntqHXZt5E25XdTDhSQpVs='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092143">
+<meta name="build" content="202611092145">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -108,6 +108,17 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .panel h3{margin:0 0 6px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
 .x{width:34px;height:34px;border:0;border-radius:50%;background:var(--ink);color:#fff;font-size:18px}
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.capcard{margin-bottom:12px}.caphd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.caphd b{font-size:16px}
+.capnum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px}.capnum div{background:var(--wash);border-radius:10px;padding:8px 10px}
+.capnum small{display:block;font-size:12px;color:var(--dim);font-weight:700}.capnum b{font-size:18px}
+.tierbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0}.tierbar i{display:block;height:100%;background:linear-gradient(90deg,#1F9D63,#5BD69B)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:8px 10px;font-weight:800;font-size:15px;text-align:left}
+.seg button small{display:block;font-size:12px;font-weight:600;color:var(--faint);margin-top:2px}
+.seg button[aria-pressed=true]{border-color:var(--red);background:rgba(215,38,30,.08)}
+.splitprev{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0 10px}.splitprev:empty{display:none}
+.splitprev div{background:var(--wash);border-radius:10px;padding:8px 12px}.splitprev span{display:block;font-size:12px;color:var(--dim);font-weight:700}.splitprev b{font-size:20px}
+.splitprev small{grid-column:1/-1;font-size:12px;color:var(--faint);line-height:1.5}
 .ph4{margin:16px 0 8px;font-size:15px;border-top:1px solid var(--line);padding-top:14px}
 .dims{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dims .f{margin-bottom:8px}
 .packres{display:grid;gap:6px;margin-bottom:10px}.packres div{display:flex;justify-content:space-between;gap:10px;border-radius:10px;padding:8px 12px;font-size:14px}
@@ -240,7 +251,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611092143"></script>
+<script src="shop-core.js?v=202611092145"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -599,9 +610,17 @@ function editProduct(id) {
           <span>${zhe(t.price, Number(p.price)) || ""}</span><button data-trm="${i}" aria-label="刪除">×</button></div>`).join("")}</div>
         <button class="btn ghost" data-tadd style="align-self:flex-start">＋ 新增級距</button><span class="note">例：2 件以上每件 $900、3 件以上每件 $850</span></div>
       <div class="f"><label for="pd">商品介紹</label><textarea id="pd">${esc(p.desc)}</textarea></div>
-      <div class="f2"><div class="f"><label for="psu">貨主（代售商品）</label><input id="psu" list="supList" value="${esc(p.supplier || "")}" placeholder="例：赤貧軍團；空白＝自有商品">
-          <datalist id="supList">${[...new Set(data.products.map(x => x.supplier).filter(Boolean))].map(b => `<option value="${esc(b)}">`).join("")}</datalist></div>
-        <div class="f"><label for="pcm">我方分潤 %</label><input id="pcm" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="${p.supplier ? p.commission : ""}" placeholder="例：5"><span class="note">代營運 5、對分 50</span></div></div>
+      <h4 class="ph4">成本與拆帳</h4>
+      <div class="f2"><div class="f"><label for="pco">每件成本</label><input id="pco" type="number" inputmode="decimal" min="0" value="${p.cost || ""}" placeholder="未填＝0"></div>
+        <div class="f"><label for="psu">貨主（代售商品）</label><input id="psu" list="supList" value="${esc(p.supplier || "")}" placeholder="空白＝自有商品">
+          <datalist id="supList">${[...new Set(data.products.map(x => x.supplier).filter(Boolean))].map(b => `<option value="${esc(b)}">`).join("")}</datalist></div></div>
+      <div id="splitBox" ${p.supplier ? "" : "hidden"}>
+        <div class="f"><label>拆帳方式</label><div class="seg" id="psm">
+          <button type="button" data-sm="profit" aria-pressed="${p.splitMode !== "commission"}">淨利分成<small>扣成本與支出後依成數拆</small></button>
+          <button type="button" data-sm="commission" aria-pressed="${p.splitMode === "commission"}">銷售抽成<small>我方淨賺售價的固定 %</small></button></div></div>
+        <div class="f2"><div class="f"><label for="pcm" id="pcmL">${p.splitMode === "commission" ? "我方抽成 %" : "我方成數 %"}</label><input id="pcm" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="${p.supplier ? p.commission : ""}" placeholder="${p.splitMode === "commission" ? "例：5" : "例：50"}"></div>
+          <div class="f" id="pcbF" ${p.splitMode === "commission" ? "hidden" : ""}><label for="pcb">成本出資</label><select id="pcb"><option value="us" ${p.costBy !== "owner" ? "selected" : ""}>我方出資</option><option value="owner" ${p.costBy === "owner" ? "selected" : ""}>貨主出資</option></select></div></div>
+        <div class="splitprev" id="splitPrev"></div></div>
       <label class="check"><input type="checkbox" id="pa" ${p.active ? "checked" : ""}>上架</label>
       <label class="check"><input type="checkbox" id="ppo" ${p.preorder ? "checked" : ""}>即將開賣（顯示但不能下單）</label>
       <label class="check"><input type="checkbox" id="ph" ${p.hot ? "checked" : ""}>標示熱銷</label>
@@ -622,6 +641,7 @@ function editProduct(id) {
   const read = () => {
     p.name = $("pn").value.trim(); p.category = $("pc").value; p.price = Number($("pp").value) || 0; p.listPrice = Number($("pl").value) || 0;
     p.stock = $("ps").value === "" ? -1 : Number($("ps").value); p.desc = $("pd").value; p.active = $("pa").checked; p.hot = $("ph").checked; p.cvsOk = $("pv").checked; p.cvsPer = Number($("pcv").value) || 0; p.homePer = Number($("phm").value) || 0; p.brand = $("pb").value.trim(); p.supplier = $("psu").value.trim(); p.commission = p.supplier ? Number($("pcm").value) || 0 : 0; p.preorder = $("ppo").checked;
+    p.cost = Number($("pco").value) || 0; p.splitMode = ($("psm").querySelector('[aria-pressed="true"]') || {dataset: {sm: "profit"}}).dataset.sm; p.costBy = $("pcb").value;
     const dm = ["pdl", "pdw", "pdh"].map(k => Number($(k).value) || 0); p.dims = dm.every(n => n > 0) ? dm.join(",") : ""; p.weight = Number($("pwt").value) || 0;
     p.tiers = [...document.querySelectorAll("[data-tq]")].map((el, i) => ({qty: Number(el.value) || 0, price: Number(document.querySelector(`[data-tp="${i}"]`).value) || 0}));
   };
@@ -634,6 +654,22 @@ function editProduct(id) {
       <div class="ok"><b>黑貓宅急便</b><span>每箱可裝 ${c.home} 個（${homeBox().join("×")} 紙箱）</span></div>` : "";
   };
   setTimeout(packShow);
+  // 拆帳試算：以售價、每件成本、預估金流 2.75%＋物流（交貨便每件 / 可裝數）算一件的我方與貨主各得多少
+  const splitShow = () => {
+    const sup = $("psu").value.trim(); $("splitBox").hidden = !sup; if (!sup) return;
+    const mode = ($("psm").querySelector('[aria-pressed="true"]') || {dataset: {sm: "profit"}}).dataset.sm;
+    $("pcmL").textContent = mode === "commission" ? "我方抽成 %" : "我方成數 %"; $("pcbF").hidden = mode === "commission";
+    const price = Number($("pp").value) || 0, cost = Number($("pco").value) || 0, rate = Number($("pcm").value) || 0;
+    const fee = Math.round((Math.max(price * 0.0275, 5) * 1.05) + 1), logi = Math.round(68 / Math.max(1, Number($("pcv").value) || p.cvsPer || 1));
+    let us, owner, note;
+    if (mode === "commission") { us = Math.round(price * rate / 100); owner = price - us - fee - logi; note = `售價 ${money(price)} × ${rate}%`; }
+    else { const profit = price - cost - fee - logi; us = Math.round(profit * rate / 100); owner = profit - us + ($("pcb").value === "owner" ? cost : 0); note = `淨利 ${money(profit)}（售價 − 成本 ${money(cost)} − 金流約 ${money(fee)} − 物流約 ${money(logi)}）× ${rate}%`; }
+    $("splitPrev").innerHTML = price ? `<div><span>每賣一件・我方</span><b>${money(us)}</b></div><div><span>應付貨主</span><b>${money(owner)}</b></div><small>${note}${mode === "profit" && $("pcb").value === "us" && cost ? "；成本由我方出資，已先扣回" : ""}</small>` : "";
+  };
+  setTimeout(splitShow);
+  $("mPanel").addEventListener("input", e => { if (e.target.matches("#pp,#pco,#psu,#pcm,#pcv")) splitShow(); });
+  $("mPanel").addEventListener("change", e => { if (e.target.matches("#pcb")) splitShow(); });
+  $("mPanel").addEventListener("click", e => { const b = e.target.closest("[data-sm]"); if (!b) return; $("psm").querySelectorAll("[data-sm]").forEach(x => x.setAttribute("aria-pressed", x === b)); splitShow(); });
   $("mPanel").addEventListener("input", e => { if (e.target.matches("#pdl,#pdw,#pdh,#pwt")) packShow(); });
   $("mPanel").oninput = e => { if (e.target.matches("[data-tp],[data-tq],#pp")) { read(); [...document.querySelectorAll(".tierrow span")].forEach((s, i) => s.textContent = zhe(p.tiers[i].price, p.price)); } };
   $("mPanel").onclick = async e => {
@@ -779,6 +815,17 @@ function rptRange() {
    成交金額＝商品（扣折扣碼與積分折抵）＋向客人收的運費；支出＝金流手續費＋物流費＋其他支出（報表下方登錄）。
    每張訂單的運費、手續費、物流費依品項金額比例攤到品項；其他支出依期間內各品項成交金額比例攤（指定貨主的只攤該貨主）。 */
 let expenses = null;
+// 初始資金與回本：以「全部期間」已付款訂單的我方分潤累計，扣掉我方出資的成本與支出前已在淨利內處理
+function capitalCard() {
+  const cap = Number(data.settings.capital) || 0, edit = has("settings") ? '<button class="btn ghost" id="capEdit" style="flex:none;height:34px;padding:0 12px">修改</button>' : "";
+  const keep = rpt.range, f = rpt.from, t = rpt.to; rpt.range = "custom"; rpt.from = "2000-01-01"; rpt.to = "2100-12-31";
+  const all = rptCompute(); rpt.range = keep; rpt.from = f; rpt.to = t;
+  const earned = all.lines.reduce((a, l) => a + l.fee, 0), stock = all.lines.filter(l => l.costBy !== "owner").reduce((a, l) => a + l.cogs, 0);
+  const pct = cap ? Math.min(100, Math.max(0, Math.round((earned + stock) / cap * 100))) : 0;
+  return `<div class="card capcard" id="capBox"><div class="caphd"><b>初始資金</b>${edit}</div>
+    ${cap ? `<div class="capnum"><div><small>投入</small><b>${money(cap)}</b></div><div><small>累計我方分潤</small><b>${money(earned)}</b></div><div><small>已回收成本</small><b>${money(stock)}</b></div></div>
+      <div class="tierbar"><i style="width:${pct}%"></i></div><div class="note">回本進度 ${pct}%（累計分潤＋已售出商品回收的成本 ÷ 初始資金，全部期間）</div>` : '<div class="note">尚未設定初始資金</div>'}</div>`;
+}
 function rptCompute() {
   const [from, to] = rptRange();
   const inRange = o => o.status !== "已取消" && o.createdAt.slice(0, 10) >= from && o.createdAt.slice(0, 10) <= to;
@@ -792,7 +839,8 @@ function rptCompute() {
       const disc = Math.round((o.codeDiscount + (o.pointsUsed || 0)) * sh), net = i.total - disc;
       const ship = Math.round((o.shipping || 0) * sh), pf = Math.round((o.payFee || 0) * sh), logi = Math.round((o.logiCost || 0) * sh);
       lines.push({date: o.createdAt.slice(0, 10), orderNo: o.orderNo, status: o.status, paid: o.payStatus === "paid", name: i.name, qty: i.qty, unit: i.unit,
-        gross: i.total, disc, net, ship, sale: net + ship, pf, logi, other: 0, supplier: i.supplier || "", rate: i.supplier ? Number(i.commission) || 0 : 100});
+        gross: i.total, disc, net, ship, sale: net + ship, pf, logi, other: 0, supplier: i.supplier || "", rate: i.supplier ? Number(i.commission) || 0 : 100,
+        cogs: Math.round((Number(i.cost) || 0) * i.qty), mode: i.splitMode === "commission" ? "commission" : "profit", costBy: i.costBy === "owner" ? "owner" : "us"});
     }
   }
   const exp = (expenses || []).filter(x => x.date >= from && x.date <= to);
@@ -801,17 +849,25 @@ function rptCompute() {
     if (!tot) continue;
     let left = x.amount; pool.forEach((l, k) => { const v = k === pool.length - 1 ? left : Math.round(x.amount * l.sale / tot); l.other += v; left -= v; });
   }
+  // 兩種拆帳（商品頁設定，下單時快照進訂單）：
+  //   淨利分成：淨利＝成交 − 成本 − 金流 − 物流 − 其他支出；我方＝淨利 × 成數；貨主＝淨利 − 我方（成本由貨主出資時再加回成本）
+  //   銷售抽成：我方＝商品淨額 × 抽成 %（淨賺）；金流、物流、其他支出都由貨主那份負擔
   for (const l of lines) {
-    l.cost = l.pf + l.logi + l.other; l.profit = l.sale - l.cost;
-    l.fee = Math.round(l.profit * l.rate / 100); l.payable = l.supplier ? l.profit - l.fee : 0;
+    l.cost = l.pf + l.logi + l.other;
+    if (l.mode === "commission" && l.supplier) {
+      l.fee = Math.round(l.net * l.rate / 100); l.profit = l.sale - l.cogs - l.cost; l.payable = l.sale - l.cost - l.fee;
+    } else {
+      l.profit = l.sale - l.cogs - l.cost; l.fee = Math.round(l.profit * l.rate / 100);
+      l.payable = l.supplier ? l.profit - l.fee + (l.costBy === "owner" ? l.cogs : 0) : 0;
+    }
   }
   const sum = (arr, k) => arr.reduce((a, x) => a + x[k], 0);
   const sup = {};
   for (const l of lines.filter(l => l.supplier)) {
     const g = sup[l.supplier] = sup[l.supplier] || {name: l.supplier, lines: [], prods: {}};
     g.lines.push(l);
-    const pp = g.prods[l.name] = g.prods[l.name] || {name: l.name, qty: 0, sale: 0, cost: 0, profit: 0, fee: 0, payable: 0};
-    ["qty", "sale", "cost", "profit", "fee", "payable"].forEach(k => pp[k] += l[k]);
+    const pp = g.prods[l.name] = g.prods[l.name] || {name: l.name, qty: 0, sale: 0, cogs: 0, cost: 0, profit: 0, fee: 0, payable: 0, mode: l.mode};
+    ["qty", "sale", "cogs", "cost", "profit", "fee", "payable"].forEach(k => pp[k] += l[k]);
   }
   return {from, to, os, lines, sum, sup: Object.values(sup), exp, own: lines.filter(l => !l.supplier), unpaid,
     ship: os.reduce((a, o) => a + o.shipping, 0), code: os.reduce((a, o) => a + o.codeDiscount + (o.pointsUsed || 0), 0),
@@ -825,12 +881,12 @@ async function drawReport() {
   if (!document.body.contains(main)) return;
   const r = rptCompute(), S = r.sum, canExp = has("expense");
   const supRows = r.sup.map(g => `<div class="card rcard">
-      <h3 class="rh">${esc(g.name)}<span class="pill on">我方分潤 ${[...new Set(g.lines.map(l => l.rate))].join("／")}%</span></h3>
-      <div class="rgrid"><div><small>成交金額（含運）</small><b>${money(S(g.lines, "sale"))}</b></div><div><small>手續費＋所有支出</small><b>−${money(S(g.lines, "cost"))}</b></div>
+      <h3 class="rh">${esc(g.name)}<span class="pill on">${[...new Set(g.lines.map(l => (l.mode === "commission" ? "抽成 " : "成數 ") + l.rate + "%"))].join("／")}</span></h3>
+      <div class="rgrid"><div><small>成交金額（含運）</small><b>${money(S(g.lines, "sale"))}</b></div><div><small>成本</small><b>−${money(S(g.lines, "cogs"))}</b></div><div><small>手續費＋所有支出</small><b>−${money(S(g.lines, "cost"))}</b></div>
         <div><small>淨利</small><b>${money(S(g.lines, "profit"))}</b></div><div><small>我方分潤</small><b class="ok">${money(S(g.lines, "fee"))}</b></div>
         <div><small>應付貨主</small><b>${money(S(g.lines, "payable"))}</b></div><div><small>支出明細</small><b style="font-size:13px">金流 ${money(S(g.lines, "pf"))}・物流 ${money(S(g.lines, "logi"))}・其他 ${money(S(g.lines, "other"))}</b></div></div>
-      <div class="tscroll"><table class="otable rt"><tr><th>商品</th><th>件數</th><th>成交</th><th>支出</th><th>淨利</th><th>我方</th><th>應付</th></tr>
-        ${Object.values(g.prods).sort((a, b) => b.sale - a.sale).map(p => `<tr><td>${esc(p.name.replace(/^.*?[｜|]\s*/, "") || p.name)}</td><td>${p.qty}</td><td>${money(p.sale)}</td><td>${money(p.cost)}</td><td>${money(p.profit)}</td><td>${money(p.fee)}</td><td>${money(p.payable)}</td></tr>`).join("")}</table></div>
+      <div class="tscroll"><table class="otable rt"><tr><th>商品</th><th>件數</th><th>成交</th><th>成本</th><th>支出</th><th>淨利</th><th>我方</th><th>應付</th></tr>
+        ${Object.values(g.prods).sort((a, b) => b.sale - a.sale).map(p => `<tr><td>${esc(p.name.replace(/^.*?[｜|]\s*/, "") || p.name)}</td><td>${p.qty}</td><td>${money(p.sale)}</td><td>${money(p.cogs)}</td><td>${money(p.cost)}</td><td>${money(p.profit)}</td><td>${money(p.fee)}</td><td>${money(p.payable)}</td></tr>`).join("")}</table></div>
     </div>`).join("");
   const expRows = `<div class="card"><div class="list">${r.exp.length ? r.exp.map(x => `<div class="row" style="cursor:default"><div class="info"><b>${esc(x.item)}　${money(x.amount)}</b><small>${esc(x.date)}・${x.scope === "all" ? "全部商品分攤" : "只攤 " + esc(x.scope)}${x.note ? "・" + esc(x.note) : ""}</small></div>
       ${canExp ? `<button class="btn danger" data-xdel="${esc(x.id)}" style="padding:6px 10px;flex:none">刪除</button>` : ""}</div>`).join("") : '<div class="note">此期間沒有其他支出</div>'}</div>
@@ -845,9 +901,10 @@ async function drawReport() {
     <div class="note" style="margin-bottom:8px">${r.from} ～ ${r.to}・${rpt.withUnpaid ? "含未付款訂單（僅供參考，未收款不出貨）" : "只算已付款"}・排除已取消</div>
     ${!rpt.withUnpaid && r.unpaid.length ? `<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>待付款 ${r.unpaid.length} 筆・${money(r.unpaid.reduce((a, o) => a + o.total, 0))}</b><span class="note" style="display:block">尚未收款、未出貨，不列入營收與拆帳；收款後自動計入</span></div>` : ""}
     <div class="stats"><div><small>成交金額（含運）</small><b>${money(S(r.lines, "sale"))}</b></div><div><small>訂單</small><b>${r.os.length}</b></div><div><small>件數</small><b>${S(r.lines, "qty")}</b></div></div>
-    <div class="stats"><div><small>手續費＋支出</small><b>${money(S(r.lines, "cost"))}</b></div><div><small>淨利</small><b>${money(S(r.lines, "profit"))}</b></div><div><small>我方分潤</small><b>${money(S(r.lines, "fee"))}</b></div></div>
+    <div class="stats"><div><small>成本＋手續費＋支出</small><b>${money(S(r.lines, "cogs") + S(r.lines, "cost"))}</b></div><div><small>淨利</small><b>${money(S(r.lines, "profit"))}</b></div><div><small>我方分潤</small><b>${money(S(r.lines, "fee"))}</b></div></div>
     <div class="stats"><div><small>應付貨主</small><b>${money(S(r.lines, "payable"))}</b></div><div><small>物流費</small><b>${money(r.logi)}</b></div><div><small>金流手續費</small><b>${money(r.payFee)}</b></div></div>
-    <div class="note" style="margin:-4px 0 10px">淨利＝成交 − 手續費 − 物流費 − 其他支出，依各商品分潤 % 拆分</div>
+    <div class="note" style="margin:-4px 0 10px">淨利＝成交 − 成本 − 手續費 − 物流費 − 其他支出；淨利分成依成數拆、銷售抽成我方取售價 %</div>
+    ${capitalCard()}
     <h2>貨主結算</h2>${supRows || '<div class="empty">此期間沒有代營運商品的訂單</div>'}
     <h2>其他支出</h2>${expRows}`;
   main.querySelector(".filters").onclick = e => {
@@ -856,6 +913,9 @@ async function drawReport() {
   };
   ["rf", "rt"].forEach(id => { const el = $(id); if (el) el.onchange = () => { rpt[id === "rf" ? "from" : "to"] = el.value; drawReport(); }; });
   $("rPrint").onclick = () => print();
+  const ce = $("capEdit");
+  if (ce) ce.onclick = () => { const box = $("capBox"); box.innerHTML = `<div class="f2"><div class="f"><label for="capIn">初始資金</label><input id="capIn" type="number" inputmode="numeric" value="${Number(data.settings.capital) || ""}"></div><div class="f" style="justify-content:flex-end"><button class="btn ink" id="capSave">儲存</button></div></div>`;
+    $("capSave").onclick = e => busy(e.target, async () => { await admin("admin_saveSettings", {settings: {capital: String(Math.max(0, Number($("capIn").value) || 0))}}); await loadAll(); toast("已儲存"); drawReport(); }).catch(err => toast(err.message)); };
   main.querySelectorAll("[data-xdel]").forEach(b => b.onclick = () => {
     if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "確認刪除"; return; }
     busy(b, async () => { await admin("admin_deleteExpense", {id: b.dataset.xdel}); expenses = null; drawReport(); }).catch(err => toast(err.message));
@@ -867,8 +927,8 @@ async function drawReport() {
   }).catch(err => $("xerr").textContent = err.message);
   $("rCsv").onclick = () => {
     const q = v => `"${String(v).replace(/"/g, '""')}"`;
-    const head = ["日期", "訂單編號", "狀態", "付款", "商品", "數量", "單價", "金額", "折扣分攤", "商品淨額", "運費分攤", "成交金額", "金流手續費", "物流費", "其他支出", "淨利", "貨主", "我方分潤%", "我方分潤", "應付貨主"];
-    const rows = r.lines.map(l => [l.date, l.orderNo, l.status, l.paid ? "已付款" : "未付款", l.name, l.qty, l.unit, l.gross, l.disc, l.net, l.ship, l.sale, l.pf, l.logi, l.other, l.profit, l.supplier || "自有", l.rate, l.fee, l.payable]);
+    const head = ["日期", "訂單編號", "狀態", "付款", "商品", "數量", "單價", "金額", "折扣分攤", "商品淨額", "運費分攤", "成交金額", "成本", "金流手續費", "物流費", "其他支出", "淨利", "貨主", "拆帳方式", "成數／抽成%", "我方分潤", "應付貨主"];
+    const rows = r.lines.map(l => [l.date, l.orderNo, l.status, l.paid ? "已付款" : "未付款", l.name, l.qty, l.unit, l.gross, l.disc, l.net, l.ship, l.sale, l.cogs, l.pf, l.logi, l.other, l.profit, l.supplier || "自有", l.supplier ? (l.mode === "commission" ? "銷售抽成" : "淨利分成") : "", l.rate, l.fee, l.payable]);
     const csv = "\ufeff" + [head, ...rows].map(x => x.map(q).join(",")).join("\r\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"}));
     a.download = `赤貧軍團報表_${r.from}_${r.to}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);

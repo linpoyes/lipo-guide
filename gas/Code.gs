@@ -12,7 +12,7 @@
  */
 
 const SHEETS = {
-  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer", "dims", "weight"],
+  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer", "dims", "weight", "cost", "splitMode", "costBy"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note", "member"],
   orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments", "restocked"],
@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 0, lineUr
   pointsOn: "TRUE", pointRate: "100", pointMaxPct: "50",
   // 綠界物流（2026-11-08）：寄件人資料、預設材積（0001=60cm…0004=150cm）、付款後自動建寄件單、測試模式
   logiOn: "FALSE", logiStage: "TRUE", logiAuto: "TRUE", senderName: "", senderPhone: "", senderZip: "", senderAddr: "", logiSize: "0001", homeBox: "40,30,20",
+  capital: "0", // 初始資金（報表顯示回本進度）
   // 物流成本（未稅，綠界一般會員 2026-11 公告；記帳時 ×1.05）：交貨便每件、黑貓 60/90/120/150cm
   logiFeeCvs: "65", logiFeeHome: "130,170,210,250",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
@@ -108,7 +109,11 @@ function doPost(e) {
   try { req = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "格式錯誤" }); }
   try {
     const a = req.action;
-    if (a === "quote") return out_({ ok: true, quote: quote_(req.items, req.code, req.shipMethod, req.memberToken ? memberOf_(req.memberToken) : null, !!req.usePoints) });
+    if (a === "quote") { // 公開試算：品項不回傳成本、貨主、分潤
+      const q = quote_(req.items, req.code, req.shipMethod, req.memberToken ? memberOf_(req.memberToken) : null, !!req.usePoints);
+      q.lines = q.lines.map(l => ({ id: l.id, name: l.name, qty: l.qty, price: l.price, unit: l.unit, total: l.total }));
+      return out_({ ok: true, quote: q });
+    }
     if (a === "memberCenter") return out_(memberCenter_(req));
     if (a === "order") return out_(placeOrder_(req));
     if (a === "login") return out_(login_(req.user, req.pass));
@@ -205,6 +210,9 @@ function product_(r) {
     active: bool_(r.active), hot: bool_(r.hot), sort: Number(r.sort) || 0, cvsOk: bool_(r.cvsOk), brand: String(r.brand || "").trim(),
     // 代銷：supplier＝供貨商（空白＝自有商品）、commission＝我方抽成 %、preorder＝此商品暫不開放下單（即將開賣）
     supplier: String(r.supplier || "").trim(), commission: Number(r.commission) || 0, preorder: bool_(r.preorder),
+    // 拆帳（2026-11-09）：cost＝每件成本；splitMode＝profit 淨利分成（扣成本與所有支出後依成數拆）／commission 銷售抽成（我方淨賺售價的 X%，支出由貨主負擔）；
+    // costBy＝成本誰出資（us 我方／owner 貨主；貨主出資時成本先還給貨主）。成本只給後台，型錄會拿掉。
+    cost: Number(r.cost) || 0, splitMode: String(r.splitMode || "profit") === "commission" ? "commission" : "profit", costBy: String(r.costBy || "us") === "owner" ? "owner" : "us",
     // 包裝：一個 7-11 交貨便／一箱黑貓宅急便各可裝幾件（0＝不限，整單一個包裹）
     cvsPer: Number(r.cvsPer) || 0, homePer: Number(r.homePer) || 0,
     dims: String(r.dims || ""), weight: Number(r.weight) || 0,
@@ -308,7 +316,7 @@ function catalog_() {
   const s = getSettings_();
   return {
     ok: true,
-    products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort),
+    products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort).map(p => { delete p.cost; delete p.splitMode; delete p.costBy; delete p.supplier; delete p.commission; return p; }),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
     settings: { ordersOpen: s.ordersOpen, requireLine: s.requireLine !== "FALSE", payReady: ecpayCfg_().ready, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar, hotWords: s.hotWords, points: pointCfg_(), welcome: (w => w && { label: w.label, minSpend: w.minSpend })(welcomeInfo_()) },
   };
@@ -344,7 +352,7 @@ function quote_(items, codeStr, shipMethod, mem, usePoints) {
     const u = unitPrice_(p, qty);
     if (p.preorder) errors.push(p.name + " 即將開賣，尚未開放訂購");
     // 供貨商與抽成在下單當下記進訂單（之後改商品設定不影響舊單的報表）
-    lines.push({ id: p.id, name: p.name, qty: qty, price: p.price, unit: u, total: u * qty, supplier: p.supplier, commission: p.commission });
+    lines.push({ id: p.id, name: p.name, qty: qty, price: p.price, unit: u, total: u * qty, supplier: p.supplier, commission: p.commission, cost: p.cost, splitMode: p.splitMode, costBy: p.costBy });
     subtotal += u * qty;
     tierSaving += (p.price - u) * qty;
   });
@@ -633,6 +641,7 @@ const ADMIN = {
       active: p.active ? "TRUE" : "FALSE", hot: p.hot ? "TRUE" : "FALSE", sort: String(Number(p.sort) || 0),
       updatedAt: new Date().toISOString(), cvsOk: p.cvsOk ? "TRUE" : "FALSE", brand: String(p.brand || "").normalize("NFKC").trim(),
       supplier: String(p.supplier || "").normalize("NFKC").trim(), commission: String(Math.max(0, Math.min(100, Number(p.commission) || 0))),
+      cost: String(Math.max(0, Number(p.cost) || 0)), splitMode: p.splitMode === "commission" ? "commission" : "profit", costBy: p.costBy === "owner" ? "owner" : "us",
       preorder: p.preorder ? "TRUE" : "FALSE", dims: dims_(p.dims).join(","), weight: String(Math.max(0, Number(p.weight) || 0)), cvsPer: String(Math.max(0, Math.floor(Number(p.cvsPer) || 0))), homePer: String(Math.max(0, Math.floor(Number(p.homePer) || 0))),
     });
     return { id: id };
@@ -722,7 +731,7 @@ const ADMIN = {
     const keys = Object.keys(s);
     if (keys.some(k => integ.indexOf(k) >= 0) && !has_(r.me, "integrations")) throw new Error("此帳號沒有權限");
     if (keys.some(k => integ.indexOf(k) < 0) && !has_(r.me, "settings")) throw new Error("此帳號沒有權限");
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "welcomeDays", "welcomeRemind", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome", "homeBox"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "welcomeDays", "welcomeRemind", "hotWords", "capital", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome", "homeBox"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
