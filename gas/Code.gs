@@ -31,7 +31,7 @@ const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: 
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 // ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
-const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lineUrl: "", notice: "", ordersOpen: "FALSE", requireLine: "TRUE", shipBarOn: "TRUE", shipBar: "",
+const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 0, lineUrl: "", notice: "", ordersOpen: "FALSE", requireLine: "TRUE", shipBarOn: "TRUE", shipBar: "",
   // LINE 入會禮（2026-11-08）：指定一組折扣碼；LINE 登入＋加好友的會員才能用、每人限一次，加好友時用 LINE 送到對方手機。空白＝不送
   welcomeCode: "",
   // 賣場熱門搜尋關鍵字（逗號分隔）；空白＝前台依品牌與分類自動產生
@@ -80,6 +80,7 @@ function doGet(e) {
   const a = (e.parameter || {}).action;
   if (a === "catalog") return out_(catalog_());
   if (a === "ping") return out_({ ok: true });
+  if (a === "cron") return out_(cron_()); // GitHub Actions 每小時呼叫（.github/workflows/cron.yml）
   if (a === "lineSetup") return out_(lineSetup_());
   if (a === "welcomePreview") return out_(welcomePreview_());
   if (a === "csPreview") return out_(csPreview_());
@@ -259,8 +260,13 @@ function migrateDims_() {
   rows_("products").filter(r => /迷你漂移遙控車|JXC/.test(String(r.name)) && !String(r.dims || "")).forEach(r =>
     upsert_("products", "id", { id: String(r.id), dims: "23,19,10", weight: "0.47", updatedAt: new Date().toISOString() }));
 }
+// 2026-11-09 使用者：目前不設免運 → 門檻歸零（之後要再開，到後台「免運門檻」填金額即可）
+function migrateNoFreeShip_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_NOFREESHIP")) return; p.setProperty("MIG_NOFREESHIP", "1");
+  setSetting_("freeShipOver", "0");
+}
 function catalog_() {
-  migrate_(); migrateAe86_(); migrateDims_();
+  migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_();
   try { expireOrders_(); } catch (e) {}
   try { remindWelcome_(); } catch (e) {}
   const bySort = (a, b) => a.sort - b.sort;
@@ -1605,4 +1611,14 @@ function packCaps_(dimsStr, kg) {
   const d = dims_(dimsStr).map(n => n + PACK_PAD); if (d.length < 3) return null;
   const byKg = (lim) => kg > 0 ? Math.floor(lim / kg) : Infinity;
   return { cvs: Math.min(fit_(CVS_BOX, d), byKg(CVS_KG)), home: Math.max(1, Math.min(fit_(homeBox_(), d), byKg(HOME_KG))) }; // 放不進紙箱＝自己一箱
+}
+
+// 排程工作（2026-11-09）：逾期未付款取消、入會禮到期提醒。原本只在有人逛賣場時順便跑，改由 GitHub Actions 每小時打一次，不需要 Apps Script 觸發器授權。
+// 兩個工作本身都冪等（restocked／r 記號），重複呼叫無害；15 分鐘內只會真的跑一次。
+function cron_() {
+  const c = CacheService.getScriptCache(); if (c.get("cronRan")) return { ok: true, skipped: true }; c.put("cronRan", "1", 900);
+  const res = { ok: true, at: ts_(new Date()) };
+  try { expireOrders_(true); res.expire = "ok"; } catch (e) { res.expire = String(e.message || e).slice(0, 100); }
+  try { CacheService.getScriptCache().remove("wrem"); remindWelcome_(); res.remind = "ok"; } catch (e) { res.remind = String(e.message || e).slice(0, 100); }
+  return res;
 }
