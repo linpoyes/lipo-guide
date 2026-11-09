@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-ApxGoY4XYXQK8Pc+cqYfdAUzy0RgID0Z5fs/5Asuw2w='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-crabGk+n9fM0TVHeBk+OVo6IyDUWXZWI1SSQotV+ufA='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092250">
+<meta name="build" content="202611092251">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 (function(){try{
@@ -504,6 +504,9 @@ input,select,textarea{font-size:max(16px,1em)}
 .fstore{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:14px;font-weight:700;color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
 .fstore svg{width:16px;height:16px;color:var(--red)}
 .igplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1}.igplay svg{width:20px;height:20px;margin-left:3px}
+body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
+.sheet{overscroll-behavior:contain;touch-action:none}.sheet .panel{overscroll-behavior:contain;touch-action:pan-y}
+#vPanel{touch-action:pan-y pinch-zoom}#vPanel .vstage{touch-action:none}
 </style>
 </head>
 <body>
@@ -582,9 +585,9 @@ input,select,textarea{font-size:max(16px,1em)}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611092250"></script>
-<script src="shop-core.js?v=202611092250"></script>
-<script src="tw-zip.js?v=202611092250"></script>
+<script src="track.js?v=202611092251"></script>
+<script src="shop-core.js?v=202611092251"></script>
+<script src="tw-zip.js?v=202611092251"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -865,11 +868,19 @@ $("vPanel").addEventListener("click", e => {
 $("vPanel").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) { close("vSheet"); openProduct(b.dataset.open); } });
 
 /* ── 浮層開關 ── */
-function open(id) { $(id).classList.add("open"); document.body.style.overflow = "hidden"; }
+// 彈出視窗時鎖住背景（2026-11-09 使用者：看影片滑動時後面版面一直動）：iPhone 的 overflow:hidden 擋不住觸控捲動，
+// 所以把 body 固定在目前位置，關閉時再捲回原處
+let lockY = 0;
+function lockBody(on) {
+  const b = document.body;
+  if (on && !b.classList.contains("locked")) { lockY = scrollY; b.style.top = -lockY + "px"; b.classList.add("locked"); }
+  if (!on && b.classList.contains("locked")) { b.classList.remove("locked"); b.style.top = ""; scrollTo(0, lockY); }
+}
+function open(id) { $(id).classList.add("open"); lockBody(true); }
 function close(id) {
   $(id).classList.remove("open");
   if (id === "vSheet") $("vPanel").innerHTML = ""; // 停止播放
-  if (!document.querySelector(".sheet.open")) document.body.style.overflow = "";
+  if (!document.querySelector(".sheet.open")) lockBody(false);
 }
 document.querySelectorAll(".sheet").forEach(s => s.addEventListener("click", e => {
   if (e.target === s || e.target.closest("[data-close]")) close(s.id);
