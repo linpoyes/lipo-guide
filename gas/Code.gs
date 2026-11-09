@@ -314,7 +314,14 @@ function migrate1087_() {
     upsert_("products", "id", { id: String(r.id), images: JSON.stringify(imgs), updatedAt: new Date().toISOString() });
   });
 }
+// 2026-11-09 使用者：「直接幫我做」→ 正式開賣：開放下單、九款迷你甩尾車取消即將開賣
+function migrateGoLive_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_GOLIVE")) return; p.setProperty("MIG_GOLIVE", "1");
+  setSetting_("ordersOpen", "TRUE");
+  rows_("products").filter(r => bool_(r.preorder)).forEach(r => upsert_("products", "id", { id: String(r.id), preorder: "FALSE", updatedAt: new Date().toISOString() }));
+}
 function catalog_() {
+  migrateGoLive_();
   migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_(); migrateOfficialImgs_(); migrate1087_();
   try { expireOrders_(); } catch (e) {}
   try { remindWelcome_(); } catch (e) {}
@@ -1688,13 +1695,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson2");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson3");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson2", j, 3600);
+  if (j.length < 95000) c.put("catalogJson3", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson2"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson3"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────
