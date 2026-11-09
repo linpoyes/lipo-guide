@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-XKA13hCbNJG8AMeb7GdgRx6AYE4GkYYk8MRa3q8PXPs='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-i/G9fIbm+Z8/wsrYV9xPHCeeY3LG/n4klwwJFaK9ALI='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611081534">
+<meta name="build" content="202611091523">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -108,6 +108,9 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .panel h3{margin:0 0 6px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
 .x{width:34px;height:34px;border:0;border-radius:50%;background:var(--ink);color:#fff;font-size:18px}
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.shipq{display:flex;align-items:center;gap:12px;margin-bottom:10px;border-color:#06C755}
+.shipq div{flex:1;min-width:0}.shipq b{display:block;font-size:16px}.shipq small{color:var(--faint);font-size:12px;font-weight:700}
+.shipq .btn{flex:none}
 .subtabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 .filters button{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--dim);border-radius:999px;padding:4px 12px;font-weight:800;font-size:13px}
 .filters button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
@@ -233,7 +236,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611081534"></script>
+<script src="shop-core.js?v=202611091523"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -419,6 +422,8 @@ async function drawOrders() {
   main.innerHTML = `<h2>訂單 <button class="btn ghost" id="reload">重新整理</button></h2>
     <div class="stats"><div><small>待處理</small><b>${orders.filter(o => o.status === "新訂單").length}</b></div>
       <div><small>今日訂單</small><b>${todayOrders.length}</b></div><div><small>今日營業額</small><b>${money(todayOrders.reduce((s, o) => s + o.total, 0))}</b></div></div>
+    ${(() => { const pend = orders.filter(o => (o.status === "新訂單" || o.status === "已確認") && o.payStatus === "paid" && (o.shipments || []).length); return has("ship") && pend.length ?
+      `<div class="card shipq"><div><b>待寄件 ${pend.length} 筆</b><small>${pend.reduce((a, o) => a + o.shipments.length, 0)} 件寄件單已建立，可一次列印</small></div><button class="btn ink" data-pall>批次列印託運單</button></div>` : ""; })()}
     <div class="filters">${["新訂單", "已確認", "已出貨", "已完成", "已取消", "全部"].map(s => `<button data-f="${s}" aria-pressed="${orderFilter === s}">${s} ${s === "全部" ? orders.length : orders.filter(o => o.status === s).length}</button>`).join("")}</div>
     <div class="list">${list.length ? list.map(o => `<button class="row" data-o="${esc(o.orderNo)}">
       <div class="info"><b>${esc(o.name)}　${esc(o.phone)}</b><small>${esc(o.orderNo)}</small><small>${esc(o.createdAt.slice(5).replace("-", "/"))}・${esc(o.shipMethod)}${o.payStatus === "paid" ? "" : `・<span style="color:var(--warn)">${o.payStatus === "awaiting" ? "待付款" : o.payStatus === "failed" ? "付款失敗" : "未付款"}</span>`}</small></div>
@@ -426,6 +431,17 @@ async function drawOrders() {
   $("reload").onclick = e => busy(e.target, async () => { await loadOrders(); drawOrders(); });
   main.querySelector(".filters").onclick = e => { const b = e.target.closest("[data-f]"); if (b) { orderFilter = b.dataset.f; drawOrders(); } };
   main.querySelector(".list").onclick = e => { const b = e.target.closest("[data-o]"); if (b) openOrder(b.dataset.o); };
+  const pa = main.querySelector("[data-pall]");
+  if (pa) pa.onclick = () => { // 交貨便與黑貓是不同列印頁：各開一個分頁（先開空白頁再送表單，避免被擋）
+    const pend = orders.filter(o => (o.status === "新訂單" || o.status === "已確認") && o.payStatus === "paid" && (o.shipments || []).length);
+    const kinds = new Set(pend.flatMap(o => o.shipments.map(x => x.sub + (x.stage ? "_t" : ""))));
+    const wins = [...kinds].map((k, i) => { const nm = "lpb" + Date.now() + i; return window.open("", nm) ? nm : "_blank"; });
+    busy(pa, async () => {
+      const r = await admin("admin_logiPrintBatch", {orderNos: pend.map(o => o.orderNo)});
+      r.forms.forEach((f, i) => postForm(f, wins[i] || "_blank"));
+      toast(r.forms.map(f => `${f.kind} ${f.count} 件`).join("、"));
+    }).catch(err => toast(err.message));
+  };
 }
 /* 寄件資料：每一欄點一下就複製，貼進黑貓宅急便／7-11 交貨便的對應欄位 */
 function shipFields(o) {
@@ -1072,7 +1088,18 @@ function openModal() { $("modal").classList.add("open"); document.body.style.ove
 function closeModal() { $("modal").classList.remove("open"); document.body.style.overflow = ""; $("mPanel").onclick = $("mPanel").oninput = null; }
 $("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 
+// 送簽好章的表單到綠界列印頁；target 省略＝本分頁（LINE 通知點進來不必再按一次，也不會被擋彈出視窗）
+function postForm(f, target) {
+  const el = document.createElement("form"); el.method = "POST"; el.action = f.url; if (target) el.target = target;
+  for (const [k, v] of Object.entries(f.fields)) { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v; el.appendChild(i); }
+  document.body.appendChild(el); el.submit(); el.remove();
+}
 async function openFromHash() {
+  const pm = location.hash.match(/^#print=(\w+)/);
+  if (pm) { history.replaceState(null, "", location.pathname); // LINE 通知「列印託運單」：登入後直接開綠界列印頁
+    $("app").innerHTML = '<div class="empty">開啟託運單中…</div>';
+    try { postForm(await admin("admin_logiPrint", {orderNo: pm[1]}, {tries: 2})); return; } catch (e) { toast(e.message); drawApp(); }
+  }
   const m = location.hash.match(/^#order=(\w+)/); if (!m) return;
   history.replaceState(null, "", location.pathname);
   tab = "orders"; drawApp(); if (!orders) await loadOrders();

@@ -424,7 +424,7 @@ const ROLES = { owner: "超級管理員", staff: "營運", shipper: "出貨", vi
    其他帳號＝角色預設（ROLE_PERMS）或「自訂」逐項勾選（USERS[name].perms）。前端 PERMS 要跟這裡一致。 */
 const PERMS = [
   ["營運總覽", [["dash", "儀表板", ["admin_dashboard"]], ["report", "報表與拆帳", ["admin_orders", "admin_expenses"]], ["expense", "登錄其他支出", ["admin_expenses", "admin_saveExpense", "admin_deleteExpense"]]]],
-  ["訂單", [["orders", "查看訂單", ["admin_orders"]], ["ship", "出貨處理（狀態、寄件單、列印）", ["admin_orderStatus", "admin_logiCreate", "admin_logiPrint"]],
+  ["訂單", [["orders", "查看訂單", ["admin_orders"]], ["ship", "出貨處理（狀態、寄件單、列印）", ["admin_orderStatus", "admin_logiCreate", "admin_logiPrint", "admin_logiPrintBatch"]],
             ["pay", "標記付款", ["admin_orderStatus"]], ["orderDel", "刪除訂單", ["admin_deleteOrder"]]]],
   ["商品與行銷", [["products", "商品", ["admin_saveProduct", "admin_deleteProduct", "admin_upload", "admin_trashFile"]],
                 ["videos", "短影音", ["admin_saveVideo", "admin_deleteVideo", "admin_upload", "admin_trashFile"]], ["codes", "折扣碼", ["admin_saveCode", "admin_deleteCode"]]]],
@@ -519,6 +519,7 @@ const ADMIN = {
   admin_dashboard: r => dashboard_(r),
   admin_logiCreate: r => ({ shipments: logiCreate_(String(r.orderNo), !!r.again) }),
   admin_logiPrint: r => logiPrint_(String(r.orderNo)),
+  admin_logiPrintBatch: r => logiPrintBatch_((r.orderNos || []).map(String)),
   admin_logiStatus: () => ({ logi: logiCfg_().public }),
   // 用正式商店代號送一張「故意缺門市」的單：只看綠界回什麼錯（金鑰錯／未開通物流／參數錯），不會真的成立
   admin_logiProbe: () => { const c = logiCfg_(true); const p = { MerchantID: c.mid, MerchantTradeDate: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss"),
@@ -873,7 +874,8 @@ function lineNotifyOrder_(orderNo, title) {
       "寄送方式：" + o.shipMethod + "・" + (Number(o.packages) || 1) + (cvs ? " 個交貨便" : " 箱宅急便"),
       "收件人：" + o.name + "　" + o.phone, (cvs ? "門市：" : "地址：") + o.address, o.note ? "備註：" + o.note : "",
       shipLines_(o),
-      "開啟訂單／列印出貨單：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo].filter(Boolean).join("\n"));
+      json_(o.shipments, []).length ? "列印託運單：https://linpoyes.github.io/lipo-guide/admin.html#print=" + o.orderNo : "",
+      "訂單明細：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo].filter(Boolean).join("\n"));
   } catch (e) {}
 }
 function lineWebhook_(e) {
@@ -1300,9 +1302,24 @@ function logiCreate_(orderNo, again) {
   setOrderField_(orderNo, { shipments: JSON.stringify(list) });
   return list;
 }
+// 批次列印（2026-11-08：收到訂單自動建單，管理者一次印完）：同類（交貨便／黑貓）同環境的寄件單合併成一張表單
+function logiPrintBatch_(orderNos) {
+  const all = rows_("orders").filter(o => orderNos.indexOf(String(o.orderNo)) >= 0);
+  const groups = {};
+  all.forEach(o => json_(o.shipments, []).forEach(x => { const k = x.sub + (x.stage ? "_t" : ""); (groups[k] = groups[k] || []).push(x); }));
+  return { forms: Object.keys(groups).map(k => { const list = groups[k], f = logiForm_(list); f.kind = list[0].sub === "UNIMARTC2C" ? "7-11 交貨便" : "黑貓宅急便"; f.count = list.length; return f; }) };
+}
+function logiForm_(list) {
+  const cvs = list[0].sub === "UNIMARTC2C", cfg = logiCfg_(!list[0].stage, cvs ? "C2C" : "HOME", !!list[0].stage);
+  const p = { MerchantID: cfg.mid, AllPayLogisticsID: list.map(x => x.id).join(",") };
+  if (cvs) { p.CVSPaymentNo = list.map(x => x.pno).join(","); p.CVSValidationNo = list.map(x => x.vno).join(","); }
+  p.CheckMacValue = logiMac_(p, cfg);
+  return { url: cfg.host + (cvs ? "/Express/PrintUniMartC2COrderInfo" : "/helper/printTradeDocument"), fields: p };
+}
 function logiPrint_(orderNo) {
   const o = rows_("orders").find(x => String(x.orderNo) === orderNo); if (!o) throw new Error("查無訂單");
   const list = json_(o.shipments, []); if (!list.length) throw new Error("尚未建立寄件單");
+  return logiForm_(list);
   const cvs = list[0].sub === "UNIMARTC2C", cfg = logiCfg_(!list[0].stage, cvs ? "C2C" : "HOME", !!list[0].stage); // 依建單當時是測試或正式
   const p = { MerchantID: cfg.mid, AllPayLogisticsID: list.map(x => x.id).join(",") };
   if (cvs) { p.CVSPaymentNo = list.map(x => x.pno).join(","); p.CVSValidationNo = list.map(x => x.vno).join(","); }
