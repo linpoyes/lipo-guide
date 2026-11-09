@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-crabGk+n9fM0TVHeBk+OVo6IyDUWXZWI1SSQotV+ufA='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-R+qO3/Aod1F/zKDPh+A8NgoKXBKFLygMgdeUXoRrBnk='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092251">
+<meta name="build" content="202611092256">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 (function(){try{
@@ -507,6 +507,17 @@ input,select,textarea{font-size:max(16px,1em)}
 body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .sheet{overscroll-behavior:contain;touch-action:none}.sheet .panel{overscroll-behavior:contain;touch-action:pan-y}
 #vPanel{touch-action:pan-y pinch-zoom}#vPanel .vstage{touch-action:none}
+/* 入會引導視窗 */
+.jpanel{text-align:center;padding:26px 22px 18px;max-width:380px}
+.jbadge{width:72px;height:72px;border-radius:18px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.jpanel>b{display:block;font-size:21px;margin-top:10px;letter-spacing:.06em}
+.jsub{margin:6px 0 14px;font-size:15px;color:var(--dim);font-weight:700}.jsub em{font-style:normal;color:var(--red);font-weight:900}
+.jperks{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.jperks div{background:var(--wash);border-radius:12px;padding:10px 6px}.jperks i{display:block;font-style:normal;font-size:22px}.jperks span{font-size:12px;font-weight:800;color:var(--text);line-height:1.4}
+.jbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;border-radius:14px;font-size:17px;font-weight:900}.jbtn svg{width:22px;height:22px}
+.jalt{display:block;margin-top:12px;font-size:14px;font-weight:800;color:#06C755;text-decoration:none}
+.jqr{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px}.jqr img{border-radius:10px;border:1px solid var(--line);background:#fff;padding:4px}.jqr span{text-align:left;font-size:13px;font-weight:800;color:var(--dim)}
+.jlater{margin-top:8px;border:0;background:none;color:var(--faint);font-size:13px;font-weight:700;padding:6px}
 </style>
 </head>
 <body>
@@ -585,9 +596,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611092251"></script>
-<script src="shop-core.js?v=202611092251"></script>
-<script src="tw-zip.js?v=202611092251"></script>
+<script src="track.js?v=202611092256"></script>
+<script src="shop-core.js?v=202611092256"></script>
+<script src="tw-zip.js?v=202611092256"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -1245,6 +1256,37 @@ $("mcPanel").onclick = e => {
     if (n) { close("mcSheet"); openCart(); } else toast("此訂單商品目前無法購買"); }
 };
 drawMemBtn();
+/* 入會引導（2026-11-09 使用者：從網址進來的要直接加入 LINE 官方與會員）
+   LINE 內建瀏覽器本來就會自動登入；其他瀏覽器（IG、FB、Google、直接輸入網址）未登入時，逛 4 秒或往下捲就跳出入會視窗：
+   LINE 一鍵登入（bot_prompt=aggressive，登入同時邀請加官方帳號好友）＝成為會員＋加好友；電腦版另附官方帳號 QR Code。
+   關掉後 3 天內不再跳；登入過、管理者裝置、結帳流程中都不跳。 */
+function joinPrompt() {
+  try {
+    if (/\bLine\//i.test(navigator.userAgent) || memTok || member || localStorage.getItem("cp-notrack")) return;
+    if (Date.now() - (Number(localStorage.getItem("cp-join-at")) || 0) < 3 * 86400000) return;
+  } catch (e) { return; }
+  if (document.querySelector(".sheet.open") || $("joinPop")) return;
+  const g = giftInfo(), pc = catalog && catalog.settings.points, desk = matchMedia("(min-width:760px)").matches;
+  const d = document.createElement("div"); d.id = "joinPop"; d.className = "npop jpop";
+  d.innerHTML = `<div class="npanel jpanel" role="dialog" aria-modal="true" aria-labelledby="jTitle"><button class="close" data-jx aria-label="關閉">×</button>
+    <img class="jbadge" src="badge.png?v=1" alt=""><b id="jTitle">加入赤貧軍團會員</b>
+    <p class="jsub">${g ? `LINE 一鍵加入・立即送 <em>${esc(g.label)}</em>` : "LINE 一鍵加入，新品與優惠第一手通知"}</p>
+    <div class="jperks">${g ? `<div><i>🎁</i><span>入會禮<br>${esc(g.label)}</span></div>` : ""}${pc && pc.on ? `<div><i>💰</i><span>消費回饋<br>每 $${pc.rate} 得 1 點</span></div>` : ""}<div><i>🚚</i><span>出貨進度<br>LINE 即時通知</span></div></div>
+    <button type="button" class="linebtn jbtn" data-jlogin><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s5.9-3.5 8.1-6C21.4 14.2 22 12.7 22 11c0-4.4-4.5-8-10-8z"/></svg>LINE 一鍵加入會員</button>
+    ${desk ? `<div class="jqr"><img src="https://qr-official.line.me/sid/L/552xxfur.png" alt="赤貧軍團官方帳號 QR Code" width="120" height="120"><span>手機掃描<br>加入官方帳號</span></div>` : `<a class="jalt" href="https://line.me/R/ti/p/@552xxfur" target="_blank" rel="noopener">只加入官方帳號好友</a>`}
+    <button type="button" class="jlater" data-jx>稍後再說</button></div>`;
+  document.body.appendChild(d); lockBody(true); cpTrack("login", {q: "prompt"});
+  const shut = () => { try { localStorage.setItem("cp-join-at", String(Date.now())); } catch (e) {} d.remove(); if (!document.querySelector(".sheet.open")) lockBody(false); };
+  d.onclick = e => {
+    if (e.target === d || e.target.closest("[data-jx]")) return shut();
+    const lg = e.target.closest("[data-jlogin]"); if (lg) { try { localStorage.setItem("cp-join-at", String(Date.now())); } catch (e2) {} return lineLogin(lg); }
+  };
+}
+(function armJoin() {
+  let fired = false; const go = () => { if (fired) return; fired = true; removeEventListener("scroll", onS); setTimeout(joinPrompt, 300); };
+  const onS = () => { if (scrollY > 400) go(); };
+  addEventListener("scroll", onS, {passive: true}); setTimeout(go, 4000);
+})();
 async function lineLogin(btn) {
   saveDraft(); lsSet("cp-afterlogin", "1"); cpTrack("login");
   location.href = lineAuthUrl();
