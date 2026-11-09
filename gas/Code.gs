@@ -25,9 +25,11 @@ const SHEETS = {
   expenses: ["id", "date", "item", "amount", "note", "scope"],
   // 綠界物流貨態回報原始紀錄（核對貨態判斷用）
   logilog:  ["ts", "orderNo", "id", "code", "msg"],
+  // 後台操作紀錄（2026-11-09 使用者：超級管理員要看得到每個人的每個動作）
+  audit:    ["ts", "user", "role", "action", "detail", "target"],
 };
 // 試算表分頁的中文名稱（給使用者自己打開試算表時看得懂）
-const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定", traffic: "流量", members: "會員", expenses: "支出", logilog: "物流紀錄" };
+const TAB = { products: "商品", videos: "影片", codes: "折扣碼", orders: "訂單", settings: "設定", traffic: "流量", members: "會員", expenses: "支出", logilog: "物流紀錄", audit: "操作紀錄" };
 // 寄送只有兩種（使用者 2026-10-31 定）：黑貓宅配（大件、遙控車）／7-11 店到店（商品勾「可超商寄送」的小件才可選）
 const SHIP_HOME = "黑貓宅配", SHIP_CVS = "7-11 店到店";
 // ordersOpen：全站是否開放下單（2026-11-07 使用者：商品先上架、先不開放下單）
@@ -116,7 +118,7 @@ function doPost(e) {
     }
     if (a === "memberCenter") return out_(memberCenter_(req));
     if (a === "order") return out_(placeOrder_(req));
-    if (a === "login") return out_(login_(req.user, req.pass));
+    if (a === "login") { const r = login_(req.user, req.pass); audit_({ user: String(req.user || "").normalize("NFKC").trim(), role: r.role || "" }, r.ok ? "login" : "loginFail", req, null); return out_(r); }
     if (a === "track") return out_(track_(req));
     if (a === "lineLogin") return out_(lineLoginPost_(req));
     if (a && a.indexOf("admin_") === 0) {
@@ -126,8 +128,12 @@ function doPost(e) {
       if (!fn) return out_({ ok: false, error: "unknown action" });
       if (!can_(me, a)) return out_({ ok: false, error: "此帳號沒有權限" });
       req.me = me;
-      const out = Object.assign({ ok: true }, fn(req) || {});
-      if (!/^admin_(all|me|users|orders|dashboard|expenses|ecpayStatus|lineStatus|logiStatus|logiPrint|logiPrintBatch)$/.test(a)) dropCatalog_(); // 後台有寫入就讓型錄快取失效
+      const write = !/^admin_(all|me|users|orders|dashboard|expenses|ecpayStatus|lineStatus|logiStatus|audit)$/.test(a);
+      const before = write ? auditBefore_(a, req) : null;
+      let out;
+      try { out = Object.assign({ ok: true }, fn(req) || {}); }
+      catch (err) { if (write) audit_(me, a, req, before, String(err && err.message || err)); throw err; }
+      if (write) { if (!/^admin_logiPrint/.test(a)) dropCatalog_(); audit_(me, a, req, before, "", out); } // 後台有寫入就讓型錄快取失效＋記錄
       return out_(out);
     }
     return out_({ ok: false, error: "unknown action" });
@@ -578,6 +584,12 @@ const ADMIN = {
   }),
   admin_me: r => ({ me: r.me, roles: ROLES }),
   admin_dashboard: r => dashboard_(r),
+  // 操作紀錄只有超級管理員（不在任何權限項目裡，can_ 只放行 owner）
+  admin_audit: r => {
+    const sh = sheet_("audit"), n = sh.getLastRow() - 1; if (n < 1) return { logs: [] };
+    const take = Math.min(n, 1000), rows = sh.getRange(n - take + 2, 1, take, SHEETS.audit.length).getValues();
+    return { logs: rows.reverse().map(a => ({ ts: String(a[0]), user: String(a[1]), role: String(a[2]), action: String(a[3]), detail: String(a[4]), target: String(a[5]) })) };
+  },
   admin_logiCreate: r => ({ shipments: logiCreate_(String(r.orderNo), !!r.again) }),
   admin_logiPrint: r => logiPrint_(String(r.orderNo)),
   admin_logiPrintBatch: r => logiPrintBatch_((r.orderNos || []).map(String)),
@@ -1681,3 +1693,77 @@ function catalogCached_() {
   return d;
 }
 function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson2"); } catch (e) {} }
+
+
+/* ───────────── 後台操作紀錄（2026-11-09）─────────────
+   每個後台寫入動作（含失敗與登入）都記一列：時間、帳號、角色、動作、白話內容、對象。密碼、金鑰、權杖一律不記。
+   商品、設定、訂單狀態、權限這幾類會比對修改前後，寫出「售價 1200→1100」這種差異。
+   非超級管理員做了敏感動作（刪除、付款狀態、權限、金流物流設定）會即時推 LINE 給管理者。 */
+const AUDIT_NAME = {
+  login: "登入", loginFail: "登入失敗", admin_saveProduct: "儲存商品", admin_deleteProduct: "刪除商品", admin_saveVideo: "儲存短影音", admin_deleteVideo: "刪除短影音",
+  admin_saveCode: "儲存折扣碼", admin_deleteCode: "刪除折扣碼", admin_orderStatus: "變更訂單", admin_deleteOrder: "刪除訂單", admin_saveSettings: "修改設定",
+  admin_saveUser: "帳號權限", admin_deleteUser: "刪除帳號", admin_changeLogin: "變更自己的帳號密碼", admin_saveEcpay: "修改金流設定", admin_upload: "上傳檔案",
+  admin_trashFile: "刪除檔案", admin_logiCreate: "建立寄件單", admin_logiPrint: "列印託運單", admin_logiPrintBatch: "批次列印託運單", admin_saveExpense: "登錄支出",
+  admin_deleteExpense: "刪除支出", admin_lineSave: "修改 LINE 權杖", admin_lineBind: "產生 LINE 綁定碼", admin_lineUnbind: "移除 LINE 接收者", admin_lineTest: "傳送 LINE 測試",
+  admin_setGithubToken: "設定 GitHub 權杖", admin_setLoginSecret: "設定 LINE 登入金鑰", admin_trafficPurge: "清除測試流量", admin_logiProbe: "物流連線測試" };
+const AUDIT_ALERT = /^admin_(deleteOrder|deleteProduct|deleteCode|deleteUser|saveUser|saveEcpay|lineSave|setGithubToken|setLoginSecret|deleteExpense)$/;
+const PROD_FIELDS = { name: "名稱", price: "售價", listPrice: "原價", stock: "庫存", active: "上架", preorder: "即將開賣", hot: "熱銷", cost: "成本", commission: "分潤%", splitMode: "拆帳方式", supplier: "貨主", category: "分類" };
+function auditBefore_(a, r) {
+  try {
+    if (a === "admin_saveProduct" && r.product && r.product.id) return rows_("products").map(product_).find(p => p.id === String(r.product.id)) || null;
+    if (a === "admin_deleteProduct") return rows_("products").map(product_).find(p => p.id === String(r.id)) || null;
+    if (a === "admin_saveSettings") return getSettings_();
+    if (a === "admin_orderStatus") { const nos = r.orderNos || [r.orderNo]; return rows_("orders").filter(o => nos.indexOf(String(o.orderNo)) >= 0).map(o => ({ no: String(o.orderNo), status: String(o.status), pay: String(o.payStatus) })); }
+    if (a === "admin_saveUser" || a === "admin_deleteUser") { const u = users_()[String(r.name || "")]; return u ? { role: u.role, perms: permsOf_(u) } : null; }
+  } catch (e) {}
+  return null;
+}
+function auditDetail_(a, r, b, out) {
+  const v = x => x === true ? "是" : x === false ? "否" : String(x === undefined || x === null || x === "" ? "（空）" : x);
+  const PAY = { paid: "已付款", unpaid: "未付款", awaiting: "待付款", failed: "付款失敗" };
+  switch (a) {
+    case "admin_saveProduct": {
+      const p = r.product || {};
+      if (!b) return ["新增商品「" + p.name + "」售價 $" + p.price, String(out && out.id || "")];
+      const ch = Object.keys(PROD_FIELDS).filter(k => p[k] !== undefined && String(p[k] === true ? "true" : p[k] === false ? "false" : p[k]) !== String(b[k] === true ? "true" : b[k] === false ? "false" : b[k]))
+        .map(k => PROD_FIELDS[k] + " " + v(b[k]) + "→" + v(p[k]));
+      if (JSON.stringify(p.images || []) !== JSON.stringify(b.images || [])) ch.push("圖片 " + (b.images || []).length + "→" + (p.images || []).length + " 張");
+      if (String(p.desc || "") !== String(b.desc || "")) ch.push("商品介紹");
+      return ["「" + b.name + "」" + (ch.length ? ch.join("、") : "無變更"), String(p.id)];
+    }
+    case "admin_deleteProduct": return ["「" + (b ? b.name : r.id) + "」", String(r.id)];
+    case "admin_saveSettings": {
+      const SECRET = /^(sender(Phone|Addr|Name))$/;
+      const ch = Object.keys(r.settings || {}).filter(k => b && String(r.settings[k]) !== String(b[k] === true ? "TRUE" : b[k] === false ? "FALSE" : b[k]))
+        .map(k => k + (SECRET.test(k) ? "（已修改）" : " " + v(b[k]) + "→" + v(r.settings[k])));
+      return [ch.join("、") || "無變更", ""];
+    }
+    case "admin_orderStatus": {
+      const nos = r.orderNos || [r.orderNo];
+      return [(b || []).map(o => o.no + " " + (r.field === "payStatus" ? "付款 " + (PAY[o.pay] || o.pay) + "→" + (PAY[r.value] || r.value) : o.status + "→" + r.value)).join("；") || nos.join("、"), nos.join(",")];
+    }
+    case "admin_deleteOrder": return ["訂單 " + r.orderNo, String(r.orderNo)];
+    case "admin_saveCode": return ["折扣碼 " + ((r.codeObj || {}).code || "") + "・" + (((r.codeObj || {}).type === "amount") ? "折 $" : "打折 ") + ((r.codeObj || {}).value || "") + ((r.codeObj || {}).active ? "" : "（停用）"), String((r.codeObj || {}).code || "")];
+    case "admin_deleteCode": return ["折扣碼 " + r.code, String(r.code)];
+    case "admin_saveUser": return ["帳號 " + r.name + "：" + (b ? (ROLES[b.role] || b.role) + "→" : "新增 ") + (ROLES[r.role] || r.role) + (r.role === "custom" ? "（" + (r.perms || []).join("、") + "）" : "") + (r.pass ? "・重設密碼" : ""), String(r.name)];
+    case "admin_deleteUser": return ["帳號 " + r.name, String(r.name)];
+    case "admin_changeLogin": return [r.newUser && r.newUser !== r.me.user ? "帳號改名為 " + r.newUser + "・變更密碼" : "變更密碼", ""];
+    case "admin_logiCreate": case "admin_logiPrint": return ["訂單 " + r.orderNo + (r.again ? "（重新建單）" : ""), String(r.orderNo)];
+    case "admin_logiPrintBatch": return [(r.orderNos || []).length + " 筆訂單", (r.orderNos || []).join(",")];
+    case "admin_saveExpense": return [((r.expense || {}).item || "") + " $" + ((r.expense || {}).amount || ""), String((r.expense || {}).id || "")];
+    case "admin_saveVideo": return ["「" + ((r.video || {}).title || "") + "」", String((r.video || {}).id || "")];
+    case "admin_upload": return [String(r.name || "") + "（" + String(r.mime || "") + "）", ""];
+    case "admin_saveEcpay": return ["金鑰／模式（內容不記錄）", ""];
+    case "loginFail": return ["帳號「" + String(r.user || "") + "」", ""];
+    default: { const t = r.id || r.orderNo || r.code || r.name || ""; return [t ? String(t) : "", String(t)]; }
+  }
+}
+function audit_(me, a, r, before, err, out) {
+  try {
+    const d = auditDetail_(a, r, before, out), detail = (err ? "【失敗】" + err + "　" : "") + d[0];
+    const sh = sheet_("audit");
+    sh.getRange(sh.getLastRow() + 1, 1, 1, 6).setNumberFormat("@").setValues([[ts_(new Date()), safeCell_(String(me.user || "")), String(me.role || ""), AUDIT_NAME[a] || a, safeCell_(detail.slice(0, 500)), safeCell_(String(d[1] || "").slice(0, 200))]]);
+    if (!err && me.role !== "owner" && AUDIT_ALERT.test(a))
+      linePush_("【赤貧軍團】後台操作通知\n帳號：" + me.user + "（" + (ROLES[me.role] || me.role) + "）\n動作：" + (AUDIT_NAME[a] || a) + "\n內容：" + d[0]);
+  } catch (e) {}
+}
