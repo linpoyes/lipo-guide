@@ -330,8 +330,17 @@ function migrateIg_() {
   R.forEach((r, i) => { const src = "https://www.instagram.com/reel/" + r[0] + "/"; if (have.indexOf(src) >= 0) return;
     upsert_("videos", "id", { id: "ig" + r[0].replace(/[^\w]/g, ""), title: r[1], src: src, poster: "media/ig/" + r[0] + ".jpg", productId: "", active: "TRUE", sort: String(100 + i), updatedAt: new Date().toISOString() }); });
 }
+// 2026-11-09 使用者：老闆開箱只要影片（不要 IG 介面）→ 改用下載的原始 MP4（media/ig/<代碼>.mp4，老闆本人授權）；焦點推薦停用、九款宣傳影片下架
+function migrateIgMp4_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_IGMP4")) return; p.setProperty("MIG_IGMP4", "1");
+  rows_("videos").forEach(v => {
+    const m = String(v.src).match(/instagram\.com\/(?:[\w.]+\/)?(?:reel|reels|p)\/([\w-]+)/);
+    if (m) upsert_("videos", "id", { id: String(v.id), src: "media/ig/" + m[1] + ".mp4", updatedAt: new Date().toISOString() });
+    else if (/九款登場/.test(String(v.title))) upsert_("videos", "id", { id: String(v.id), active: "FALSE", updatedAt: new Date().toISOString() });
+  });
+}
 function catalog_() {
-  migrateIg_();
+  migrateIg_(); migrateIgMp4_();
   migrateGoLive_();
   migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_(); migrateOfficialImgs_(); migrate1087_();
   try { expireOrders_(); } catch (e) {}
@@ -1714,13 +1723,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson4");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson5");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson4", j, 3600);
+  if (j.length < 95000) c.put("catalogJson5", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson4"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson5"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────

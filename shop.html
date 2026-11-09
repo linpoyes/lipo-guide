@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-1jd5lTtlXtwnVyu03D9O1Eq2thgmjJgvVu2Z5Ul+ZdI='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-dTfM/K61bH5agRqjsYXDg2jCsTJVVZ+tULsvJ/K4/JA='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092241">
+<meta name="build" content="202611092246">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 (function(){try{
@@ -503,6 +503,7 @@ input,select,textarea{font-size:max(16px,1em)}
 @media (min-width:760px){.vnav.prev{left:-6px}.vnav.next{right:-6px}}
 .fstore{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:14px;font-weight:700;color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
 .fstore svg{width:16px;height:16px;color:var(--red)}
+.igplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1}.igplay svg{width:20px;height:20px;margin-left:3px}
 </style>
 </head>
 <body>
@@ -556,10 +557,7 @@ input,select,textarea{font-size:max(16px,1em)}
     <div class="igrow" id="igRow"></div>
   </section>
 
-  <section id="reelSec">
-    <h2>焦點推薦</h2>
-    <div class="reels" id="reels"><div class="reel skel"></div><div class="reel skel"></div><div class="reel skel"></div></div>
-  </section>
+<div id="reelSec" hidden><div id="reels"></div></div>
 
 
 </main>
@@ -584,9 +582,9 @@ input,select,textarea{font-size:max(16px,1em)}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611092241"></script>
-<script src="shop-core.js?v=202611092241"></script>
-<script src="tw-zip.js?v=202611092241"></script>
+<script src="track.js?v=202611092246"></script>
+<script src="shop-core.js?v=202611092246"></script>
+<script src="tw-zip.js?v=202611092246"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -780,10 +778,11 @@ $("grid").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.m
 /* ── 短影音 ── */
 function renderReels() {
   if (!catalog) return; // 還沒拿到資料：保留骨架
-  const all = catalog.videos || [], vs = all.filter(v => videoInfo(v.src).kind !== "instagram"), igs = all.filter(v => videoInfo(v.src).kind === "instagram");
+  // 2026-11-09 使用者：有老闆開箱就不需要焦點推薦 → 全部影片都放「老闆開箱」，焦點推薦牆停用
+  const all = catalog.videos || [], vs = [], igs = all;
   $("igSec").hidden = !igs.length;
   $("igRow").innerHTML = igs.map(v => { const info = videoInfo(v.src), poster = v.poster ? imgUrl(v.poster, 400) : info.thumb;
-    return `<button type="button" class="igc" data-id="${esc(v.id)}" aria-label="${esc(v.title)}"><img src="${esc(poster)}" alt="" loading="lazy"><span class="igb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff"/></svg></span></button>`; }).join("");
+    return `<button type="button" class="igc" data-id="${esc(v.id)}" aria-label="${esc(v.title)}"><img src="${esc(poster)}" alt="" loading="lazy"><span class="igplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg></span></button>`; }).join("");
   $("reelSec").hidden = !vs.length;
   $("reels").innerHTML = vs.map(v => {
     const info = videoInfo(v.src), poster = v.poster ? imgUrl(v.poster, 400) : info.thumb;
@@ -821,7 +820,7 @@ $("reels").onclick = e => {
 // 影片切換（2026-11-09 使用者：要能下一部，往右滑或按右邊）：同一區（老闆開箱／焦點推薦）的影片依序循環
 let vList = [], vIdx = 0;
 function playVideo(id, group) {
-  if (group) vList = catalog.videos.filter(x => (videoInfo(x.src).kind === "instagram") === (group === "ig")).map(x => x.id);
+  if (group) vList = catalog.videos.map(x => x.id);
   vIdx = Math.max(0, vList.indexOf(id));
   const v = catalog.videos.find(x => x.id === id), info = videoInfo(v.src);
   const player = info.kind === "instagram" ? `<iframe class="igplayer" src="${esc(info.url)}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen scrolling="no"></iframe><a class="iglink" href="${esc(info.link)}" target="_blank" rel="noopener">在 Instagram 開啟</a>`
