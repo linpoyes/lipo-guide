@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-oUdoOXHA/AALO9UFCicThpe9kYjNopEOqcm1DYUvI9E='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-HRv6RO+lroqo3X0zOLzPsvtfGG069KvPduyOV8aWyTI='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092201">
+<meta name="build" content="202611092206">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -259,7 +259,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611092201"></script>
+<script src="shop-core.js?v=202611092206"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -523,7 +523,7 @@ function openOrder(no) {
       <dt>手機</dt><dd><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></dd>${o.line ? `<dt>LINE</dt><dd>${esc(o.line)}</dd>` : ""}
       <dt>寄送</dt><dd>${esc(o.shipMethod)}${o.address ? `　${esc(o.address)}` : ""}</dd>${o.note ? `<dt>備註</dt><dd>${esc(o.note)}</dd>` : ""}
       <dt>付款</dt><dd>${o.payStatus === "paid" ? "已付款" : o.payStatus === "awaiting" ? "待付款" : o.payStatus === "failed" ? "付款失敗" : "未付款"}${o.payMethod ? `（${/^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM 轉帳" : esc(o.payMethod)}）` : ""}${o.paidAt ? `　${esc(o.paidAt)}` : ""}</dd>
-      ${o.payFee ? `<dt>金流手續費</dt><dd>${money(o.payFee)}</dd>` : ""}
+      ${o.payFee ? `<dt>金流手續費</dt><dd>${money(o.payFee)}${o.feeSrc === "ecpay" ? "（綠界實扣）" : "（估算）"}</dd>` : ""}
       ${o.vaAccount ? `<dt>虛擬帳號</dt><dd>${esc(o.vaBank)}－${esc(o.vaAccount)}（期限 ${esc(o.vaExpire)}）</dd>` : ""}</dl>
     <table class="otable">${o.items.map(i => `<tr><td>${esc(i.name.replace(/^.*?[｜|]\s*/, "") || i.name)}<br><small style="color:var(--dim)">${money(i.unit)} × ${i.qty}</small></td><td>${money(i.total)}</td></tr>`).join("")}
       ${o.tierSaving ? `<tr><td>多件優惠（已含於單價）</td><td>−${money(o.tierSaving)}</td></tr>` : ""}
@@ -947,6 +947,7 @@ async function drawReport() {
       <button data-paid aria-pressed="${rpt.withUnpaid}">含未付款</button></div>
     ${rpt.range === "custom" ? `<div class="f2" style="margin-bottom:10px"><div class="f"><label for="rf">開始</label><input id="rf" type="date" value="${rpt.from}"></div><div class="f"><label for="rt">結束</label><input id="rt" type="date" value="${rpt.to}"></div></div>` : ""}
     <div class="note" style="margin-bottom:8px">${r.from} ～ ${r.to}・${rpt.withUnpaid ? "含未付款訂單（僅供參考，未收款不出貨）" : "只算已付款"}・排除已取消</div>
+    ${(n => n ? `<div class="card" style="margin-bottom:10px;padding:10px 14px;border-color:var(--warn)"><b>${n} 筆手續費為估算</b><span class="note" style="display:block">尚未取得綠界實際扣款金額，系統每 30 分鐘自動向綠界查詢後更新</span></div>` : "")(r.os.filter(o => o.payFee && o.feeSrc !== "ecpay" && /^(Credit|ATM)/.test(o.payMethod)).length)}
     ${!rpt.withUnpaid && r.unpaid.length ? `<div class="card" style="margin-bottom:10px;padding:10px 14px"><b>待付款 ${r.unpaid.length} 筆・${money(r.unpaid.reduce((a, o) => a + o.total, 0))}</b><span class="note" style="display:block">尚未收款、未出貨，不列入營收與拆帳；收款後自動計入</span></div>` : ""}
     <div class="stats"><div><small>成交金額（含運）</small><b>${money(S(r.lines, "sale"))}</b></div><div><small>訂單</small><b>${r.os.length}</b></div><div><small>件數</small><b>${S(r.lines, "qty")}</b></div></div>
     <div class="stats"><div><small>成本＋手續費＋支出</small><b>${money(S(r.lines, "cogs") + S(r.lines, "cost"))}</b></div><div><small>淨利</small><b>${money(S(r.lines, "profit"))}</b></div><div><small>我方分潤</small><b>${money(S(r.lines, "fee"))}</b></div></div>

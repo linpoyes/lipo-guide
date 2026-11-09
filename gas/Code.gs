@@ -15,7 +15,7 @@ const SHEETS = {
   products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer", "dims", "weight", "cost", "splitMode", "costBy"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note", "member"],
-  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments", "restocked"],
+  orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments", "restocked", "feeSrc"],
   settings: ["key", "value"],
   // 流量（2026-11-08）：前台 track.js 送來的事件，一列一筆；ts＝台北時間 yyyy-MM-dd HH:mm:ss
   traffic:  ["ts", "vid", "sid", "type", "page", "pid", "q", "n", "src", "ref", "dev", "os"],
@@ -637,7 +637,7 @@ const ADMIN = {
       items: json_(o.items, []), subtotal: Number(o.subtotal), tierSaving: Number(o.tierSaving), code: String(o.code),
       codeDiscount: Number(o.codeDiscount), shipping: Number(o.shipping), packages: Number(o.packages) || 1, total: Number(o.total),
       status: String(o.status), payStatus: String(o.payStatus), lineName: String(o.lineName || ""), lineUid: String(o.lineUid || ""), payMethod: String(o.payMethod || ""), payFee: Number(o.payFee) || 0,
-      paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""), pointsUsed: Number(o.pointsUsed) || 0, shipments: json_(o.shipments, []), logiCost: logiCostOf_(o),
+      feeSrc: String(o.feeSrc || ""), paidAt: String(o.paidAt || ""), vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || ""), pointsUsed: Number(o.pointsUsed) || 0, shipments: json_(o.shipments, []), logiCost: logiCostOf_(o),
     })).reverse(),
   }),
   admin_saveProduct: r => {
@@ -884,6 +884,7 @@ function ecpayReturn_(p) {
     if (String(o.status) === "已取消" && String(o.restocked) === "TRUE") { // 逾期取消後才付款成功：恢復訂單、重新扣庫存
       reclaimOrder_(o); setOrderField_(String(o.orderNo), { status: "新訂單" });
     }
+    try { const real = ecpayFee_(String(p.MerchantTradeNo)); if (real !== null) setOrderField_(String(o.orderNo), { payFee: String(real), feeSrc: "ecpay" }); } catch (e) {} // 換成綠界實際扣的手續費
     if (String(o.payStatus) !== "paid") {
       if (logiCfg_().auto) try { logiCreate_(String(o.orderNo)); } catch (err) {} // 付款成功自動建綠界寄件單，通知裡就有交貨便代號／託運單號
       lineNotifyOrder_(String(o.orderNo), "付款完成・待出貨");
@@ -1679,6 +1680,7 @@ function cron_() {
   try { expireOrders_(true); res.expire = "ok"; } catch (e) { res.expire = String(e.message || e).slice(0, 100); }
   try { CacheService.getScriptCache().remove("wrem"); remindWelcome_(); res.remind = "ok"; } catch (e) { res.remind = String(e.message || e).slice(0, 100); }
   try { catalogCached_(); res.warm = "ok"; } catch (e) {} // 順便預熱型錄快取
+  try { res.fees = syncFees_(); } catch (e) { res.fees = String(e.message || e).slice(0, 100); }
   return res;
 }
 
@@ -1706,6 +1708,11 @@ const AUDIT_NAME = {
   admin_trashFile: "刪除檔案", admin_logiCreate: "建立寄件單", admin_logiPrint: "列印託運單", admin_logiPrintBatch: "批次列印託運單", admin_saveExpense: "登錄支出",
   admin_deleteExpense: "刪除支出", admin_lineSave: "修改 LINE 權杖", admin_lineBind: "產生 LINE 綁定碼", admin_lineUnbind: "移除 LINE 接收者", admin_lineTest: "傳送 LINE 測試",
   admin_setGithubToken: "設定 GitHub 權杖", admin_setLoginSecret: "設定 LINE 登入金鑰", admin_trafficPurge: "清除測試流量", admin_logiProbe: "物流連線測試" };
+const SET_NAME = { shipFee: "黑貓運費", shipFeeCvs: "7-11 運費", freeShipOver: "免運門檻", lineUrl: "LINE 聯絡網址", notice: "賣場公告", ordersOpen: "開放下單", requireLine: "需 LINE 會員",
+  shipBarOn: "免運公告條", shipBar: "免運公告文字", feeCardPct: "信用卡費率", feeCardMin: "信用卡最低", feeCardOrder: "信用卡處理費", feeAtmPct: "ATM 費率", feeAtmMin: "ATM 最低", feeSplit: "手續費分攤",
+  welcomeCode: "入會禮", welcomeDays: "入會禮天數", welcomeRemind: "到期提醒天數", hotWords: "熱門搜尋", capital: "初始資金", pointsOn: "會員積分", pointRate: "積分比例", pointMaxPct: "積分折抵上限",
+  logiOn: "綠界物流", logiStage: "物流測試模式", logiAuto: "自動建單", senderName: "寄件人", senderPhone: "寄件手機", senderZip: "寄件郵遞區號", senderAddr: "寄件地址", logiSize: "黑貓材積",
+  logiFeeCvs: "交貨便運費成本", logiFeeHome: "黑貓運費成本", homeBox: "黑貓紙箱" };
 const AUDIT_ALERT = /^admin_(deleteOrder|deleteProduct|deleteCode|deleteUser|saveUser|saveEcpay|lineSave|setGithubToken|setLoginSecret|deleteExpense)$/;
 const PROD_FIELDS = { name: "名稱", price: "售價", listPrice: "原價", stock: "庫存", active: "上架", preorder: "即將開賣", hot: "熱銷", cost: "成本", commission: "分潤%", splitMode: "拆帳方式", supplier: "貨主", category: "分類" };
 function auditBefore_(a, r) {
@@ -1735,7 +1742,7 @@ function auditDetail_(a, r, b, out) {
     case "admin_saveSettings": {
       const SECRET = /^(sender(Phone|Addr|Name))$/;
       const ch = Object.keys(r.settings || {}).filter(k => b && String(r.settings[k]) !== String(b[k] === true ? "TRUE" : b[k] === false ? "FALSE" : b[k]))
-        .map(k => k + (SECRET.test(k) ? "（已修改）" : " " + v(b[k]) + "→" + v(r.settings[k])));
+        .map(k => (SET_NAME[k] || k) + (SECRET.test(k) ? "（已修改）" : " " + v(b[k]) + "→" + v(r.settings[k])));
       return [ch.join("、") || "無變更", ""];
     }
     case "admin_orderStatus": {
@@ -1766,4 +1773,29 @@ function audit_(me, a, r, before, err, out) {
     if (!err && me.role !== "owner" && AUDIT_ALERT.test(a))
       linePush_("【赤貧軍團】後台操作通知\n帳號：" + me.user + "（" + (ROLES[me.role] || me.role) + "）\n動作：" + (AUDIT_NAME[a] || a) + "\n內容：" + d[0]);
   } catch (e) {}
+}
+
+
+/* ───────────── 綠界實際手續費（2026-11-09，比照欣瀚賣場）─────────────
+   原本用公式估（費率×1.05＋固定處理費 1 元），但綠界實際每筆處理費是 1～2 元，報表會跟綠界對不上。
+   付款成功當下與每次排程，用 QueryTradeInfo 查 HandlingCharge（綠界實際扣的手續費，含稅）寫回 payFee，feeSrc＝ecpay；
+   查不到的維持估算（feeSrc 空），報表會標「估算」。 */
+function ecpayFee_(tradeNo) {
+  const cfg = ecpayCfg_(); if (!cfg.mid || !tradeNo) return null;
+  const p = { MerchantID: cfg.mid, MerchantTradeNo: tradeNo, TimeStamp: String(Math.floor(Date.now() / 1000)) };
+  p.CheckMacValue = checkMac_(p, cfg);
+  const res = UrlFetchApp.fetch(cfg.host + "/Cashier/QueryTradeInfo/V5", { method: "post", payload: p, muteHttpExceptions: true }).getContentText();
+  const q = {}; res.split("&").forEach(kv => { const i = kv.indexOf("="); if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, " ")); });
+  if (String(q.TradeStatus) !== "1" || q.HandlingCharge === undefined || q.HandlingCharge === "") return null;
+  return Math.round(Number(q.HandlingCharge) || 0);
+}
+function syncFees_() {
+  let n = 0, done = 0;
+  rows_("orders").forEach(o => {
+    if (n >= 15 || String(o.payStatus) !== "paid" || String(o.feeSrc) === "ecpay" || !o.ecpayNo) return;
+    n++;
+    const real = ecpayFee_(String(o.ecpayNo));
+    if (real !== null) { setOrderField_(String(o.orderNo), { payFee: String(real), feeSrc: "ecpay" }); done++; }
+  });
+  return done + "/" + n;
 }
