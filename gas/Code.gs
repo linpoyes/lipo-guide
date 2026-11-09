@@ -273,8 +273,21 @@ function migrateSupraWhite_() {
   const out = [imgs[0], "media/supra-white-front.jpg", "media/supra-white-rear.jpg"].concat(imgs.slice(2)).filter(Boolean);
   upsert_("products", "id", { id: String(r.id), images: JSON.stringify(out), updatedAt: new Date().toISOString() });
 }
+// 2026-11-09：其餘車款也補 JXC 官網原廠圖（jxcmodel.com：PO4302 GT3 RS、Toyota Supra、Supra 1087X、AE4386），插在封面後面
+function migrateOfficialImgs_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_OFFICIAL")) return; p.setProperty("MIG_OFFICIAL", "1");
+  const M = [[/GT3RS 競速黃/, ["gt3rs-yellow-front", "gt3rs-yellow-rear"]], [/GT3RS 競速紅/, ["gt3rs-red-front", "gt3rs-red-rear"]],
+    [/GT3RS 賽車彩繪/, ["gt3rs-livery-front", "gt3rs-livery-rear"]], [/1087X/, ["1087x-side", "1087x-alt", "1087x-box"]],
+    [/Supra 飆速黃/, ["supra-yellow-front", "supra-yellow-rear"]], [/Supra 飆速紅/, ["supra-red-front"]],
+    [/Supra 經典白/, ["supra-white-front", "supra-white-rear"]], [/AE86/, ["ae86-white-front", "ae86-white-rear"]]];
+  rows_("products").forEach(r => {
+    const m = M.find(x => x[0].test(String(r.name))); if (!m) return;
+    const imgs = json_(r.images, []), add = m[1].map(n => "media/" + n + ".jpg").filter(x => imgs.indexOf(x) < 0); if (!add.length) return;
+    upsert_("products", "id", { id: String(r.id), images: JSON.stringify([imgs[0]].concat(add, imgs.slice(1))), updatedAt: new Date().toISOString() });
+  });
+}
 function catalog_() {
-  migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_();
+  migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_(); migrateOfficialImgs_();
   try { expireOrders_(); } catch (e) {}
   try { remindWelcome_(); } catch (e) {}
   const bySort = (a, b) => a.sort - b.sort;
