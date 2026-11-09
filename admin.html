@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-PxpHPi44p5qaNJHp7ifZ/EntqHXZt5E25XdTDhSQpVs='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-DrqpUL0E4l/zau+ayhrIKz/Def2PVPNkoZiab9+ynUU='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092145">
+<meta name="build" content="202611092151">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -251,7 +251,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611092145"></script>
+<script src="shop-core.js?v=202611092151"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -664,7 +664,7 @@ function editProduct(id) {
     let us, owner, note;
     if (mode === "commission") { us = Math.round(price * rate / 100); owner = price - us - fee - logi; note = `售價 ${money(price)} × ${rate}%`; }
     else { const profit = price - cost - fee - logi; us = Math.round(profit * rate / 100); owner = profit - us + ($("pcb").value === "owner" ? cost : 0); note = `淨利 ${money(profit)}（售價 − 成本 ${money(cost)} − 金流約 ${money(fee)} − 物流約 ${money(logi)}）× ${rate}%`; }
-    $("splitPrev").innerHTML = price ? `<div><span>每賣一件・我方</span><b>${money(us)}</b></div><div><span>應付貨主</span><b>${money(owner)}</b></div><small>${note}${mode === "profit" && $("pcb").value === "us" && cost ? "；成本由我方出資，已先扣回" : ""}</small>` : "";
+    $("splitPrev").innerHTML = price ? `<div><span>每賣一件・我方</span><b>${money(us)}</b></div><div><span>應付貨主</span><b>${money(owner)}</b></div><small>${note}${mode === "profit" && $("pcb").value === "us" && cost ? "；成本由我方出資，已從淨利扣除" : ""}</small>` : "";
   };
   setTimeout(splitShow);
   $("mPanel").addEventListener("input", e => { if (e.target.matches("#pp,#pco,#psu,#pcm,#pcv")) splitShow(); });
