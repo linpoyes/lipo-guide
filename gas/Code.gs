@@ -118,6 +118,7 @@ function doPost(e) {
     }
     if (a === "memberCenter") return out_(memberCenter_(req));
     if (a === "order") return out_(placeOrder_(req));
+    if (a === "adminLine") { const r = adminLine_(req); return out_(r); }
     if (a === "login") { const r = login_(req.user, req.pass); audit_({ user: String(req.user || "").normalize("NFKC").trim(), role: r.role || "" }, r.ok ? "login" : "loginFail", req, null); return out_(r); }
     if (a === "track") return out_(track_(req));
     if (a === "lineLogin") return out_(lineLoginPost_(req));
@@ -587,13 +588,17 @@ function login_(user, pass) {
     cache.put("loginFails", String(fails + 1), 600);
     return { ok: false, error: "帳號或密碼錯誤" };
   }
+  return Object.assign(issueSession_(user), { role: rec.role, isDefault: pass === "01" });
+}
+function issueSession_(user) {
+  const cache = CacheService.getScriptCache();
   const token = Utilities.getUuid() + Utilities.getUuid();
   const props = PropertiesService.getScriptProperties(), now = Date.now();
   Object.keys(props.getProperties()).forEach(k => { if (k.indexOf("SESS_") === 0 && k.indexOf("SESS_REVOKED_") < 0 && Number(String(props.getProperty(k)).split("|")[0]) < now) props.deleteProperty(k); });
   props.setProperty("SESS_" + hash_(token), (now + SESSION_DAYS * 86400000) + "|" + user);
   // 指令碼屬性剛寫入時，下一個請求偶爾讀不到（10-31 實測：登入後第一個動作回 auth），所以同時放快取（最長 6 小時）
   cache.put("tok:" + token, user, 21600);
-  return { ok: true, token: token, user: user, role: rec.role, isDefault: pass === "01" };
+  return { ok: true, token: token, user: user };
 }
 // 回傳 {user, role}；無效回 null。角色每次即時查，所以改權限、刪帳號立刻生效
 function checkToken_(t) {
@@ -621,6 +626,22 @@ const ADMIN = {
   }),
   admin_me: r => ({ me: r.me, roles: ROLES }),
   admin_dashboard: r => dashboard_(r),
+  // LINE 授權（只有超級管理員；不在任何權限項目）：產生一次性邀請連結、解除綁定
+  admin_lineInvite: r => {
+    const name = String(r.name || ""); if (!users_()[name]) throw new Error("查無此帳號");
+    if (name !== r.me.user && users_()[name].role === "owner" && r.me.role !== "owner") throw new Error("此帳號沒有權限");
+    const p = PropertiesService.getScriptProperties(), all = p.getProperties();
+    Object.keys(all).filter(k => k.indexOf("INV_") === 0 && json_(all[k], {}).user === name).forEach(k => p.deleteProperty(k)); // 舊邀請作廢
+    const t = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, "");
+    const exp = Date.now() + 7 * 86400000;
+    p.setProperty("INV_" + hash_(t), JSON.stringify({ user: name, exp: exp, by: r.me.user }));
+    return { url: "https://linpoyes.github.io/lipo-guide/admin.html#inv=" + t, exp: Utilities.formatDate(new Date(exp), "Asia/Taipei", "yyyy/MM/dd HH:mm") };
+  },
+  admin_lineUnbindUser: r => {
+    const u = users_(), name = String(r.name || ""); if (!u[name]) throw new Error("查無此帳號");
+    ["lineUid", "lineName", "linePic", "lineAt"].forEach(k => delete u[name][k]); saveUsers_(u);
+    if (name !== r.me.user) revokeUser_(name);
+  },
   // 操作紀錄只有超級管理員（不在任何權限項目裡，can_ 只放行 owner）
   admin_audit: r => {
     const sh = sheet_("audit"), n = sh.getLastRow() - 1; if (n < 1) return { logs: [] };
@@ -643,14 +664,16 @@ const ADMIN = {
     for (let i = n - 1; i >= 0; i--) if (String(col[i][0]) === vid) { sh.deleteRow(i + 2); removed++; }
     return { removed: removed };
   },
-  admin_users: () => { const u = users_(); return { users: Object.keys(u).map(n => ({ name: n, role: u[n].role, perms: permsOf_(u[n]) })), roles: ROLES,
+  admin_users: () => { const u = users_(); return { users: Object.keys(u).map(n => ({ name: n, role: u[n].role, perms: permsOf_(u[n]),
+      line: u[n].lineUid ? { name: u[n].lineName || "", pic: u[n].linePic || "", at: u[n].lineAt || "" } : null, invite: inviteOf_(n) })), roles: ROLES,
     perms: PERMS.map(g => [g[0], g[1].map(p => [p[0], p[1]])]), rolePerms: ROLE_PERMS }; },
   admin_saveUser: r => {
     const name = String(r.name || "").normalize("NFKC").trim(), role = String(r.role || ""), pass = String(r.pass || "").normalize("NFKC").trim();
     if (!/^[\w.@-]{2,20}$/.test(name)) throw new Error("帳號限英數字 2–20 碼");
     if (!ROLES[role]) throw new Error("請選擇權限");
     const u = users_(), isNew = !u[name];
-    if (isNew && pass.length < 4) throw new Error("新帳號密碼至少 4 碼");
+    if (isNew && pass && pass.length < 4) throw new Error("密碼至少 4 碼");
+    if (isNew && !pass) { setAdmin_(name, Utilities.getUuid() + Utilities.getUuid(), role); } // 只用 LINE 登入的帳號：隨機密碼，無法用密碼登入
     if (!isNew && u[name].role === "owner" && role !== "owner" && Object.keys(u).filter(n => u[n].role === "owner").length < 2) throw new Error("至少要保留一個超級管理員");
     if (name === r.me.user && role !== "owner") throw new Error("不能降低自己的權限");
     if (pass) { setAdmin_(name, pass, role); if (!isNew) revokeUser_(name); }
@@ -1756,14 +1779,14 @@ const AUDIT_NAME = {
   admin_saveCode: "儲存折扣碼", admin_deleteCode: "刪除折扣碼", admin_orderStatus: "變更訂單", admin_deleteOrder: "刪除訂單", admin_saveSettings: "修改設定",
   admin_saveUser: "帳號權限", admin_deleteUser: "刪除帳號", admin_changeLogin: "變更自己的帳號密碼", admin_saveEcpay: "修改金流設定", admin_upload: "上傳檔案",
   admin_trashFile: "刪除檔案", admin_logiCreate: "建立寄件單", admin_logiPrint: "列印託運單", admin_logiPrintBatch: "批次列印託運單", admin_saveExpense: "登錄支出",
-  admin_deleteExpense: "刪除支出", admin_lineSave: "修改 LINE 權杖", admin_lineBind: "產生 LINE 綁定碼", admin_lineUnbind: "移除 LINE 接收者", admin_lineTest: "傳送 LINE 測試",
+  admin_deleteExpense: "刪除支出", admin_lineInvite: "產生 LINE 授權邀請", admin_lineUnbindUser: "解除 LINE 綁定", lineBind: "LINE 綁定帳號", lineLogin: "LINE 登入後台", lineLoginFail: "LINE 登入後台失敗", admin_lineSave: "修改 LINE 權杖", admin_lineBind: "產生 LINE 綁定碼", admin_lineUnbind: "移除 LINE 接收者", admin_lineTest: "傳送 LINE 測試",
   admin_setGithubToken: "設定 GitHub 權杖", admin_setLoginSecret: "設定 LINE 登入金鑰", admin_trafficPurge: "清除測試流量", admin_logiProbe: "物流連線測試" };
 const SET_NAME = { shipFee: "黑貓運費", shipFeeCvs: "7-11 運費", freeShipOver: "免運門檻", lineUrl: "LINE 聯絡網址", notice: "賣場公告", ordersOpen: "開放下單", requireLine: "需 LINE 會員",
   shipBarOn: "免運公告條", shipBar: "免運公告文字", feeCardPct: "信用卡費率", feeCardMin: "信用卡最低", feeCardOrder: "信用卡處理費", feeAtmPct: "ATM 費率", feeAtmMin: "ATM 最低", feeSplit: "手續費分攤",
   welcomeCode: "入會禮", welcomeDays: "入會禮天數", welcomeRemind: "到期提醒天數", hotWords: "熱門搜尋", capital: "初始資金", pointsOn: "會員積分", pointRate: "積分比例", pointMaxPct: "積分折抵上限",
   logiOn: "綠界物流", logiStage: "物流測試模式", logiAuto: "自動建單", senderName: "寄件人", senderPhone: "寄件手機", senderZip: "寄件郵遞區號", senderAddr: "寄件地址", logiSize: "黑貓材積",
   logiFeeCvs: "交貨便運費成本", logiFeeHome: "黑貓運費成本", homeBox: "黑貓紙箱" };
-const AUDIT_ALERT = /^admin_(deleteOrder|deleteProduct|deleteCode|deleteUser|saveUser|saveEcpay|lineSave|setGithubToken|setLoginSecret|deleteExpense)$/;
+const AUDIT_ALERT = /^admin_(lineInvite|lineUnbindUser|deleteOrder|deleteProduct|deleteCode|deleteUser|saveUser|saveEcpay|lineSave|setGithubToken|setLoginSecret|deleteExpense)$/;
 const PROD_FIELDS = { name: "名稱", price: "售價", listPrice: "原價", stock: "庫存", active: "上架", preorder: "即將開賣", hot: "熱銷", cost: "成本", commission: "分潤%", splitMode: "拆帳方式", supplier: "貨主", category: "分類" };
 function auditBefore_(a, r) {
   try {
@@ -1804,6 +1827,7 @@ function auditDetail_(a, r, b, out) {
     case "admin_deleteCode": return ["折扣碼 " + r.code, String(r.code)];
     case "admin_saveUser": return ["帳號 " + r.name + "：" + (b ? (ROLES[b.role] || b.role) + "→" : "新增 ") + (ROLES[r.role] || r.role) + (r.role === "custom" ? "（" + (r.perms || []).join("、") + "）" : "") + (r.pass ? "・重設密碼" : ""), String(r.name)];
     case "admin_deleteUser": return ["帳號 " + r.name, String(r.name)];
+    case "admin_lineInvite": case "admin_lineUnbindUser": return ["帳號 " + r.name, String(r.name)];
     case "admin_changeLogin": return [r.newUser && r.newUser !== r.me.user ? "帳號改名為 " + r.newUser + "・變更密碼" : "變更密碼", ""];
     case "admin_logiCreate": case "admin_logiPrint": return ["訂單 " + r.orderNo + (r.again ? "（重新建單）" : ""), String(r.orderNo)];
     case "admin_logiPrintBatch": return [(r.orderNos || []).length + " 筆訂單", (r.orderNos || []).join(",")];
@@ -1854,3 +1878,43 @@ function syncFees_() {
 function sysLog_(who, role, action, detail, target) {
   try { const sh = sheet_("audit"); sh.getRange(sh.getLastRow() + 1, 1, 1, 6).setNumberFormat("@").setValues([[ts_(new Date()), safeCell_(String(who).slice(0, 40)), role, action, safeCell_(String(detail).slice(0, 500)), safeCell_(String(target || ""))]]); } catch (e) {}
 }
+
+
+/* ───────────── 後台 LINE 授權（2026-11-09）─────────────
+   超級管理員在「帳號與權限」對某帳號按「LINE 授權邀請」→ 一次性連結（7 天、用過即失效）傳給對方 →
+   對方用 LINE 登入一次就綁定，之後後台按「LINE 登入」免密碼。誰綁定、何時、LINE 名稱都存在帳號上，紀錄頁也有，並 LINE 通知超級管理員。
+   LINE Login 的 Callback 只登記了 shop.html，所以 state 以 a_ 開頭，賣場頁一載入就把 ?code&state 轉給 admin.html。 */
+function inviteOf_(name) {
+  const all = PropertiesService.getScriptProperties().getProperties(); let best = null;
+  Object.keys(all).forEach(k => { if (k.indexOf("INV_") !== 0) return; const v = json_(all[k], null); if (v && v.user === name && v.exp > Date.now()) best = Utilities.formatDate(new Date(v.exp), "Asia/Taipei", "MM/dd HH:mm"); });
+  return best;
+}
+function lineIdent_(code, nonce) {
+  const secret = PropertiesService.getScriptProperties().getProperty("LINE_LOGIN_SECRET");
+  const tok = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/token", { method: "post", muteHttpExceptions: true,
+    payload: { grant_type: "authorization_code", code: code, redirect_uri: LOGIN_SHOP, client_id: LINE_LOGIN_ID, client_secret: secret } }).getContentText());
+  if (!tok.id_token) return null;
+  const idt = JSON.parse(UrlFetchApp.fetch("https://api.line.me/oauth2/v2.1/verify", { method: "post", muteHttpExceptions: true,
+    payload: { id_token: tok.id_token, client_id: LINE_LOGIN_ID, nonce: nonce } }).getContentText());
+  return idt.sub ? { uid: idt.sub, name: idt.name || "", pic: idt.picture || "" } : null;
+}
+function adminLine_(req) {
+  const id = String(req.code || "") && String(req.nonce || "") ? lineIdent_(String(req.code), String(req.nonce)) : null;
+  if (!id) return { ok: false, error: "LINE 驗證失敗，請再試一次" };
+  const p = PropertiesService.getScriptProperties(), u = users_();
+  let name = Object.keys(u).find(n => u[n].lineUid === id.uid);
+  if (req.invite) {
+    const k = "INV_" + hash_(String(req.invite)), inv = json_(p.getProperty(k), null);
+    if (!inv || inv.exp < Date.now() || !u[inv.user]) return { ok: false, error: "邀請連結無效或已過期，請向超級管理員索取新連結" };
+    if (name && name !== inv.user) return { ok: false, error: "此 LINE 已綁定帳號「" + name + "」，一個 LINE 只能綁定一個帳號" };
+    name = inv.user;
+    Object.assign(u[name], { lineUid: id.uid, lineName: id.name, linePic: id.pic, lineAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm") });
+    saveUsers_(u); p.deleteProperty(k);
+    try { sysLogDetail_(name, u[name].role, "LINE 綁定帳號", "帳號 " + name + " 綁定 LINE「" + id.name + "」（邀請人 " + inv.by + "）", name); } catch (e) {}
+    linePush_("【赤貧軍團】後台 LINE 綁定通知\n帳號：" + name + "（" + (ROLES[u[name].role] || u[name].role) + "）\nLINE 名稱：" + id.name + "\n邀請人：" + inv.by);
+  }
+  if (!name) { sysLog_(id.name || "LINE 使用者", "", "LINE 登入後台失敗", "LINE「" + id.name + "」尚未授權", ""); return { ok: false, error: "此 LINE 尚未授權登入後台，請向超級管理員索取邀請連結" }; }
+  if (!req.invite) sysLog_(name, u[name].role, "LINE 登入後台", "LINE「" + id.name + "」", name);
+  return Object.assign(issueSession_(name), { role: u[name].role, isDefault: false, lineName: id.name });
+}
+function sysLogDetail_(who, role, action, detail, target) { sysLog_(who, role, action, detail, target); }
