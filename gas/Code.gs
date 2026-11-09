@@ -253,8 +253,14 @@ function migrateAe86_() {
   imgs.splice(Math.min(1, imgs.length), 0, src);
   upsert_("products", "id", { id: String(r.id), images: JSON.stringify(imgs), updatedAt: new Date().toISOString() });
 }
+// 2026-11-09：迷你甩尾車九款填入包裝尺寸（網路查證：JXC SP4301 盒裝 23×19×10 cm、約 468 g，rc-wing／arrishobby 商品頁）
+function migrateDims_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_JXCDIMS")) return; p.setProperty("MIG_JXCDIMS", "1");
+  rows_("products").filter(r => /迷你漂移遙控車|JXC/.test(String(r.name)) && !String(r.dims || "")).forEach(r =>
+    upsert_("products", "id", { id: String(r.id), dims: "23,19,10", weight: "0.47", updatedAt: new Date().toISOString() }));
+}
 function catalog_() {
-  migrate_(); migrateAe86_();
+  migrate_(); migrateAe86_(); migrateDims_();
   try { expireOrders_(); } catch (e) {}
   try { remindWelcome_(); } catch (e) {}
   const bySort = (a, b) => a.sort - b.sort;
@@ -1586,7 +1592,7 @@ function csPreview_() {
    7-11 交貨便（綠界 C2C）：最長邊 45、三邊合計 105、10 公斤內 → 以 45×30×30 計。
    黑貓：用設定的紙箱內尺寸（homeBox，預設 40×30×20＝90 材），每箱 20 公斤內；材積級距由紙箱三邊合計決定。
    前台 admin.html 的 packCaps 必須跟這裡一致。 */
-const CVS_BOX = [45, 30, 30], CVS_KG = 10, HOME_KG = 20;
+const CVS_BOX = [45, 30, 30], CVS_KG = 10, HOME_KG = 20, PACK_PAD = 1; // 每邊多留 1 公分給包材／緩衝，不必塞到剛好
 function dims_(v) { const a = String(v || "").split(/[,x×*\s]+/).map(Number).filter(n => n > 0); return a.length === 3 ? a : []; }
 function fit_(box, d) {
   const P = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
@@ -1596,7 +1602,7 @@ let HOMEBOX_ = null; // 同一次執行只讀一次設定（product_ 每列都�
 function homeBox_() { if (!HOMEBOX_) { const b = dims_(getSettings_().homeBox); HOMEBOX_ = b.length ? b : [40, 30, 20]; } return HOMEBOX_; }
 function homeSpec_() { const b = dims_(getSettings_().homeBox); if (!b.length) return ""; const t = b[0] + b[1] + b[2]; return t <= 60 ? "0001" : t <= 90 ? "0002" : t <= 120 ? "0003" : "0004"; }
 function packCaps_(dimsStr, kg) {
-  const d = dims_(dimsStr); if (!d.length) return null;
+  const d = dims_(dimsStr).map(n => n + PACK_PAD); if (d.length < 3) return null;
   const byKg = (lim) => kg > 0 ? Math.floor(lim / kg) : Infinity;
   return { cvs: Math.min(fit_(CVS_BOX, d), byKg(CVS_KG)), home: Math.max(1, Math.min(fit_(homeBox_(), d), byKg(HOME_KG))) }; // 放不進紙箱＝自己一箱
 }
