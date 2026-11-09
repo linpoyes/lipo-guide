@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-R+qO3/Aod1F/zKDPh+A8NgoKXBKFLygMgdeUXoRrBnk='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-t2/0NvlJr27JNpfJ+uNI4zohWj8wsiEsP74kh0CQfpA='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092256">
+<meta name="build" content="202611092259">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 (function(){try{
@@ -518,6 +518,7 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .jalt{display:block;margin-top:12px;font-size:14px;font-weight:800;color:#06C755;text-decoration:none}
 .jqr{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px}.jqr img{border-radius:10px;border:1px solid var(--line);background:#fff;padding:4px}.jqr span{text-align:left;font-size:13px;font-weight:800;color:var(--dim)}
 .jlater{margin-top:8px;border:0;background:none;color:var(--faint);font-size:13px;font-weight:700;padding:6px}
+#nudgePop{position:fixed;z-index:90}
 </style>
 </head>
 <body>
@@ -596,9 +597,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611092256"></script>
-<script src="shop-core.js?v=202611092256"></script>
-<script src="tw-zip.js?v=202611092256"></script>
+<script src="track.js?v=202611092259"></script>
+<script src="shop-core.js?v=202611092259"></script>
+<script src="tw-zip.js?v=202611092259"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -1069,7 +1070,7 @@ function drawCart() {
       <div class="buyrow"><button class="btn" data-step="form" ${catalog.settings.ordersOpen ? "" : "disabled"}>${catalog.settings.ordersOpen ? "前往結帳" : "尚未開放下單"}</button></div>`;
   } else {
     $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">填寫訂購資料</div>
-      ${memberBox()}
+      ${memberBox(true)}
       <form id="orderForm" ${needLine() ? "hidden" : ""}>
         <div class="field"><label for="oName">收件人真實姓名</label><input id="oName" autocomplete="name" maxlength="10" required>
           <span class="hint" id="nameHint">取貨時需核對證件，請填寫與證件相同的姓名；中文 2–5 字或英文 4–10 字母，不可有數字與符號</span></div>
@@ -1162,7 +1163,7 @@ function memberBox(always) {
   if (member && member.friend) return `<div class="mem ok">${member.pic ? `<img src="${esc(member.pic)}" alt="">` : ""}<div><b>${esc(member.name || "LINE 會員")}</b><small>赤貧軍團會員・已加入好友</small></div><button type="button" data-logout class="memout">登出</button>${giftBox()}</div>`;
   if (member) return `<div class="mem"><div><b>${esc(member.name)}，還差一步</b><small>加入赤貧軍團官方帳號好友${g ? `即送 ${esc(g.label)}` : "後即可下單"}</small></div>
     <a class="linebtn" href="https://line.me/R/ti/p/@552xxfur" target="_blank" rel="noopener">加入好友</a><button type="button" class="memre" data-recheck>我已加入</button></div>`;
-  return `<div class="mem"><div><b>${g ? `加入會員送 ${esc(g.label)}` : "LINE 會員專屬"}</b><small>以 LINE 登入並加入官方帳號好友即可下單${g ? "，入會禮將同步傳送至您的 LINE" : "，出貨進度將以 LINE 通知"}</small></div><button type="button" class="linebtn" data-login>LINE 登入</button></div>`;
+  return `<div class="mem"><div><b>${g ? `加入會員送 ${esc(g.label)}` : "LINE 會員專屬"}</b><small>${catalog && catalog.settings.requireLine ? "以 LINE 登入並加入官方帳號好友即可下單" : "LINE 一鍵加入"}${g ? "，入會禮將同步傳送至您的 LINE" : "，出貨進度將以 LINE 通知"}</small></div><button type="button" class="linebtn" data-login>LINE 登入</button></div>`;
 }
 function useGift() {
   const w = member && member.welcome; if (!w) return;
@@ -1273,7 +1274,7 @@ function joinPrompt() {
     <p class="jsub">${g ? `LINE 一鍵加入・立即送 <em>${esc(g.label)}</em>` : "LINE 一鍵加入，新品與優惠第一手通知"}</p>
     <div class="jperks">${g ? `<div><i>🎁</i><span>入會禮<br>${esc(g.label)}</span></div>` : ""}${pc && pc.on ? `<div><i>💰</i><span>消費回饋<br>每 $${pc.rate} 得 1 點</span></div>` : ""}<div><i>🚚</i><span>出貨進度<br>LINE 即時通知</span></div></div>
     <button type="button" class="linebtn jbtn" data-jlogin><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s5.9-3.5 8.1-6C21.4 14.2 22 12.7 22 11c0-4.4-4.5-8-10-8z"/></svg>LINE 一鍵加入會員</button>
-    ${desk ? `<div class="jqr"><img src="https://qr-official.line.me/sid/L/552xxfur.png" alt="赤貧軍團官方帳號 QR Code" width="120" height="120"><span>手機掃描<br>加入官方帳號</span></div>` : `<a class="jalt" href="https://line.me/R/ti/p/@552xxfur" target="_blank" rel="noopener">只加入官方帳號好友</a>`}
+    ${desk ? `<div class="jqr"><img src="https://qr-official.line.me/sid/L/552xxfur.png" alt="赤貧軍團官方帳號 QR Code" width="120" height="120"><span>手機掃描<br>加入官方帳號</span></div>` : ""}
     <button type="button" class="jlater" data-jx>稍後再說</button></div>`;
   document.body.appendChild(d); lockBody(true); cpTrack("login", {q: "prompt"});
   const shut = () => { try { localStorage.setItem("cp-join-at", String(Date.now())); } catch (e) {} d.remove(); if (!document.querySelector(".sheet.open")) lockBody(false); };
@@ -1350,6 +1351,20 @@ function homeAddress() {
   const zip = showZip(), street = $("oAddr").value.trim().normalize("NFKC");
   return zip && street ? `${zip}${$("oCounty").value}${$("oDist").value}${street}` : "";
 }
+function lineNudge() {
+  const g = giftInfo(), d = document.createElement("div"); d.className = "npop jpop"; d.id = "nudgePop";
+  d.innerHTML = `<div class="npanel jpanel" role="dialog" aria-modal="true"><img class="jbadge" src="badge.png?v=1" alt="">
+    <b>${member ? "加入官方帳號好友" : "還不是 LINE 會員"}</b>
+    <p class="jsub">${member ? "加入好友才收得到出貨與到店通知" : g ? `加入即折 <em>${esc(g.label)}</em>，出貨進度 LINE 即時通知` : "加入後出貨進度 LINE 即時通知"}</p>
+    ${member ? `<a class="linebtn jbtn" href="https://line.me/R/ti/p/@552xxfur" target="_blank" rel="noopener">加入官方帳號好友</a>` : `<button type="button" class="linebtn jbtn" data-nlogin>LINE 一鍵加入會員</button>`}
+    <button type="button" class="jlater" data-nskip>直接下單</button></div>`;
+  $("cSheet").appendChild(d);
+  d.onclick = e => {
+    if (e.target.closest("[data-nskip]")) { d.remove(); submitOrder(); return; }
+    const lg = e.target.closest("[data-nlogin]"); if (lg) { saveDraft(); lineLogin(lg); }
+    if (e.target === d) d.remove();
+  };
+}
 async function submitOrder() {
   const sm = shipNow();
   const c = {name: $("oName").value.trim(), phone: $("oPhone").value.trim(), line: $("oLine").value.trim(), shipMethod: sm,
@@ -1363,6 +1378,8 @@ async function submitOrder() {
   if (!/^09\d{8}$/.test(c.phone.replace(/[-\s]/g, ""))) { err.textContent = "手機格式為 09 開頭 10 碼"; return; }
   if (!c.address) { err.textContent = sm === SHIP_CVS ? "請選擇 7-11 門市" : !$("oCounty").value || !$("oDist").value ? "請選擇縣市與區域" : "請填寫路名門牌"; return; }
   c.phone = c.phone.replace(/[-\s]/g, "");
+  // 不是 LINE 會員：送出前提醒一次（2026-11-09 使用者：提醒，不加入也能下單）
+  if (!(member && member.friend) && !submitOrder.asked) { submitOrder.asked = true; return lineNudge(); }
   const prev = lsGet("cp-customer", {});
   lsSet("cp-customer", {name: c.name, phone: c.phone, line: c.line, ...(sm === SHIP_HOME ? {county: $("oCounty").value, dist: $("oDist").value, street: $("oAddr").value.trim()} : {county: prev.county, dist: prev.dist, street: prev.street})});
   // clientId 讓重送不會重複下單（後端依它去重），所以這個動作可以安全重試
