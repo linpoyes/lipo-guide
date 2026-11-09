@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-4eNQnSeS6tJutnQlkQQ/uDwf3fseBS6Bo8tTZgIGDP4='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-8E+vpluJNjWrDSG2st2jTdNo39jw8D/AzDJAvF5fO4I=' 'sha256-uqq6tX3PF6tM0dNOksMKL5zJQwKgL3Jxcba0yUoGLXM='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092140">
+<meta name="build" content="202611092143">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 (function(){try{
@@ -546,9 +546,9 @@ input,select,textarea{font-size:max(16px,1em)}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611092140"></script>
-<script src="shop-core.js?v=202611092140"></script>
-<script src="tw-zip.js?v=202611092140"></script>
+<script src="track.js?v=202611092143"></script>
+<script src="shop-core.js?v=202611092143"></script>
+<script src="tw-zip.js?v=202611092143"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -567,8 +567,9 @@ const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 
 // 型錄快取：只用 10 分鐘內的，避免開頁先閃出舊商品（2026-11-08 使用者看到已刪除的示範商品閃一下）
 // 換 key（v2）讓舊版快取全部作廢
-try { localStorage.removeItem("cp-catalog"); localStorage.removeItem("cp-catalog2"); } catch (e) {}
-let catalog = (c => c && c.at > Date.now() - 600000 ? c.d : null)(lsGet("cp-catalog3", null));
+try { ["cp-catalog", "cp-catalog2", "cp-catalog3"].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+// 先用上次存的型錄立刻畫出商品（7 天內都用，背景再抓最新的蓋過去）——不必等後端（2026-11-09 使用者：從 LINE 點進來要等）
+let catalog = (c => c && c.at > Date.now() - 7 * 86400000 ? c.d : null)(lsGet("cp-catalog4", null));
 let cart = lsGet("cp-cart", []);          // [{id, qty}]
 let code = lsGet("cp-code", "");
 let filter = {cat: "all", brand: "", q: "", sort: lsGet("cp-sort", "rec")};
@@ -1320,7 +1321,7 @@ const lineBack = (() => {
 })();
 renderAll();
 api(null, {tries: 3, timeout: 45000}).then(async d => {
-  catalog = d; lsSet("cp-catalog3", {at: Date.now(), d});
+  catalog = d; lsSet("cp-catalog4", {at: Date.now(), d});
   cart = cart.filter(l => d.products.some(p => p.id === l.id));
   renderAll();
   // LINE 登入回來：#lm=會員權杖（或 #lmerr=原因）

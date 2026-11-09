@@ -78,7 +78,7 @@ function setup() {
 /* ───────────── 進入點 ───────────── */
 function doGet(e) {
   const a = (e.parameter || {}).action;
-  if (a === "catalog") return out_(catalog_());
+  if (a === "catalog") return out_(catalogCached_());
   if (a === "ping") return out_({ ok: true });
   if (a === "cron") return out_(cron_()); // GitHub Actions 每小時呼叫（.github/workflows/cron.yml）
   if (a === "lineSetup") return out_(lineSetup_());
@@ -121,7 +121,9 @@ function doPost(e) {
       if (!fn) return out_({ ok: false, error: "unknown action" });
       if (!can_(me, a)) return out_({ ok: false, error: "此帳號沒有權限" });
       req.me = me;
-      return out_(Object.assign({ ok: true }, fn(req) || {}));
+      const out = Object.assign({ ok: true }, fn(req) || {});
+      if (!/^admin_(all|me|users|orders|dashboard|expenses|ecpayStatus|lineStatus|logiStatus|logiPrint|logiPrintBatch)$/.test(a)) dropCatalog_(); // 後台有寫入就讓型錄快取失效
+      return out_(out);
     }
     return out_({ ok: false, error: "unknown action" });
   } catch (err) {
@@ -452,6 +454,7 @@ function placeOrder_(req) {
     cache.put("ord:all", String(nAll + 1), 600);
     if (req.clientId) cache.put("ordc:" + req.clientId, "1", 3600);
     if (!pay) lineNotifyOrder_(orderNo, "新訂單通知"); // 線上付款的單等付款成功才通知
+    dropCatalog_(); // 庫存、已售數字變了
     const res = { ok: true, orderNo: orderNo, total: q.total };
     if (pay) res.pay = ecpayForm_(rows_("orders").find(o => String(o.orderNo) === orderNo), pay);
     return res;
@@ -1428,6 +1431,7 @@ function shipLines_(o) {
    取消時退回庫存與折扣碼次數，restocked＝TRUE 防止重複；之後若綠界仍通知付款成功（reclaimOrder_）會恢復訂單並重新扣庫存。
    檢查時機：賣場載入型錄、後台讀訂單時順便做，10 分鐘最多一次（不需要額外授權觸發器）。 */
 function adjustStock_(items, sign) {
+  dropCatalog_();
   const sh = sheet_("products"), col = SHEETS.products.indexOf("stock") + 1;
   rows_("products").forEach(r => {
     const qty = items.filter(i => String(i.id) === String(r.id)).reduce((a, i) => a + (Number(i.qty) || 0), 0);
@@ -1653,5 +1657,18 @@ function cron_() {
   const res = { ok: true, at: ts_(new Date()) };
   try { expireOrders_(true); res.expire = "ok"; } catch (e) { res.expire = String(e.message || e).slice(0, 100); }
   try { CacheService.getScriptCache().remove("wrem"); remindWelcome_(); res.remind = "ok"; } catch (e) { res.remind = String(e.message || e).slice(0, 100); }
+  try { catalogCached_(); res.warm = "ok"; } catch (e) {} // 順便預熱型錄快取
   return res;
 }
+
+/* 型錄快取（2026-11-09 使用者：從 LINE 點進賣場要等很久）：
+   catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
+   後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
+function catalogCached_() {
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson");
+  if (hit) return JSON.parse(hit);
+  const d = catalog_(), j = JSON.stringify(d);
+  if (j.length < 95000) c.put("catalogJson", j, 3600);
+  return d;
+}
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson"); } catch (e) {} }
