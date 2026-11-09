@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-HRv6RO+lroqo3X0zOLzPsvtfGG069KvPduyOV8aWyTI='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-zbg/Eze4epx6e5rph3GQSrIL95khkqbGAtkJFRtAMWI='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092206">
+<meta name="build" content="202611092208">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -120,6 +120,8 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .ar b{display:block;font-size:14px}.ar span{display:block;font-size:13px;color:var(--dim);word-break:break-all;line-height:1.5}
 .ar em{font-style:normal;text-align:right;font-size:13px;font-weight:800;white-space:nowrap}.ar em small{display:block;font-size:11px;color:var(--faint);font-weight:700}
 .ar.warn b{color:var(--warn)}.ar.bad b{color:var(--bad)}
+.fees h4{margin:14px 0 6px;font-size:14px;color:var(--dim)}.fees .rgrid i{display:block;font-style:normal;font-size:11px;color:var(--faint);font-weight:700;margin-top:2px}
+.fees .estm,.fees td small{display:block;font-size:11px;color:var(--warn);font-weight:700}.fees .fr td small{color:var(--faint)}.fees .fr td:nth-child(3) small{color:var(--warn)}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .seg button{border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:8px 10px;font-weight:800;font-size:15px;text-align:left}
 .seg button small{display:block;font-size:12px;font-weight:600;color:var(--faint);margin-top:2px}
@@ -259,7 +261,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611092206"></script>
+<script src="shop-core.js?v=202611092208"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -823,6 +825,20 @@ function rptRange() {
    成交金額＝商品（扣折扣碼與積分折抵）＋向客人收的運費；支出＝金流手續費＋物流費＋其他支出（報表下方登錄）。
    每張訂單的運費、手續費、物流費依品項金額比例攤到品項；其他支出依期間內各品項成交金額比例攤（指定貨主的只攤該貨主）。 */
 let expenses = null;
+function feeSection(r) {
+  const F = feeData(r), m = money;
+  const card = (k, v, sub) => `<div><small>${k}</small><b>${v}</b>${sub ? `<i>${sub}</i>` : ""}</div>`;
+  return `<h2>費用明細</h2><div class="card fees">
+    <div class="rgrid">${card("費用合計", m(F.total), `占成交 ${F.rate}%`)}${card("金流手續費", m(F.payFee))}${card("物流費", m(F.logi))}
+      ${card("運費收入", m(F.shipIn), `運費損益 ${F.shipIn - F.logi >= 0 ? "+" : "−"}${m(Math.abs(F.shipIn - F.logi))}`)}${card("折扣碼折抵", m(F.code))}${card("積分折抵", m(F.points))}</div>
+    <h4>金流手續費</h4><div class="tscroll"><table class="otable rt"><tr><th>付款方式</th><th>筆數</th><th>收款</th><th>手續費</th><th>費率</th></tr>
+      ${Object.entries(F.pay).map(([k, x]) => `<tr><td>${k}${x.est ? `<small class="estm">${x.est} 筆估算</small>` : ""}</td><td>${x.n}</td><td>${m(x.amt)}</td><td>${m(x.fee)}</td><td>${x.amt ? (Math.round(x.fee / x.amt * 1000) / 10) + "%" : "—"}</td></tr>`).join("") || '<tr><td colspan="5">—</td></tr>'}</table></div>
+    <h4>物流費</h4><div class="tscroll"><table class="otable rt"><tr><th>寄送方式</th><th>訂單</th><th>包裹</th><th>運費收入</th><th>物流成本</th><th>損益</th></tr>
+      ${Object.entries(F.ship).map(([k, x]) => `<tr><td>${k}</td><td>${x.n}</td><td>${x.pk}</td><td>${m(x.income)}</td><td>${m(x.cost)}</td><td>${x.income - x.cost >= 0 ? "" : "−"}${m(Math.abs(x.income - x.cost))}</td></tr>`).join("") || '<tr><td colspan="6">—</td></tr>'}</table></div>
+    <h4>逐筆費用</h4><div class="tscroll"><table class="otable rt fr"><tr><th>訂單</th><th>付款</th><th>手續費</th><th>寄送</th><th>物流費</th><th>運費收入</th><th>折扣</th><th>淨費用</th></tr>
+      ${F.rows.map(({o, pm, ship, sub}) => `<tr><td>${esc(o.orderNo)}<small>${esc(o.createdAt.slice(5, 16))}</small></td><td>${pm}</td><td>${m(o.payFee || 0)}${o.payFee && o.feeSrc !== "ecpay" && pm !== "未線上付款" ? "<small>估算</small>" : ""}</td><td>${ship}×${o.packages || 1}</td><td>${m(o.logiCost || 0)}</td><td>${m(o.shipping || 0)}</td><td>${o.codeDiscount || o.pointsUsed ? m((o.codeDiscount || 0) + (o.pointsUsed || 0)) : "—"}</td><td>${sub < 0 ? "−" : ""}${m(Math.abs(sub))}</td></tr>`).join("") || '<tr><td colspan="8">—</td></tr>'}</table></div>
+    <span class="note">淨費用＝手續費＋物流費−運費收入；折扣碼與積分已從商品金額扣除，不重複計入費用合計</span></div>`;
+}
 // 初始資金與回本：以「全部期間」已付款訂單的我方分潤累計，扣掉我方出資的成本與支出前已在淨利內處理
 function capitalCard() {
   const cap = Number(data.settings.capital) || 0, edit = has("settings") ? '<button class="btn ghost" id="capEdit" style="flex:none;height:34px;padding:0 12px">修改</button>' : "";
@@ -883,6 +899,21 @@ function rptCompute() {
 }
 /* 輸出報表（2026-11-09）：獨立 A4 文件，頁首徽章＋赤貧軍團、頁尾欣群企業｜欣瀚資訊（同網站品牌），只放數字不放說明；
    用隱藏 iframe 開列印對話框，選「儲存為 PDF」即可存檔 */
+// 費用明細（2026-11-09）：金流（依付款方式、實扣／估算）、物流（依寄送方式與包裹數）、運費收支、折扣、積分、其他支出，以及逐筆訂單費用
+function feeData(r) {
+  const pm = o => /^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM 轉帳" : "未線上付款";
+  const pay = {}, ship = {};
+  r.os.forEach(o => {
+    const k = pm(o), x = pay[k] = pay[k] || {n: 0, amt: 0, fee: 0, est: 0}; x.n++; x.amt += o.total; x.fee += o.payFee || 0; if (o.payFee && o.feeSrc !== "ecpay" && k !== "未線上付款") x.est++;
+    const sk = o.shipMethod.startsWith("7-11") ? "7-11 交貨便" : "黑貓宅急便", y = ship[sk] = ship[sk] || {n: 0, pk: 0, income: 0, cost: 0};
+    y.n++; y.pk += o.packages || 1; y.income += o.shipping || 0; y.cost += o.logiCost || 0;
+  });
+  const sum = (o, k) => Object.values(o).reduce((a, x) => a + x[k], 0);
+  const code = r.os.reduce((a, o) => a + (o.codeDiscount || 0), 0), points = r.os.reduce((a, o) => a + (o.pointsUsed || 0), 0), other = r.exp.reduce((a, x) => a + x.amount, 0);
+  const payFee = sum(pay, "fee"), logi = sum(ship, "cost"), shipIn = sum(ship, "income"), sale = r.sum(r.lines, "sale");
+  const total = payFee + logi + other, rows = r.os.map(o => ({o, pm: pm(o), ship: o.shipMethod.startsWith("7-11") ? "交貨便" : "黑貓", sub: (o.payFee || 0) + (o.logiCost || 0) - (o.shipping || 0)}));
+  return {pay, ship, code, points, other, payFee, logi, shipIn, total, rate: sale ? Math.round(total / sale * 1000) / 10 : 0, rows};
+}
 function printReport(r) {
   const S = r.sum, m = v => money(v), short = n => n.replace(/^.*?[｜|]\s*/, "") || n;
   const kpi = [["成交金額", m(S(r.lines, "sale"))], ["訂單", r.os.length + " 筆"], ["件數", S(r.lines, "qty") + " 件"], ["成本", m(S(r.lines, "cogs"))],
@@ -895,8 +926,13 @@ function printReport(r) {
   const own = r.own.length ? `<section><h2>自有商品</h2><table><thead><tr><th>商品</th><th>件數</th><th>成交</th><th>成本</th><th>支出</th><th>淨利</th></tr></thead><tbody>
     ${Object.values(r.own.reduce((o, l) => { const x = o[l.name] = o[l.name] || {name: l.name, qty: 0, sale: 0, cogs: 0, cost: 0, profit: 0}; ["qty", "sale", "cogs", "cost", "profit"].forEach(k => x[k] += l[k]); return o; }, {})).map(p => `<tr><td>${esc(short(p.name))}</td><td>${p.qty}</td><td>${m(p.sale)}</td><td>${m(p.cogs)}</td><td>${m(p.cost)}</td><td>${m(p.profit)}</td></tr>`).join("")}</tbody></table></section>` : "";
   const exp = r.exp.length ? `<section><h2>其他支出</h2><table><thead><tr><th>日期</th><th>項目</th><th>分攤</th><th>金額</th></tr></thead><tbody>${r.exp.map(x => `<tr><td>${esc(x.date)}</td><td>${esc(x.item)}</td><td>${x.scope === "all" ? "全部商品" : esc(x.scope)}</td><td>${m(x.amount)}</td></tr>`).join("")}</tbody></table></section>` : "";
-  const ords = `<section><h2>訂單明細</h2><table class="sm"><thead><tr><th>日期</th><th>訂單編號</th><th>商品</th><th>付款</th><th>金額</th></tr></thead><tbody>
-    ${r.os.map(o => `<tr><td>${esc(o.createdAt.slice(0, 10))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.items.map(i => short(i.name) + "×" + i.qty).join("、"))}</td><td>${/^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM" : "—"}</td><td>${m(o.total)}</td></tr>`).join("") || '<tr><td colspan="5">—</td></tr>'}</tbody></table></section>`;
+  const F = feeData(r);
+  const fees = `<section><h2>費用明細<span>費用合計 ${m(F.total)}・占成交 ${F.rate}%</span></h2>
+    <table><thead><tr><th>付款方式</th><th>筆數</th><th>收款</th><th>手續費</th><th>費率</th></tr></thead><tbody>${Object.entries(F.pay).map(([k, x]) => `<tr><td>${k}${x.est ? `（${x.est} 筆估算）` : ""}</td><td>${x.n}</td><td>${m(x.amt)}</td><td>${m(x.fee)}</td><td>${x.amt ? (Math.round(x.fee / x.amt * 1000) / 10) + "%" : "—"}</td></tr>`).join("") || '<tr><td colspan="5">—</td></tr>'}</tbody></table>
+    <table style="margin-top:8px"><thead><tr><th>寄送方式</th><th>訂單</th><th>包裹</th><th>運費收入</th><th>物流成本</th><th>損益</th></tr></thead><tbody>${Object.entries(F.ship).map(([k, x]) => `<tr><td>${k}</td><td>${x.n}</td><td>${x.pk}</td><td>${m(x.income)}</td><td>${m(x.cost)}</td><td>${x.income - x.cost < 0 ? "−" : ""}${m(Math.abs(x.income - x.cost))}</td></tr>`).join("") || '<tr><td colspan="6">—</td></tr>'}</tbody></table>
+    <table style="margin-top:8px"><thead><tr><th>項目</th><th>金額</th></tr></thead><tbody><tr><td>折扣碼折抵</td><td>${m(F.code)}</td></tr><tr><td>積分折抵</td><td>${m(F.points)}</td></tr><tr><td>其他支出</td><td>${m(F.other)}</td></tr></tbody></table></section>`;
+  const ords = `<section><h2>訂單明細</h2><table class="sm"><thead><tr><th>日期</th><th>訂單編號</th><th>商品</th><th>付款</th><th>金額</th><th>手續費</th><th>物流費</th></tr></thead><tbody>
+    ${r.os.map(o => `<tr><td>${esc(o.createdAt.slice(0, 10))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.items.map(i => short(i.name) + "×" + i.qty).join("、"))}</td><td>${/^Credit/.test(o.payMethod) ? "信用卡" : /^ATM/.test(o.payMethod) ? "ATM" : "—"}</td><td>${m(o.total)}</td><td>${m(o.payFee || 0)}${o.payFee && o.feeSrc !== "ecpay" ? "*" : ""}</td><td>${m(o.logiCost || 0)}</td></tr>`).join("") || '<tr><td colspan="7">—</td></tr>'}</tbody></table></section>`;
   const base = location.href.replace(/[^/]*$/, ""), made = new Date().toLocaleString("sv-SE", {timeZone: "Asia/Taipei"}).slice(0, 16);
   const html = `<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>赤貧軍團營運報表_${r.from}_${r.to}</title><style>
     @page{size:A4;margin:16mm 14mm 18mm}:root{color-scheme:light}*{box-sizing:border-box}html,body{background:#fff}body{margin:0;padding-bottom:12mm;font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;color:#1A2130;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -914,7 +950,7 @@ function printReport(r) {
   </style><body>
   <header><img src="${base}badge.png"><div class="t"><b>赤貧軍團</b><small>營運報表</small></div><div class="p"><b>${r.from} ～ ${r.to}</b><br>${rpt.withUnpaid ? "含未付款" : "已付款訂單"}・製表 ${made}</div></header>
   <div class="kpi">${kpi.map(([k, v], i) => `<div class="${i >= 7 ? "hl" : ""}"><span>${k}</span><b>${v}</b></div>`).join("")}</div>
-  ${sup}${own}${exp}${ords}
+  ${sup}${own}${fees}${exp}${ords}
   <footer><span><b>欣群企業</b>　｜　<i>欣瀚資訊</i></span><span>赤貧軍團營運報表・${r.from} ～ ${r.to}</span></footer></body></html>`;
   const fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(fr); fr.contentDocument.open(); fr.contentDocument.write(html); fr.contentDocument.close();
@@ -955,6 +991,7 @@ async function drawReport() {
     <div class="note" style="margin:-4px 0 10px">淨利＝成交 − 成本 − 手續費 − 物流費 − 其他支出；淨利分成依成數拆、銷售抽成我方取售價 %</div>
     ${capitalCard()}
     <h2>貨主結算</h2>${supRows || '<div class="empty">此期間沒有代營運商品的訂單</div>'}
+    ${feeSection(r)}
     <h2>其他支出</h2>${expRows}`;
   main.querySelector(".filters").onclick = e => {
     const b = e.target.closest("[data-r]"); if (b) { rpt.range = b.dataset.r; drawReport(); }
