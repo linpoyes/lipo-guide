@@ -57,6 +57,9 @@ function videoInfo(src) {
   if (!src) return null;
   const yt = src.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
   if (yt) return {kind: "youtube", id: yt[1], thumb: `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`};
+  // Instagram Reels／貼文（2026-11-09：老闆的 IG @haolaba）：用 IG 官方嵌入播放；封面放 media/ig/<代碼>.jpg（後台可另傳封面）
+  const ig = src.match(/instagram\.com\/(?:[\w.]+\/)?(?:reel|reels|p)\/([\w-]+)/);
+  if (ig) return {kind: "instagram", id: ig[1], url: `https://www.instagram.com/reel/${ig[1]}/embed/`, link: `https://www.instagram.com/reel/${ig[1]}/`, thumb: `media/ig/${ig[1]}.jpg`};
   if (/^media\//.test(src)) return {kind: "file", url: src}; // 後台上傳的影片：存在網站 repo，同網域直接播
   if (src.startsWith("drive:")) {
     const id = src.slice(6);

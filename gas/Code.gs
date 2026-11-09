@@ -320,7 +320,18 @@ function migrateGoLive_() {
   setSetting_("ordersOpen", "TRUE");
   rows_("products").filter(r => bool_(r.preorder)).forEach(r => upsert_("products", "id", { id: String(r.id), preorder: "FALSE", updatedAt: new Date().toISOString() }));
 }
+// 2026-11-09：老闆 IG @haolaba 的 12 支開箱 Reels 加進賣場「老闆開箱」（封面 media/ig/<代碼>.jpg；排在原本短影音之後）
+function migrateIg_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_IG")) return; p.setProperty("MIG_IG", "1");
+  const R = [["DfCvJhwAVW-", "SCANIA 大拖車頭上線"], ["DdjUHulgwbU", "問南風 EVO 迷你甩尾車上線"], ["DdbouYwgKgb", "SCANIA 甩尾拖車頭上線"], ["DezCPOyAzoH", "1/43 暴力鴨改殼套件"],
+    ["Deo-rdggD6l", "性價比最高的拖車頭"], ["Deo7Lc0ApQN", "問南風垃圾桶上線"], ["DemgOZqgf_A", "打造蜘蛛人專屬遙控車"], ["DeZeR3ugLuh", "問南風甩尾車系列大補貨"],
+    ["DeZbTgTAnRN", "問南風系列再次大補貨"], ["DeWvyuDAkxW", "幫爸爸介紹遙控車"], ["DePERnfgRM_", "跌倒會自己起來的車"], ["DeMYtyAAwGr", "TOYOTA Yaris 1/43 甩尾車上線"]];
+  const have = rows_("videos").map(v => String(v.src));
+  R.forEach((r, i) => { const src = "https://www.instagram.com/reel/" + r[0] + "/"; if (have.indexOf(src) >= 0) return;
+    upsert_("videos", "id", { id: "ig" + r[0].replace(/[^\w]/g, ""), title: r[1], src: src, poster: "media/ig/" + r[0] + ".jpg", productId: "", active: "TRUE", sort: String(100 + i), updatedAt: new Date().toISOString() }); });
+}
 function catalog_() {
+  migrateIg_();
   migrateGoLive_();
   migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_(); migrateOfficialImgs_(); migrate1087_();
   try { expireOrders_(); } catch (e) {}
@@ -1681,12 +1692,20 @@ function packCaps_(dimsStr, kg) {
 
 // 排程工作（2026-11-09）：逾期未付款取消、入會禮到期提醒。原本只在有人逛賣場時順便跑，改由 GitHub Actions 每小時打一次，不需要 Apps Script 觸發器授權。
 // 兩個工作本身都冪等（restocked／r 記號），重複呼叫無害；15 分鐘內只會真的跑一次。
+// 2026-11-09 使用者已填寄件人、要求直接處理 → 物流正式啟用（關測試模式、付款後自動建單），只跑一次
+function migrateLogiLive_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_LOGILIVE")) return; p.setProperty("MIG_LOGILIVE", "1");
+  if (!logiCfg_().public.senderOk) { p.deleteProperty("MIG_LOGILIVE"); return; }
+  setSetting_("logiOn", "TRUE"); setSetting_("logiStage", "FALSE"); setSetting_("logiAuto", "TRUE");
+}
 function cron_() {
-  const c = CacheService.getScriptCache(); if (c.get("cronRan")) return { ok: true, skipped: true }; c.put("cronRan", "1", 900);
+  try { migrateLogiLive_(); } catch (e) {}
+  const c = CacheService.getScriptCache(); if (c.get("cronRan2")) return { ok: true, skipped: true }; c.put("cronRan2", "1", 900);
   const res = { ok: true, at: ts_(new Date()) };
   try { expireOrders_(true); res.expire = "ok"; } catch (e) { res.expire = String(e.message || e).slice(0, 100); }
   try { CacheService.getScriptCache().remove("wrem"); remindWelcome_(); res.remind = "ok"; } catch (e) { res.remind = String(e.message || e).slice(0, 100); }
   try { catalogCached_(); res.warm = "ok"; } catch (e) {} // 順便預熱型錄快取
+  try { const l = logiCfg_().public; res.logi = (l.enabled ? "on" : "off") + "/" + (l.stage ? "stage" : "live") + "/" + (l.auto ? "auto" : "manual") + "/" + (l.senderOk ? "senderOk" : "senderMissing"); } catch (e) {} // 只回狀態，不含寄件人資料
   try { res.fees = syncFees_(); } catch (e) { res.fees = String(e.message || e).slice(0, 100); }
   return res;
 }
@@ -1695,13 +1714,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson3");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson4");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson3", j, 3600);
+  if (j.length < 95000) c.put("catalogJson4", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson3"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson4"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────

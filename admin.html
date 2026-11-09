@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-zbg/Eze4epx6e5rph3GQSrIL95khkqbGAtkJFRtAMWI='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' 'sha256-HsVOFZAomdrfym+uiI9Jyn1p4aPjnGSd3eY3G2aUMG4='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611092216">
+<meta name="build" content="202611092235">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -262,7 +262,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611092216"></script>
+<script src="shop-core.js?v=202611092235"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -713,7 +713,7 @@ function drawVideos() {
   $("main").innerHTML = `<h2>短影音 ${vs.length} 支 <button class="btn" id="newV">新增影片</button></h2>
     <div class="list">${vs.length ? vs.map(v => { const info = videoInfo(v.src), th = v.poster ? imgUrl(v.poster, 150) : info.thumb;
       return `<button class="row" data-v="${esc(v.id)}">${th ? `<img src="${esc(th)}" alt="">` : '<div class="ph"></div>'}
-      <div class="info"><b>${esc(v.title || "（未命名）")}</b><small>${info.kind === "youtube" ? "YouTube" : /^media\//.test(v.src) || info.kind === "drive" ? "上傳檔案" : "影片連結"}${v.productId ? "・連結商品" : ""}</small></div>
+      <div class="info"><b>${esc(v.title || "（未命名）")}</b><small>${info.kind === "instagram" ? "Instagram" : info.kind === "youtube" ? "YouTube" : /^media\//.test(v.src) || info.kind === "drive" ? "上傳檔案" : "影片連結"}${v.productId ? "・連結商品" : ""}</small></div>
       <div class="right"><span class="pill ${v.active ? "on" : "off"}">${v.active ? "上架" : "下架"}</span></div></button>`; }).join("") : '<div class="empty">尚無影片</div>'}</div>`;
   $("newV").onclick = () => editVideo(null);
   $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-v]"); if (b) editVideo(b.dataset.v); };
@@ -728,8 +728,8 @@ function editVideo(id) {
       <div class="f"><label>影片</label>
         <div class="btns" style="margin:0"><button class="btn ink" data-upv>上傳影片檔</button></div>
         <span class="note">直式 MP4 為佳（手機錄影即可），單支 30MB 以內；賣場會自動靜音循環播放</span>
-        <input id="vs" value="${esc(/^(drive:|media\/)/.test(v.src) ? "" : v.src)}" placeholder="${/^(drive:|media\/)/.test(v.src) ? "已上傳影片檔" : "https://youtube.com/shorts/…"}">
-        ${info ? `<span class="note" style="color:var(--ok)">${/^media\//.test(v.src) || info.kind === "drive" ? "已上傳影片檔" : info.kind === "youtube" ? "YouTube 影片" : "影片連結"}</span>` : ""}</div>
+        <input id="vs" value="${esc(/^(drive:|media\/)/.test(v.src) ? "" : v.src)}" placeholder="${/^(drive:|media\/)/.test(v.src) ? "已上傳影片檔" : "貼上 Instagram／YouTube 影片網址"}">
+        ${info ? `<span class="note" style="color:var(--ok)">${/^media\//.test(v.src) || info.kind === "drive" ? "已上傳影片檔" : info.kind === "instagram" ? "Instagram 影片（賣場顯示在「老闆開箱」）" : info.kind === "youtube" ? "YouTube 影片" : "影片連結"}</span>` : ""}</div>
       <div class="f"><label>封面（選填）</label><div class="thumbs">
         ${v.poster ? `<div class="thumb"><img src="${esc(imgUrl(v.poster, 200))}" alt=""><button data-rmp aria-label="移除">×</button></div>` : ""}
         <button class="addimg" data-upp>＋ 封面</button></div><span class="note">未設定時自動使用影片畫面</span></div>
