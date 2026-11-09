@@ -12,7 +12,7 @@
  */
 
 const SHEETS = {
-  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer"],
+  products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer", "dims", "weight"],
   videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note", "member"],
   orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments", "restocked"],
@@ -41,7 +41,7 @@ const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 2000, lin
   // 會員積分（2026-11-08）：已付款訂單每消費 pointRate 元回饋 1 點；1 點折抵 1 元；單筆最多折抵商品金額的 pointMaxPct %
   pointsOn: "TRUE", pointRate: "100", pointMaxPct: "50",
   // 綠界物流（2026-11-08）：寄件人資料、預設材積（0001=60cm…0004=150cm）、付款後自動建寄件單、測試模式
-  logiOn: "FALSE", logiStage: "TRUE", logiAuto: "TRUE", senderName: "", senderPhone: "", senderZip: "", senderAddr: "", logiSize: "0001",
+  logiOn: "FALSE", logiStage: "TRUE", logiAuto: "TRUE", senderName: "", senderPhone: "", senderZip: "", senderAddr: "", logiSize: "0001", homeBox: "40,30,20",
   // 物流成本（未稅，綠界一般會員 2026-11 公告；記帳時 ×1.05）：交貨便每件、黑貓 60/90/120/150cm
   logiFeeCvs: "65", logiFeeHome: "130,170,210,250",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
@@ -194,7 +194,7 @@ function setSetting_(key, value) { upsert_("settings", "key", { key: key, value:
 const bool_ = v => v === true || String(v).toUpperCase() === "TRUE" || v === "1";
 const json_ = (v, d) => { try { return v ? JSON.parse(v) : d; } catch (e) { return d; } };
 function product_(r) {
-  return {
+  const o = {
     id: String(r.id), name: String(r.name), category: String(r.category || ""),
     price: Number(r.price) || 0, listPrice: Number(r.listPrice) || 0, desc: String(r.desc || ""),
     images: json_(r.images, []), tiers: json_(r.tiers, []),
@@ -204,7 +204,12 @@ function product_(r) {
     supplier: String(r.supplier || "").trim(), commission: Number(r.commission) || 0, preorder: bool_(r.preorder),
     // 包裝：一個 7-11 交貨便／一箱黑貓宅急便各可裝幾件（0＝不限，整單一個包裹）
     cvsPer: Number(r.cvsPer) || 0, homePer: Number(r.homePer) || 0,
+    dims: String(r.dims || ""), weight: Number(r.weight) || 0,
   };
+  // 有填包裝尺寸＝系統自己算每個交貨便／每箱宅急便裝幾件，並決定能不能走 7-11（2026-11-09 使用者）
+  const c = packCaps_(o.dims, o.weight);
+  if (c) { o.cvsPer = c.cvs; o.homePer = c.home; o.cvsOk = c.cvs > 0; o.packAuto = true; }
+  return o;
 }
 function video_(r) {
   return { id: String(r.id), title: String(r.title || ""), src: String(r.src || ""), poster: String(r.poster || ""),
@@ -580,7 +585,7 @@ const ADMIN = {
       active: p.active ? "TRUE" : "FALSE", hot: p.hot ? "TRUE" : "FALSE", sort: String(Number(p.sort) || 0),
       updatedAt: new Date().toISOString(), cvsOk: p.cvsOk ? "TRUE" : "FALSE", brand: String(p.brand || "").normalize("NFKC").trim(),
       supplier: String(p.supplier || "").normalize("NFKC").trim(), commission: String(Math.max(0, Math.min(100, Number(p.commission) || 0))),
-      preorder: p.preorder ? "TRUE" : "FALSE", cvsPer: String(Math.max(0, Math.floor(Number(p.cvsPer) || 0))), homePer: String(Math.max(0, Math.floor(Number(p.homePer) || 0))),
+      preorder: p.preorder ? "TRUE" : "FALSE", dims: dims_(p.dims).join(","), weight: String(Math.max(0, Number(p.weight) || 0)), cvsPer: String(Math.max(0, Math.floor(Number(p.cvsPer) || 0))), homePer: String(Math.max(0, Math.floor(Number(p.homePer) || 0))),
     });
     return { id: id };
   },
@@ -665,11 +670,11 @@ const ADMIN = {
   admin_lineTest: () => { const n = linePush_("【赤貧軍團】LINE 通知測試成功"); if (!n) throw new Error("沒有已綁定的 LINE 或權杖無效"); return { sent: n }; },
   admin_saveSettings: r => {
     const s = r.settings || {};
-    const integ = ["logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome"];
+    const integ = ["logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome", "homeBox"];
     const keys = Object.keys(s);
     if (keys.some(k => integ.indexOf(k) >= 0) && !has_(r.me, "integrations")) throw new Error("此帳號沒有權限");
     if (keys.some(k => integ.indexOf(k) < 0) && !has_(r.me, "settings")) throw new Error("此帳號沒有權限");
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "welcomeDays", "welcomeRemind", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "welcomeDays", "welcomeRemind", "hotWords", "pointsOn", "pointRate", "pointMaxPct", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome", "homeBox"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
@@ -1249,7 +1254,7 @@ function logiCfg_(forceLive, kind, forceStage) {
   const sender = { name: String(s.senderName || "").trim(), phone: String(s.senderPhone || "").replace(/\D/g, ""), zip: String(s.senderZip || "").trim(), addr: String(s.senderAddr || "").trim() };
   const senderOk = !checkName_(sender.name) && /^09\d{8}$/.test(sender.phone) && /^\d{3,6}$/.test(sender.zip) && sender.addr.length >= 6;
   const on = s.logiOn === "TRUE" && !!(mid && key && iv) && senderOk;
-  return { on: on, auto: on && s.logiAuto !== "FALSE", stage: stage, mid: mid, key: key, iv: iv, sender: sender, size: /^000[1-4]$/.test(s.logiSize) ? s.logiSize : "0001",
+  return { on: on, auto: on && s.logiAuto !== "FALSE", stage: stage, mid: mid, key: key, iv: iv, sender: sender, size: homeSpec_() || (/^000[1-4]$/.test(s.logiSize) ? s.logiSize : "0001"),
     host: stage ? "https://logistics-stage.ecpay.com.tw" : "https://logistics.ecpay.com.tw",
     public: { enabled: s.logiOn === "TRUE", stage: stage, auto: s.logiAuto !== "FALSE", senderOk: senderOk, keySet: !!p.getProperty("ECPAY_KEY") } };
 }
@@ -1427,7 +1432,7 @@ function expireOrders_(force) {
 function logiFee_(cvs, spec, island) {
   const s = getSettings_(), tax = v => Math.round((Number(v) || 0) * 1.05);
   if (cvs) return tax(s.logiFeeCvs || 65);
-  const list = String(s.logiFeeHome || "130,170,210,250").split(",").map(Number), i = Math.max(0, ["0001", "0002", "0003", "0004"].indexOf(spec || s.logiSize || "0001"));
+  const list = String(s.logiFeeHome || "130,170,210,250").split(",").map(Number), i = Math.max(0, ["0001", "0002", "0003", "0004"].indexOf(spec || homeSpec_() || s.logiSize || "0001"));
   return tax((list[i] || list[0] || 130) + (island ? 90 : 0));
 }
 function logiCostOf_(o) {
@@ -1573,4 +1578,25 @@ function csPreview_() {
     res.sent = true;
   }
   return res;
+}
+
+
+/* ───────────── 裝箱計算（2026-11-09）─────────────
+   商品填「包裝後」長寬高（公分）＋重量（公斤）→ 依各種擺放方向算一個箱子能裝幾件（取最多的方向），再受重量上限限制。
+   7-11 交貨便（綠界 C2C）：最長邊 45、三邊合計 105、10 公斤內 → 以 45×30×30 計。
+   黑貓：用設定的紙箱內尺寸（homeBox，預設 40×30×20＝90 材），每箱 20 公斤內；材積級距由紙箱三邊合計決定。
+   前台 admin.html 的 packCaps 必須跟這裡一致。 */
+const CVS_BOX = [45, 30, 30], CVS_KG = 10, HOME_KG = 20;
+function dims_(v) { const a = String(v || "").split(/[,x×*\s]+/).map(Number).filter(n => n > 0); return a.length === 3 ? a : []; }
+function fit_(box, d) {
+  const P = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+  return Math.max.apply(null, P.map(p => Math.floor(box[0] / d[p[0]]) * Math.floor(box[1] / d[p[1]]) * Math.floor(box[2] / d[p[2]])));
+}
+let HOMEBOX_ = null; // 同一次執行只讀一次設定（product_ 每列都會用到）
+function homeBox_() { if (!HOMEBOX_) { const b = dims_(getSettings_().homeBox); HOMEBOX_ = b.length ? b : [40, 30, 20]; } return HOMEBOX_; }
+function homeSpec_() { const b = dims_(getSettings_().homeBox); if (!b.length) return ""; const t = b[0] + b[1] + b[2]; return t <= 60 ? "0001" : t <= 90 ? "0002" : t <= 120 ? "0003" : "0004"; }
+function packCaps_(dimsStr, kg) {
+  const d = dims_(dimsStr); if (!d.length) return null;
+  const byKg = (lim) => kg > 0 ? Math.floor(lim / kg) : Infinity;
+  return { cvs: Math.min(fit_(CVS_BOX, d), byKg(CVS_KG)), home: Math.max(1, Math.min(fit_(homeBox_(), d), byKg(HOME_KG))) }; // 放不進紙箱＝自己一箱
 }
