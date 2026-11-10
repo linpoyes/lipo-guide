@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-jpyE+gNn4p54xQwj0kVdJTvoBrOCdCWlsBtsVGgFoYc='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-4PlVUF9yvBMJyCJRQG0SdRDPgfeI3dMWsClOkEoMnpQ='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611101300">
+<meta name="build" content="202611101301">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 // 後台 LINE 登入的回呼（state 以 a_ 開頭）也會回到賣場：立刻轉給後台處理
@@ -523,6 +523,8 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .idwarn{display:block;margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(215,38,30,.08);border:1px solid rgba(215,38,30,.35);font-size:13px;line-height:1.55;color:var(--text)}
 .idwarn b{display:block;color:var(--red);font-size:14px}
 .idok{display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:15px;font-weight:800}.idok input{width:20px;height:20px;accent-color:var(--red)}
+.pvids{display:flex;gap:8px;overflow-x:auto;margin:10px 0}.pvid{position:relative;flex:none;width:90px;aspect-ratio:9/16;border:0;padding:0;border-radius:10px;overflow:hidden;background:#000}
+.pvid img{width:100%;height:100%;object-fit:cover}.pvid span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;text-shadow:0 2px 8px rgba(0,0,0,.6)}
 </style>
 </head>
 <body>
@@ -601,9 +603,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611101300"></script>
-<script src="shop-core.js?v=202611101300"></script>
-<script src="tw-zip.js?v=202611101300"></script>
+<script src="track.js?v=202611101301"></script>
+<script src="shop-core.js?v=202611101301"></script>
+<script src="tw-zip.js?v=202611101301"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -798,7 +800,7 @@ $("grid").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.m
 function renderReels() {
   if (!catalog) return; // 還沒拿到資料：保留骨架
   // 2026-11-09 使用者：有老闆開箱就不需要焦點推薦 → 全部影片都放「老闆開箱」，焦點推薦牆停用
-  const all = catalog.videos || [], vs = [], igs = all;
+  const all = catalog.videos || [], vs = [], igs = all.filter(v => v.kind !== "product"); // 商品影片只在商品頁
   $("igSec").hidden = !igs.length;
   $("igRow").innerHTML = igs.map(v => { const info = videoInfo(v.src), poster = v.poster ? imgUrl(v.poster, 400) : info.thumb;
     return `<button type="button" class="igc" data-id="${esc(v.id)}" aria-label="${esc(v.title)}"><img src="${esc(poster)}" alt="" loading="lazy"></button>`; }).join(""); // 封面本身已有播放圖示
@@ -838,8 +840,10 @@ $("reels").onclick = e => {
 };
 // 影片切換（2026-11-09 使用者：要能下一部，往右滑或按右邊）：同一區（老闆開箱／焦點推薦）的影片依序循環
 let vList = [], vIdx = 0;
+const v0 = id => catalog.videos.find(x => x.id === id) || {};
 function playVideo(id, group) {
-  if (group) vList = catalog.videos.map(x => x.id);
+  if (group === "product") vList = catalog.videos.filter(x => x.productId === v0(id).productId && x.kind === "product").map(x => x.id);
+  else if (group) vList = catalog.videos.filter(x => x.kind !== "product").map(x => x.id);
   vIdx = Math.max(0, vList.indexOf(id));
   const v = catalog.videos.find(x => x.id === id), info = videoInfo(v.src);
   const player = info.kind === "instagram" ? `<iframe class="igplayer" src="${esc(info.url)}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen scrolling="no"></iframe><a class="iglink" href="${esc(info.link)}" target="_blank" rel="noopener">在 Instagram 開啟</a>`
@@ -924,6 +928,7 @@ function openProduct(id) {
       ${p.tiers.length ? `<table class="tiers"><tr><th>多件優惠</th><th>每件</th></tr>
         <tr class="${u === p.price ? "on" : ""}"><td>1 件</td><td>${money(p.price)}</td></tr>
         ${p.tiers.map(t => `<tr class="${u === t.price && pQty >= t.qty ? "on" : ""}"><td>${t.qty} 件以上</td><td>${money(t.price)}　<span class="tierhint">${zhe(t.price, p.price)}</span></td></tr>`).join("")}</table>` : ""}
+      ${(pv => pv.length ? `<div class="pvids">${pv.map(v => `<button type="button" class="pvid" data-pvid="${esc(v.id)}"><img src="${esc(v.poster ? imgUrl(v.poster, 300) : videoInfo(v.src).thumb || "")}" alt=""><span>▶</span></button>`).join("")}</div>` : "")((catalog.videos || []).filter(v => v.kind === "product" && v.productId === p.id))}
       ${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ""}
       <div class="buyrow">
         <div class="stepper"><button data-q="-1" aria-label="減少">−</button><span>${pQty}</span><button data-q="1" aria-label="增加">＋</button></div>
@@ -951,6 +956,7 @@ function openProduct(id) {
     const q = e.target.closest("[data-q]");
     if (q) { const max = p.stock > 0 ? p.stock : 99; pQty = Math.min(max, Math.max(1, pQty + Number(q.dataset.q))); draw(); }
     if (e.target.closest("[data-add]")) { addToCart(p.id, pQty); close("pSheet"); openCart(); }
+    const pvb = e.target.closest("[data-pvid]"); if (pvb) { playVideo(pvb.dataset.pvid, "product"); return; }
     const fv = e.target.closest("[data-fav]"); if (fv) { toggleFav(p.id); fv.setAttribute("aria-pressed", isFav(p.id)); toast(isFav(p.id) ? "已加入收藏" : "已取消收藏"); }
   };
   openSheet("pSheet");

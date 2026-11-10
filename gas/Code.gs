@@ -13,7 +13,7 @@
 
 const SHEETS = {
   products: ["id", "name", "category", "price", "listPrice", "desc", "images", "tiers", "stock", "active", "hot", "sort", "updatedAt", "cvsOk", "brand", "supplier", "commission", "preorder", "cvsPer", "homePer", "dims", "weight", "cost", "splitMode", "costBy"],
-  videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt"],
+  videos:   ["id", "title", "src", "poster", "productId", "active", "sort", "updatedAt", "kind"],
   codes:    ["code", "type", "value", "minSpend", "startAt", "endAt", "limit", "used", "active", "note", "member"],
   orders:   ["orderNo", "createdAt", "name", "phone", "line", "shipMethod", "address", "note", "items", "subtotal", "tierSaving", "code", "codeDiscount", "shipping", "total", "status", "payStatus", "clientId", "packages", "lineUid", "lineName", "payMethod", "ecpayNo", "payFee", "paidAt", "vaBank", "vaAccount", "vaExpire", "pointsUsed", "shipments", "restocked", "feeSrc"],
   settings: ["key", "value"],
@@ -231,7 +231,8 @@ function product_(r) {
 }
 function video_(r) {
   return { id: String(r.id), title: String(r.title || ""), src: String(r.src || ""), poster: String(r.poster || ""),
-           productId: String(r.productId || ""), active: bool_(r.active), sort: Number(r.sort) || 0 };
+           productId: String(r.productId || ""), active: bool_(r.active), sort: Number(r.sort) || 0,
+           kind: String(r.kind || "boss") === "product" ? "product" : "boss" }; // boss＝老闆開箱（首頁橫滑）／product＝商品影片（只在商品頁）
 }
 function code_(r) {
   return { code: String(r.code), type: String(r.type || "percent"), value: Number(r.value) || 0,
@@ -725,7 +726,7 @@ const ADMIN = {
     if (!v.src) throw new Error("請上傳影片或貼上連結");
     const id = v.id || "v" + Date.now().toString(36);
     upsert_("videos", "id", { id: id, title: v.title || "", src: v.src, poster: v.poster || "", productId: v.productId || "",
-      active: v.active ? "TRUE" : "FALSE", sort: String(Number(v.sort) || 0), updatedAt: new Date().toISOString() });
+      active: v.active ? "TRUE" : "FALSE", sort: String(Number(v.sort) || 0), updatedAt: new Date().toISOString(), kind: v.kind === "product" ? "product" : "boss" });
     return { id: id };
   },
   admin_deleteVideo: r => { remove_("videos", "id", r.id); },
@@ -1815,13 +1816,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson8");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson9");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson8", j, 3600);
+  if (j.length < 95000) c.put("catalogJson9", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson8"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson9"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────
