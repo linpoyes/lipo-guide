@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-VGCxXBl3hFn1OEJYw08daFbxcYbMbQtm9QxxX2jB3QQ='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-1xyp9c5f7yBOk8Ph5LWenGzh6Wf9oVmWHxbHPGRS4bk='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611101653">
+<meta name="build" content="202611102123">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -273,7 +273,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611101653"></script>
+<script src="shop-core.js?v=202611102123"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -1351,6 +1351,7 @@ async function openFromHash() {
   history.replaceState(null, "", location.pathname);
   tab = "orders"; drawApp(); if (!orders) await loadOrders();
   if (orders.some(o => o.orderNo === m[1])) openOrder(m[1]);
+  else toast("訂單 " + m[1] + " 不存在或已刪除"); // 通知裡的測試單刪除後點進來，不要只停在訂單列表
 }
 /* ── 後台 LINE 登入／綁定（2026-11-09）──
    LINE Login 的 Callback 只登記賣場網址，state 用 a_ 開頭，賣場頁會把 ?code&state 轉回這裡；state 自己比對防偽造。 */
