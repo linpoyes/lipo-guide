@@ -348,7 +348,10 @@ function migrateNoPorsche_() {
   const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_NOPORSCHE2")) return; p.setProperty("MIG_NOPORSCHE2", "1");
   rows_("products").filter(r => /GT3RS|1087X/.test(String(r.name))).forEach(r => upsert_("products", "id", { id: String(r.id), active: "FALSE", updatedAt: new Date().toISOString() }));
 }
+// 2026-11-10 使用者：還沒跟老闆談好，先不賣 → 關閉下單（商品照常展示、顯示即將開賣）；要開賣到後台「設定 → 賣場 → 開放下單」打勾
+function migrateCloseOrders_() { const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_CLOSE1110")) return; p.setProperty("MIG_CLOSE1110", "1"); setSetting_("ordersOpen", "FALSE"); }
 function catalog_() {
+  migrateCloseOrders_();
   migrateNoPorsche_();
   migrateNoRequireLine_();
   migrateIg_(); migrateIgMp4_();
@@ -939,23 +942,35 @@ function ecpayReturn_(p) {
   const text = t => ContentService.createTextOutput(t);
   if (!verified_(p)) return text("0|CheckMacValue Error");
   const o = orderByTrade_(p.MerchantTradeNo); if (!o) return text("1|OK");
-  if (String(p.RtnCode) === "1") {
-    const amt = Number(p.TradeAmt) || Number(o.total);
-    setOrderField_(String(o.orderNo), { payStatus: "paid", payMethod: String(p.PaymentType || o.payMethod), payFee: String(payFee_(String(p.PaymentType || o.payMethod), amt)),
-      paidAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm") });
-    if (String(o.status) === "已取消" && String(o.restocked) === "TRUE") { // 逾期取消後才付款成功：恢復訂單、重新扣庫存
-      reclaimOrder_(o); setOrderField_(String(o.orderNo), { status: "新訂單" });
-    }
-    try { const real = ecpayFee_(String(p.MerchantTradeNo)); if (real !== null) setOrderField_(String(o.orderNo), { payFee: String(real), feeSrc: "ecpay" }); } catch (e) {} // 換成綠界實際扣的手續費
-    if (String(o.payStatus) !== "paid") {
-      if (logiCfg_().auto) try { logiCreate_(String(o.orderNo)); } catch (err) {} // 付款成功自動建綠界寄件單，通知裡就有交貨便代號／託運單號
-      lineNotifyOrder_(String(o.orderNo), "付款完成・待出貨");
-      sysLog_("綠界", "system", "付款完成", o.orderNo + "・$" + (Number(p.TradeAmt) || o.total) + "・" + (/^Credit/.test(String(p.PaymentType)) ? "信用卡" : "ATM"), String(o.orderNo));
-    }
-  } else if (String(o.payStatus) !== "paid" && !/^ATM/.test(String(p.PaymentType))) {
+  if (String(p.RtnCode) === "1") markPaid_(o, p);
+  else if (String(o.payStatus) !== "paid" && !/^ATM/.test(String(p.PaymentType))) {
     setOrderField_(String(o.orderNo), { payStatus: "failed" });
   }
   return text("1|OK");
+}
+// 標記付款完成（綠界通知 ecpayReturn_ 與排程對帳 syncPaid_ 共用；p＝綠界欄位 MerchantTradeNo／TradeAmt／PaymentType）
+function markPaid_(o, p) {
+  // 通知、客人回來查詢、排程對帳可能同時到：上鎖後重讀，已付款就不再建寄件單與通知
+  const lock = LockService.getScriptLock(); try { lock.waitLock(20000); } catch (e) { return; }
+  try {
+    o = rows_("orders").find(x => String(x.orderNo) === String(o.orderNo)) || o;
+    if (String(o.payStatus) === "paid") return;
+    markPaidLocked_(o, p);
+  } finally { lock.releaseLock(); }
+}
+function markPaidLocked_(o, p) {
+  const amt = Number(p.TradeAmt) || Number(o.total);
+  setOrderField_(String(o.orderNo), { payStatus: "paid", payMethod: String(p.PaymentType || o.payMethod), payFee: String(payFee_(String(p.PaymentType || o.payMethod), amt)),
+    paidAt: Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm") });
+  if (String(o.status) === "已取消" && String(o.restocked) === "TRUE") { // 逾期取消後才付款成功：恢復訂單、重新扣庫存
+    reclaimOrder_(o); setOrderField_(String(o.orderNo), { status: "新訂單" });
+  }
+  try { const real = ecpayFee_(String(p.MerchantTradeNo)); if (real !== null) setOrderField_(String(o.orderNo), { payFee: String(real), feeSrc: "ecpay" }); } catch (e) {} // 換成綠界實際扣的手續費
+  if (String(o.payStatus) !== "paid") {
+    if (logiCfg_().auto) try { logiCreate_(String(o.orderNo)); } catch (err) {} // 付款成功自動建綠界寄件單，通知裡就有交貨便代號／託運單號
+    lineNotifyOrder_(String(o.orderNo), "付款完成・待出貨");
+    sysLog_("綠界", "system", "付款完成", o.orderNo + "・$" + (Number(p.TradeAmt) || o.total) + "・" + (/^Credit/.test(String(p.PaymentType)) ? "信用卡" : "ATM"), String(o.orderNo));
+  }
 }
 function ecpayInfo_(p) {
   const text = t => ContentService.createTextOutput(t);
@@ -974,8 +989,11 @@ function ecpayBack_(p) {
 }
 // 賣場查自己訂單的付款狀態：要訂單編號＋下單時的 clientId（存在客人瀏覽器），別人猜不到
 function orderStatus_(q) {
-  const o = rows_("orders").find(x => String(x.orderNo) === String(q.no || ""));
+  let o = rows_("orders").find(x => String(x.orderNo) === String(q.no || ""));
   if (!o || !q.cid || String(o.clientId) !== String(q.cid)) return { ok: false, error: "查無訂單" };
+  if (String(o.payStatus) === "awaiting" && o.ecpayNo && /^Credit/.test(String(o.payMethod))) { // 客人付完回來時通知可能還沒到：直接問綠界
+    try { const t = ecpayQuery_(String(o.ecpayNo)); if (t && String(t.TradeStatus) === "1") { markPaid_(o, t); o = rows_("orders").find(x => String(x.orderNo) === String(q.no)); } } catch (e) {}
+  }
   return { ok: true, orderNo: String(o.orderNo), total: Number(o.total), payStatus: String(o.payStatus), payMethod: String(o.payMethod || ""),
     vaBank: String(o.vaBank || ""), vaAccount: String(o.vaAccount || ""), vaExpire: String(o.vaExpire || "") };
 }
@@ -1808,6 +1826,7 @@ function cron_() {
   try { if (!c.get("ptrem")) { c.put("ptrem", "1", 21600); remindPoints_(); } res.ptrem = "ok"; } catch (e) { res.ptrem = String(e.message || e).slice(0, 80); }
   try { if (!c.get("clean")) { c.put("clean", "1", 21600); res.props = cleanProps_(); } } catch (e) {}
   try { const l = logiCfg_().public; res.logi = (l.enabled ? "on" : "off") + "/" + (l.stage ? "stage" : "live") + "/" + (l.auto ? "auto" : "manual") + "/" + (l.senderOk ? "senderOk" : "senderMissing"); } catch (e) {} // 只回狀態，不含寄件人資料
+  try { res.paid = syncPaid_(); } catch (e) { res.paid = String(e.message || e).slice(0, 100); }
   try { res.fees = syncFees_(); } catch (e) { res.fees = String(e.message || e).slice(0, 100); }
   return res;
 }
@@ -1816,13 +1835,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson9");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson10");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson9", j, 3600);
+  if (j.length < 95000) c.put("catalogJson10", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson9"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson10"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────
@@ -1909,14 +1928,30 @@ function audit_(me, a, r, before, err, out) {
    原本用公式估（費率×1.05＋固定處理費 1 元），但綠界實際每筆處理費是 1～2 元，報表會跟綠界對不上。
    付款成功當下與每次排程，用 QueryTradeInfo 查 HandlingCharge（綠界實際扣的手續費，含稅）寫回 payFee，feeSrc＝ecpay；
    查不到的維持估算（feeSrc 空），報表會標「估算」。 */
-function ecpayFee_(tradeNo) {
+function ecpayQuery_(tradeNo) {
   const cfg = ecpayCfg_(); if (!cfg.mid || !tradeNo) return null;
   const p = { MerchantID: cfg.mid, MerchantTradeNo: tradeNo, TimeStamp: String(Math.floor(Date.now() / 1000)) };
   p.CheckMacValue = checkMac_(p, cfg);
   const res = UrlFetchApp.fetch(cfg.host + "/Cashier/QueryTradeInfo/V5", { method: "post", payload: p, muteHttpExceptions: true }).getContentText();
   const q = {}; res.split("&").forEach(kv => { const i = kv.indexOf("="); if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, " ")); });
-  if (String(q.TradeStatus) !== "1" || q.HandlingCharge === undefined || q.HandlingCharge === "") return null;
+  return q;
+}
+function ecpayFee_(tradeNo) {
+  const q = ecpayQuery_(tradeNo);
+  if (!q || String(q.TradeStatus) !== "1" || q.HandlingCharge === undefined || q.HandlingCharge === "") return null;
   return Math.round(Number(q.HandlingCharge) || 0);
+}
+// 對帳：綠界付款通知若沒送達（網路、Apps Script 冷啟動），排程向綠界查詢待付款訂單，已付款就補標記（2026-11-10 測試站實測過通知未送達）
+function syncPaid_() {
+  let n = 0, done = 0; const since = Date.now() - 5 * 86400000;
+  rows_("orders").forEach(o => {
+    if (n >= 10 || !o.ecpayNo || /^(paid|failed)$/.test(String(o.payStatus)) || String(o.status) === "已取消" && String(o.restocked) !== "TRUE") return;
+    if (new Date(String(o.createdAt).replace(" ", "T") + ":00+08:00").getTime() < since) return;
+    n++;
+    const q = ecpayQuery_(String(o.ecpayNo));
+    if (q && String(q.TradeStatus) === "1") { markPaid_(o, q); done++; }
+  });
+  return done + "/" + n;
 }
 function syncFees_() {
   let n = 0, done = 0;
@@ -2006,7 +2041,16 @@ function liffLogin_(req) {
 // 取消通知附註：入會禮折扣碼、積分已退回（取消的訂單不算使用，系統自動恢復可用）
 function backNote_(o) {
   const n = [];
-  if (o.code && isWelcome_(o.code)) { const g = welcomeGrant_(String(o.lineUid), false); n.push(g.expired ? "入會禮已超過使用期限，無法退回" : "入會禮 " + o.code + " 已退回，可於 " + g.date + " 前再次使用"); }
+  if (o.code && isWelcome_(o.code)) { extendWelcome_(String(o.lineUid)); const g = welcomeGrant_(String(o.lineUid), false); n.push("入會禮 " + o.code + " 已退回，可於 " + g.date + " 前再次使用"); }
   if (Number(o.pointsUsed) > 0) n.push("折抵的 " + o.pointsUsed + " 點已退回");
   return n.length ? "\n" + n.join("\n") : "";
+}
+
+// 入會禮因訂單取消退回時，效期至少再給 7 天（2026-11-10：避免退回時已到期或只剩一兩天）
+function extendWelcome_(uid) {
+  if (!uid) return;
+  const p = PropertiesService.getScriptProperties(), k = "WELCOMED_" + hash_(uid), v = json_(p.getProperty(k), null);
+  if (!v || !v.t) return;
+  const minEnd = Date.now() + 7 * 86400000, end = v.t + welcomeDays_() * 86400000;
+  if (end < minEnd) { v.t = minEnd - welcomeDays_() * 86400000; v.r = 0; p.setProperty(k, JSON.stringify(v)); }
 }
