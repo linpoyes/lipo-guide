@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-jQHx1z2qaweb+j3MRfyB5o+HXCn67q9t44TdMOrM1jI='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-xmWYZxSk7t02/eAmQp8L3GIufhk+heMRjdOSN4ED0Ao='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611100005">
+<meta name="build" content="202611101158">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 // 後台 LINE 登入的回呼（state 以 a_ 開頭）也會回到賣場：立刻轉給後台處理
@@ -597,9 +597,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611100005"></script>
-<script src="shop-core.js?v=202611100005"></script>
-<script src="tw-zip.js?v=202611100005"></script>
+<script src="track.js?v=202611101158"></script>
+<script src="shop-core.js?v=202611101158"></script>
+<script src="tw-zip.js?v=202611101158"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -848,7 +848,7 @@ function playVideo(id, group) {
     <div class="vtop">${vList.length > 1 ? `<span>${vIdx + 1} / ${vList.length}</span>` : ""}</div>
     <div class="vstage">${player}${vList.length > 1 ? `<button class="vnav prev" data-vnav="-1" aria-label="上一部">‹</button><button class="vnav next" data-vnav="1" aria-label="下一部">›</button>` : ""}</div>
     ${p ? `<div class="buyrow"><button class="btn" data-open="${esc(p.id)}">查看商品　${money(p.price)}</button></div>` : ""}`;
-  open("vSheet"); cpTrack("video", {pid: v.id});
+  openSheet("vSheet"); cpTrack("video", {pid: v.id});
   // 點開後直接有聲音播放（使用者點擊算互動，瀏覽器允許）
   const vp = $("vPanel").querySelector("video");
   // 直連失敗（舊的 Drive 影片）退回 Drive 播放器；用事件不用 inline onerror（CSP 不允許 inline 事件）
@@ -888,7 +888,8 @@ function lockBody(on) {
   if (on && !b.classList.contains("locked")) { lockY = scrollY; b.style.top = -lockY + "px"; b.classList.add("locked"); }
   if (!on && b.classList.contains("locked")) { b.classList.remove("locked"); b.style.top = ""; scrollTo(0, lockY); }
 }
-function open(id) { $(id).classList.add("open"); lockBody(true); }
+// 不可命名為 open：會蓋掉 window.open（2026-11-10 選 7-11 門市因此打不開）
+function openSheet(id) { $(id).classList.add("open"); lockBody(true); }
 function close(id) {
   $(id).classList.remove("open");
   if (id === "vSheet") $("vPanel").innerHTML = ""; // 停止播放
@@ -948,7 +949,7 @@ function openProduct(id) {
     if (e.target.closest("[data-add]")) { addToCart(p.id, pQty); close("pSheet"); openCart(); }
     const fv = e.target.closest("[data-fav]"); if (fv) { toggleFav(p.id); fv.setAttribute("aria-pressed", isFav(p.id)); toast(isFav(p.id) ? "已加入收藏" : "已取消收藏"); }
   };
-  open("pSheet");
+  openSheet("pSheet");
 }
 
 /* ── 購物車 ── */
@@ -1005,7 +1006,7 @@ function pickStore() {
   storePoll = setInterval(check, 2500);
 }
 
-function openCart() { step = "cart"; drawCart(); open("cSheet"); refreshQuote(); }
+function openCart() { step = "cart"; drawCart(); openSheet("cSheet"); refreshQuote(); }
 $("cartBtn").onclick = openCart;
 $("memBtn").onclick = () => openMember();
 $("cartFab").onclick = openCart;
@@ -1238,7 +1239,7 @@ function favRecent(full) {
 }
 async function openMember(tab) {
   if (tab) mcTab = tab;
-  drawMC(); open("mcSheet");
+  drawMC(); openSheet("mcSheet");
   if (!member) return;
   try { const r = await api({action: "memberCenter", memberToken: memTok}, {tries: 2}); mcData = r; drawMC(); drawMemBtn(); }
   catch (e) { if (/登入/.test(e.message)) { memTok = ""; member = null; lsSet("cp-mem", ""); drawMemBtn(); drawMC(); } else toast(e.message); }
@@ -1302,7 +1303,7 @@ function goPay(pay) {
 async function showPaid(no) {
   const last = lsGet("cp-last", {});
   if (last.no !== no) return;
-  step = "done"; open("cSheet");
+  step = "done"; openSheet("cSheet");
   $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="done"><div class="ptitle">確認付款狀態中…</div></div>`;
   for (let i = 0; i < 4; i++) {
     try {
@@ -1478,7 +1479,7 @@ api(null, {tries: 3, timeout: 45000}).then(async d => {
   drawMemBtn();
   if (lineBack && member) toast(member.friend ? "登入成功，歡迎 " + (member.name || "會員") : "登入成功，加入官方帳號好友即可下單");
   if (lineBack && member && !lsGet("cp-afterlogin", "") && !/^#(member|orders|coupons|new|p=.*)$/.test(location.hash)) openMember("coupons"); // 登入完直接看到入會禮與會員權益
-  if (lsGet("cp-afterlogin", "") && cart.length) { lsSet("cp-afterlogin", ""); step = "form"; drawCart(); open("cSheet"); refreshQuote(); }
+  if (lsGet("cp-afterlogin", "") && cart.length) { lsSet("cp-afterlogin", ""); step = "form"; drawCart(); openSheet("cSheet"); refreshQuote(); }
   if (location.hash.startsWith("#paid=")) { const no = location.hash.slice(6); history.replaceState(null, "", location.pathname); showPaid(no); }
   // LINE 圖文選單／歡迎卡片的捷徑：#member 會員中心（有入會禮就開優惠券）、#orders 我的訂單、#new 新品
   const hs = location.hash;
@@ -1489,7 +1490,7 @@ api(null, {tries: 3, timeout: 45000}).then(async d => {
   if (location.hash.startsWith("#store=")) {
     try { store = JSON.parse(decodeURIComponent(location.hash.slice(7))); lsSet("cp-store", store); ship = SHIP_CVS; lsSet("cp-ship", ship); } catch (e) {}
     history.replaceState(null, "", location.pathname);
-    if (cart.length) { step = "form"; drawCart(); open("cSheet"); refreshQuote(); }
+    if (cart.length) { step = "form"; drawCart(); openSheet("cSheet"); refreshQuote(); }
   }
 }).catch(() => { if (!catalog) $("grid").innerHTML = '<div class="empty">連線失敗，請重新整理</div>'; });
 </script>

@@ -1605,7 +1605,8 @@ function lineEvent_(ev) {
   if (ev.type === "message" && ev.message && ev.message.type === "text" && (String(ev.message.text).trim() === CS_TEXT || CS_OLD.indexOf(String(ev.message.text).trim()) >= 0)) {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
     lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好，已為您轉接客服人員，請稍候。\n\n為加快處理，請提供訂單編號或商品名稱，客服人員將盡快於此回覆您。" }] });
-    csNotify_(name || "LINE 使用者");
+    // 2026-11-10 使用者：客服直接在官方帳號聊天室回覆即可，不再推播到管理者私人 LINE；只留紀錄
+
     sysLog_(name || "LINE 使用者", "customer", "聯絡客服", "透過官方帳號選單要求客服", "");
   }
 }
