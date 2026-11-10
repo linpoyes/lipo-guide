@@ -529,13 +529,13 @@ const ROLES = { owner: "超級管理員", staff: "營運", shipper: "出貨", vi
    超級管理員（owner）永遠全部權限，另外獨有：帳號管理、重設他人密碼。
    其他帳號＝角色預設（ROLE_PERMS）或「自訂」逐項勾選（USERS[name].perms）。前端 PERMS 要跟這裡一致。 */
 const PERMS = [
-  ["營運總覽", [["dash", "儀表板", ["admin_dashboard"]], ["report", "報表與拆帳", ["admin_orders", "admin_expenses"]], ["expense", "登錄其他支出", ["admin_expenses", "admin_saveExpense", "admin_deleteExpense"]]]],
-  ["訂單", [["orders", "查看訂單", ["admin_orders"]], ["ship", "出貨處理（狀態、寄件單、列印）", ["admin_orderStatus", "admin_logiCreate", "admin_logiPrint", "admin_logiPrintBatch"]],
+  ["營運總覽", [["dash", "儀表板", ["admin_dashboard"]], ["report", "報表", ["admin_orders", "admin_expenses"]], ["expense", "登錄支出", ["admin_expenses", "admin_saveExpense", "admin_deleteExpense"]]]],
+  ["訂單", [["orders", "查看訂單", ["admin_orders"]], ["ship", "出貨處理", ["admin_orderStatus", "admin_logiCreate", "admin_logiPrint", "admin_logiPrintBatch"]],
             ["pay", "標記付款", ["admin_orderStatus"]], ["orderDel", "刪除訂單", ["admin_deleteOrder"]]]],
   ["商品與行銷", [["products", "商品", ["admin_saveProduct", "admin_deleteProduct", "admin_upload", "admin_trashFile"]],
-                ["videos", "短影音", ["admin_saveVideo", "admin_deleteVideo", "admin_upload", "admin_trashFile"]], ["codes", "折扣碼", ["admin_saveCode", "admin_deleteCode"]]]],
+                ["videos", "影片", ["admin_saveVideo", "admin_deleteVideo", "admin_upload", "admin_trashFile"]], ["codes", "折扣碼", ["admin_saveCode", "admin_deleteCode"]]]],
   ["系統設定", [["settings", "賣場設定", ["admin_saveSettings"]],
-              ["integrations", "金流、物流、LINE 通知", ["admin_ecpayStatus", "admin_saveEcpay", "admin_logiStatus", "admin_lineStatus", "admin_lineSave", "admin_lineBind", "admin_lineUnbind", "admin_lineTest", "admin_saveSettings"]]]],
+              ["integrations", "金流與物流設定", ["admin_ecpayStatus", "admin_saveEcpay", "admin_logiStatus", "admin_lineStatus", "admin_lineSave", "admin_lineBind", "admin_lineUnbind", "admin_lineTest", "admin_saveSettings"]]]],
 ];
 const PERM_KEYS = [].concat.apply([], PERMS.map(g => g[1].map(p => p[0])));
 const ROLE_PERMS = { staff: ["dash", "orders", "ship", "pay", "products", "videos", "codes"], shipper: ["orders", "ship"], viewer: ["dash", "report"] };
