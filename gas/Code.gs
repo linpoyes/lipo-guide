@@ -925,7 +925,11 @@ function setOrderField_(orderNo, obj) {
   upsert_("orders", "orderNo", Object.assign({ orderNo: orderNo }, obj));
   return o;
 }
-function orderByTrade_(tradeNo) { return rows_("orders").find(o => String(o.ecpayNo) === String(tradeNo)); }
+// 綠界單號＝訂單編號＋2 碼。客人重送結帳會換新單號，但若在舊分頁付款，通知帶的是舊單號 → 依前綴找回訂單（通知已驗章，不會被偽造）
+function orderByTrade_(tradeNo) {
+  const t = String(tradeNo || ""), list = rows_("orders");
+  return list.find(o => String(o.ecpayNo) === t) || (t.length > 2 ? list.find(o => String(o.orderNo) === t.slice(0, -2)) : null);
+}
 // 手續費估算（依後台設定的費率；含 5% 營業稅；信用卡另加每筆處理費）
 function payFee_(method, amount) {
   const s = getSettings_(), n = x => Number(x) || 0;
@@ -955,6 +959,10 @@ function markPaid_(o, p) {
   try {
     o = rows_("orders").find(x => String(x.orderNo) === String(o.orderNo)) || o;
     if (String(o.payStatus) === "paid") return;
+    if (p.TradeAmt !== undefined && Math.round(Number(p.TradeAmt)) !== Math.round(Number(o.total))) { // 金額對不上不自動出貨，留紀錄給管理者人工確認
+      sysLog_("綠界", "system", "付款金額不符", o.orderNo + "・訂單 $" + o.total + "・綠界 $" + p.TradeAmt + "・" + p.MerchantTradeNo, String(o.orderNo));
+      return;
+    }
     markPaidLocked_(o, p);
   } finally { lock.releaseLock(); }
 }
@@ -991,7 +999,9 @@ function ecpayBack_(p) {
 function orderStatus_(q) {
   let o = rows_("orders").find(x => String(x.orderNo) === String(q.no || ""));
   if (!o || !q.cid || String(o.clientId) !== String(q.cid)) return { ok: false, error: "查無訂單" };
-  if (String(o.payStatus) === "awaiting" && o.ecpayNo && /^Credit/.test(String(o.payMethod))) { // 客人付完回來時通知可能還沒到：直接問綠界
+  const ck = CacheService.getScriptCache(), qk = "payq:" + o.orderNo;
+  if (String(o.payStatus) === "awaiting" && o.ecpayNo && /^Credit/.test(String(o.payMethod)) && !ck.get(qk)) { // 客人付完回來時通知可能還沒到：直接問綠界（同一張 15 秒最多一次，避免狂刷耗配額）
+    ck.put(qk, "1", 15);
     try { const t = ecpayQuery_(String(o.ecpayNo)); if (t && String(t.TradeStatus) === "1") { markPaid_(o, t); o = rows_("orders").find(x => String(x.orderNo) === String(q.no)); } } catch (e) {}
   }
   return { ok: true, orderNo: String(o.orderNo), total: Number(o.total), payStatus: String(o.payStatus), payMethod: String(o.payMethod || ""),
@@ -1944,8 +1954,8 @@ function ecpayFee_(tradeNo) {
 // 對帳：綠界付款通知若沒送達（網路、Apps Script 冷啟動），排程向綠界查詢待付款訂單，已付款就補標記（2026-11-10 測試站實測過通知未送達）
 function syncPaid_() {
   let n = 0, done = 0; const since = Date.now() - 5 * 86400000;
-  rows_("orders").forEach(o => {
-    if (n >= 10 || !o.ecpayNo || /^(paid|failed)$/.test(String(o.payStatus)) || String(o.status) === "已取消" && String(o.restocked) !== "TRUE") return;
+  rows_("orders").reverse().forEach(o => { // 新的先查；刷卡失敗後重刷成功也要補（failed 一併查）
+    if (n >= 10 || !o.ecpayNo || String(o.payStatus) === "paid" || String(o.status) === "已取消" && String(o.restocked) !== "TRUE") return;
     if (new Date(String(o.createdAt).replace(" ", "T") + ":00+08:00").getTime() < since) return;
     n++;
     const q = ecpayQuery_(String(o.ecpayNo));
