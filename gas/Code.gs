@@ -1342,15 +1342,39 @@ function orderLive_(o) {
   return !(String(o.payStatus) === "awaiting" && String(o.createdAt) < cutoff);
 }
 const goods_ = o => Math.max(0, (Number(o.subtotal) || 0) - (Number(o.codeDiscount) || 0) - (Number(o.pointsUsed) || 0));
+/* 點數效期（2026-11-10 使用者）：一年；只要有新增點數，全部點數的效期就從最新一次入帳日重新起算一年。
+   依時間順序重算：入帳時若距上次入帳已超過一年，先前餘額歸零（已過期）；最後若距最近入帳超過一年，目前餘額也歸零。 */
+const POINT_DAYS = 365;
 function pointsOf_(uid, list) {
-  const pc = pointCfg_(); let earned = 0, used = 0, pending = 0;
+  const pc = pointCfg_(), t = v => Date.parse(String(v || "").replace(" ", "T") + ":00+08:00") || 0;
+  const ev = []; let pending = 0, earned = 0, used = 0;
   (list || rows_("orders")).forEach(o => {
     if (String(o.lineUid) !== uid || !orderLive_(o)) return;
-    used += Number(o.pointsUsed) || 0;
-    const pts = Math.floor(goods_(o) / pc.rate);
-    if (String(o.payStatus) === "paid") earned += pts; else pending += pts;
+    const pts = Math.floor(goods_(o) / pc.rate), u = Number(o.pointsUsed) || 0;
+    if (u) { ev.push({ at: t(o.createdAt), d: -u }); used += u; }
+    if (String(o.payStatus) === "paid") { ev.push({ at: t(o.paidAt || o.createdAt), d: pts, earn: true }); earned += pts; } else pending += pts;
   });
-  return { earned: earned, used: used, pending: pending, balance: Math.max(0, earned - used) };
+  ev.sort((a, b) => a.at - b.at);
+  let bal = 0, last = 0, expired = 0;
+  ev.forEach(e => {
+    if (e.earn) { if (last && e.at - last > POINT_DAYS * 86400000) { expired += Math.max(0, bal); bal = 0; } last = e.at; }
+    bal = Math.max(0, bal + e.d);
+  });
+  const exp = last ? last + POINT_DAYS * 86400000 : 0;
+  if (exp && Date.now() > exp) { expired += bal; bal = 0; }
+  return { earned: earned, used: used, pending: pending, balance: bal, expired: expired,
+    expires: exp && bal ? Utilities.formatDate(new Date(exp), "Asia/Taipei", "yyyy/MM/dd") : "", expMs: exp };
+}
+// 點數到期前 30 天提醒一次（排程呼叫）；PTREM_<uid 雜湊>＝已提醒的到期日，續期後到期日變了會再提醒
+function remindPoints_() {
+  const all = rows_("orders"), uids = {}, p = PropertiesService.getScriptProperties(), now = Date.now();
+  all.forEach(o => { if (o.lineUid) uids[String(o.lineUid)] = 1; });
+  Object.keys(uids).forEach(uid => {
+    const pt = pointsOf_(uid, all); if (!pt.balance || !pt.expMs) return;
+    if (pt.expMs - now > 30 * 86400000 || pt.expMs < now) return;
+    const k = "PTREM_" + hash_(uid); if (p.getProperty(k) === pt.expires) return; p.setProperty(k, pt.expires);
+    lineApi_("message/push", { to: uid, messages: [{ type: "text", text: "【赤貧軍團】點數即將到期\n您目前有 " + pt.balance + " 點（可折抵 $" + pt.balance + "），將於 " + pt.expires + " 到期。\n再次消費即可延長一年，歡迎選購：" + SHOP_PAGE }] });
+  });
 }
 function memberCenter_(req) {
   const m = memberOf_(req.memberToken);
@@ -1760,6 +1784,7 @@ function cron_() {
   try { expireOrders_(true); res.expire = "ok"; } catch (e) { res.expire = String(e.message || e).slice(0, 100); }
   try { CacheService.getScriptCache().remove("wrem"); remindWelcome_(); res.remind = "ok"; } catch (e) { res.remind = String(e.message || e).slice(0, 100); }
   try { catalogCached_(); res.warm = "ok"; } catch (e) {} // 順便預熱型錄快取
+  try { if (!c.get("ptrem")) { c.put("ptrem", "1", 21600); remindPoints_(); } res.ptrem = "ok"; } catch (e) { res.ptrem = String(e.message || e).slice(0, 80); }
   try { const l = logiCfg_().public; res.logi = (l.enabled ? "on" : "off") + "/" + (l.stage ? "stage" : "live") + "/" + (l.auto ? "auto" : "manual") + "/" + (l.senderOk ? "senderOk" : "senderMissing"); } catch (e) {} // 只回狀態，不含寄件人資料
   try { res.fees = syncFees_(); } catch (e) { res.fees = String(e.message || e).slice(0, 100); }
   return res;
