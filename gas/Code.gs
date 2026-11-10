@@ -540,7 +540,7 @@ const PERMS = [
 ];
 const PERM_KEYS = [].concat.apply([], PERMS.map(g => g[1].map(p => p[0])));
 const ROLE_PERMS = { staff: ["dash", "orders", "ship", "pay", "products", "videos", "codes"], shipper: ["orders", "ship"], viewer: ["dash", "report"] };
-const BASE_ACTIONS = ["admin_all", "admin_me", "admin_changeLogin"];
+const BASE_ACTIONS = ["admin_all", "admin_me", "admin_changeLogin", "admin_lineInviteSelf"];
 function permsOf_(rec) {
   if (!rec) return [];
   if (rec.role === "owner") return PERM_KEYS.slice();
@@ -639,6 +639,7 @@ const ADMIN = {
     p.setProperty("INV_" + hash_(t), JSON.stringify({ user: name, exp: exp, by: r.me.user }));
     return { url: "https://linpoyes.github.io/lipo-guide/admin.html#inv=" + t, exp: Utilities.formatDate(new Date(exp), "Asia/Taipei", "yyyy/MM/dd HH:mm") };
   },
+  admin_lineInviteSelf: r => ADMIN.admin_lineInvite(Object.assign({}, r, { name: r.me.user })), // 每個帳號都能綁定自己的 LINE
   admin_lineUnbindUser: r => {
     const u = users_(), name = String(r.name || ""); if (!u[name]) throw new Error("查無此帳號");
     ["lineUid", "lineName", "linePic", "lineAt"].forEach(k => delete u[name][k]); saveUsers_(u);
@@ -1812,7 +1813,7 @@ const AUDIT_NAME = {
   admin_saveCode: "儲存折扣碼", admin_deleteCode: "刪除折扣碼", admin_orderStatus: "變更訂單", admin_deleteOrder: "刪除訂單", admin_saveSettings: "修改設定",
   admin_saveUser: "帳號權限", admin_deleteUser: "刪除帳號", admin_changeLogin: "變更自己的帳號密碼", admin_saveEcpay: "修改金流設定", admin_upload: "上傳檔案",
   admin_trashFile: "刪除檔案", admin_logiCreate: "建立寄件單", admin_logiPrint: "列印託運單", admin_logiPrintBatch: "批次列印託運單", admin_saveExpense: "登錄支出",
-  admin_deleteExpense: "刪除支出", admin_lineInvite: "產生 LINE 授權邀請", admin_lineUnbindUser: "解除 LINE 綁定", lineBind: "LINE 綁定帳號", lineLogin: "LINE 登入後台", lineLoginFail: "LINE 登入後台失敗", admin_lineSave: "修改 LINE 權杖", admin_lineBind: "產生 LINE 綁定碼", admin_lineUnbind: "移除 LINE 接收者", admin_lineTest: "傳送 LINE 測試",
+  admin_deleteExpense: "刪除支出", admin_lineInvite: "產生 LINE 授權邀請", admin_lineInviteSelf: "綁定自己的 LINE", admin_lineUnbindUser: "解除 LINE 綁定", lineBind: "LINE 綁定帳號", lineLogin: "LINE 登入後台", lineLoginFail: "LINE 登入後台失敗", admin_lineSave: "修改 LINE 權杖", admin_lineBind: "產生 LINE 綁定碼", admin_lineUnbind: "移除 LINE 接收者", admin_lineTest: "傳送 LINE 測試",
   admin_setGithubToken: "設定 GitHub 權杖", admin_setLoginSecret: "設定 LINE 登入金鑰", admin_trafficPurge: "清除測試流量", admin_logiProbe: "物流連線測試" };
 const SET_NAME = { shipFee: "黑貓運費", shipFeeCvs: "7-11 運費", freeShipOver: "免運門檻", lineUrl: "LINE 聯絡網址", notice: "賣場公告", ordersOpen: "開放下單", requireLine: "需 LINE 會員",
   shipBarOn: "免運公告條", shipBar: "免運公告文字", feeCardPct: "信用卡費率", feeCardMin: "信用卡最低", feeCardOrder: "信用卡處理費", feeAtmPct: "ATM 費率", feeAtmMin: "ATM 最低", feeSplit: "手續費分攤",
