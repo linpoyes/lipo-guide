@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-1xyp9c5f7yBOk8Ph5LWenGzh6Wf9oVmWHxbHPGRS4bk='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-nShE4EYWYJ4laHBMsA+PweA1l2yP9ohbDqj48WhJW8w='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611102123">
+<meta name="build" content="202611102127">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -12,14 +12,15 @@
 <style>
 :root{
   color-scheme:light dark;
+  /* 2026-11-10 護眼調整（同賣場）：朱紅、綠降飽和；圖表改低彩度色 */
   --bg:#F5F1EA; --card:#FFFDF9; --line:#E6DED1; --text:#2A2F3A; --dim:#575D69; --faint:#7A7F89;
-  --accent:#1C3F7C; --red:#D7261E; --ink:#2B2F38; --ok:#1F7A4A; --warn:#A85A00; --bad:#B3261E;
+  --accent:#1C3F7C; --red:#C9362C; --ink:#2B2F38; --ok:#2C7A52; --warn:#A85A00; --bad:#B3261E;
   --sel:rgba(28,63,124,.10); --wash:rgba(26,33,48,.055);
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#15181E; --card:#1D2129; --line:#2C313B; --text:#E6E1D8; --dim:#B4AFA6; --faint:#8C8880;
-    --accent:#8FB0E6; --red:#E2584D; --ok:#66C495; --warn:#FFB650; --bad:#F08078;
+    --accent:#8FB0E6; --red:#E2584D; --ink:#22262E; --ok:#66C495; --warn:#FFB650; --bad:#F08078;
     --sel:rgba(127,168,236,.17); --wash:rgba(243,236,223,.06);
   }
 }
@@ -111,7 +112,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .capcard{margin-bottom:12px}.caphd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.caphd b{font-size:16px}
 .capnum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px}.capnum div{background:var(--wash);border-radius:10px;padding:8px 10px}
 .capnum small{display:block;font-size:12px;color:var(--dim);font-weight:700}.capnum b{font-size:18px}
-.tierbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0}.tierbar i{display:block;height:100%;background:linear-gradient(90deg,#1F9D63,#5BD69B)}
+.tierbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0}.tierbar i{display:block;height:100%;background:linear-gradient(90deg,#2C8A5E,#5BD69B)}
 .afl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.afl input{grid-column:1/-1}.afl select,.afl input{font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
 .afl button{grid-column:1/-1}@media (min-width:760px){.afl{grid-template-columns:180px 160px 1fr auto}.afl input,.afl button{grid-column:auto}}
 .adh{font-size:14px;color:var(--dim);margin:14px 0 6px}
@@ -172,7 +173,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .pwwarn{display:block;width:100%;margin-top:10px;border:0;border-radius:10px;background:var(--red);color:#fff;font-weight:800;padding:9px 12px;text-align:left}
 /* 儀表板 */
 .live{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800;margin:4px 0 10px}
-.live i{width:9px;height:9px;border-radius:50%;background:#1F9D63;box-shadow:0 0 0 0 rgba(31,157,99,.6);animation:livep 1.8s infinite}
+.live i{width:9px;height:9px;border-radius:50%;background:#2C8A5E;box-shadow:0 0 0 0 rgba(31,157,99,.6);animation:livep 1.8s infinite}
 .live span{color:var(--faint);font-size:13px;font-weight:700;margin-left:auto}
 @keyframes livep{70%{box-shadow:0 0 0 8px rgba(31,157,99,0)}100%{box-shadow:0 0 0 0 rgba(31,157,99,0)}}
 .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
@@ -191,7 +192,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .hbr,.fr{display:grid;grid-template-columns:78px minmax(0,1fr) 74px;align-items:center;gap:8px;font-size:13px;font-weight:700}
 .hbr span,.fr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hbr i,.fr i{height:12px;border-radius:6px;background:var(--wash);overflow:hidden}.hbr b,.fr b{display:block;height:100%;border-radius:6px}
-.fr i{height:20px}.fr b{background:linear-gradient(90deg,#D7261E,#FF7A45)}
+.fr i{height:20px}.fr b{background:linear-gradient(90deg,#C9362C,#D9774E)}
 .hbr em,.fr em{font-style:normal;text-align:right;font-weight:900}.hbr small,.fr small{display:block;color:var(--faint);font-size:11px}
 .donut{display:flex;align-items:center;gap:14px}.donut svg{width:120px;height:120px;flex:none}.donut .dn{fill:var(--text);font-size:15px;font-weight:900}
 .donut p{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;font-weight:700}.donut p i{width:10px;height:10px;border-radius:3px}.donut p b{margin-left:auto;padding-left:10px}
@@ -273,7 +274,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611102123"></script>
+<script src="shop-core.js?v=202611102127"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -392,7 +393,7 @@ function hbars(list, unit = "", color = "var(--accent)") {
 }
 function donut(list) {
   if (!list.length) return '<div class="note">尚無資料</div>';
-  const tot = list.reduce((a, x) => a + x[1], 0), C = 2 * Math.PI * 38, cols = ["#D7261E", "#2F6BFF", "#1F9D63", "#F0A020", "#8A5CF6", "#888"];
+  const tot = list.reduce((a, x) => a + x[1], 0), C = 2 * Math.PI * 38, cols = ["#C9362C", "#4A6FB5", "#2C8A5E", "#C98A2A", "#7A64B8", "#888"];
   let off = 0;
   const arcs = list.map(([k, v], i) => { const len = v / tot * C, a = `<circle r="38" cx="50" cy="50" fill="none" stroke="${cols[i % 6]}" stroke-width="16" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"><title>${esc(k)} ${v}</title></circle>`; off += len; return a; }).join("");
   return `<div class="donut"><svg viewBox="0 0 100 100" width="120" height="120">${arcs}<text x="50" y="48" text-anchor="middle" class="dn">${tot.toLocaleString()}</text><text x="50" y="62" text-anchor="middle" class="ax">工作階段</text></svg>
@@ -431,19 +432,19 @@ async function drawDash() {
       ${card("LINE 會員", K.members, delta(K.newMembers, P.newMembers), `本期新增 ${K.newMembers}・好友 ${K.friends}`)}
     </div>
     <div class="dgrid">
-      <div class="card dc wide"><h3>流量走勢 <span class="lg"><i style="background:#D7261E"></i>訪客<i style="background:#2F6BFF"></i>瀏覽</span></h3>${lineChart(d.series, ["visitors", "views"], ["#D7261E", "#2F6BFF"])}</div>
-      <div class="card dc wide"><h3>營業額走勢</h3>${barChart(d.series, "revenue", "#1F9D63", v => v >= 10000 ? Math.round(v / 1000) + "k" : "$" + Math.round(v))}</div>
+      <div class="card dc wide"><h3>流量走勢 <span class="lg"><i style="background:#C9362C"></i>訪客<i style="background:#4A6FB5"></i>瀏覽</span></h3>${lineChart(d.series, ["visitors", "views"], ["#C9362C", "#4A6FB5"])}</div>
+      <div class="card dc wide"><h3>營業額走勢</h3>${barChart(d.series, "revenue", "#2C8A5E", v => v >= 10000 ? Math.round(v / 1000) + "k" : "$" + Math.round(v))}</div>
       <div class="card dc"><h3>轉換漏斗</h3><div class="fun">${d.funnel.map(([k, v], i) => `<div class="fr"><span>${k}</span><i><b style="width:${Math.max(2, v / f0 * 100)}%"></b></i><em>${v}${i ? `<small>${pct(v, d.funnel[i - 1][1])}%</small>` : ""}</em></div>`).join("")}</div>
         <div class="note">百分比＝從上一步留下來的比例；落差最大的那一步最值得優化</div></div>
-      <div class="card dc"><h3>流量來源</h3>${hbars(d.sources, "", "#D7261E")}</div>
+      <div class="card dc"><h3>流量來源</h3>${hbars(d.sources, "", "#C9362C")}</div>
       <div class="card dc"><h3>裝置</h3>${donut(d.devices)}</div>
-      <div class="card dc"><h3>作業系統</h3>${hbars(d.os, "", "#8A5CF6")}</div>
+      <div class="card dc"><h3>作業系統</h3>${hbars(d.os, "", "#7A64B8")}</div>
       <div class="card dc wide"><h3>熱門時段（瀏覽次數）</h3>${heatmap(d.heat)}<div class="note">顏色越深＝越多人在逛；適合排在這些時段發 LINE 推播與上新品</div></div>
       <div class="card dc wide"><h3>商品表現</h3>${d.products.length ? `<table class="otable dt"><tr><th>商品</th><th>瀏覽</th><th>加購</th><th>售出</th><th>營收</th><th>加購率</th></tr>
         ${d.products.map(p => `<tr><td>${esc(p.name.replace(/^.*?[｜|]\s*/, "") || p.name)}</td><td>${p.views}</td><td>${p.carts}</td><td>${p.sold}</td><td>${money(p.rev)}</td><td>${p.views ? pct(p.carts, p.views) + "%" : "—"}</td></tr>`).join("")}</table>` : '<div class="note">尚無資料</div>'}</div>
       <div class="card dc"><h3>熱門搜尋</h3>${d.searches.length ? `<div class="chips">${d.searches.map(([q, n]) => `<span>${esc(q)}<b>${n}</b></span>`).join("")}</div>` : '<div class="note">尚無資料</div>'}
         ${d.zero.length ? `<h4>搜不到的關鍵字</h4><div class="chips warn">${d.zero.map(([q, n]) => `<span>${esc(q)}<b>${n}</b></span>`).join("")}</div><div class="note">客人想買但賣場沒有：進貨或上架的參考</div>` : ""}</div>
-      <div class="card dc"><h3>短影音觀看</h3>${hbars(d.videos, " 次", "#F0A020")}<h4>頁面瀏覽</h4>${hbars(d.pages.map(([k, v]) => [{"shop.html": "賣場", "index.html": "電池教學"}[k] || k, v]), "", "#2F6BFF")}</div>
+      <div class="card dc"><h3>短影音觀看</h3>${hbars(d.videos, " 次", "#C98A2A")}<h4>頁面瀏覽</h4>${hbars(d.pages.map(([k, v]) => [{"shop.html": "賣場", "index.html": "電池教學"}[k] || k, v]), "", "#4A6FB5")}</div>
       <div class="card dc wide"><h3>最新會員 <span class="note">${K.members} 人${d.welcomeUsed !== null ? `・入會禮已使用 ${d.welcomeUsed} 次` : ""}</span></h3>
         ${d.members.length ? `<div class="mems">${d.members.map(m => `<div>${m.pic ? `<img src="${esc(m.pic)}" alt="" loading="lazy">` : "<i></i>"}<p><b>${esc(m.name || "LINE 會員")}</b><small>${esc(m.firstAt.slice(5))} 加入・${m.orders ? `下單 ${m.orders} 次` : "尚未下單"}</small></p><span class="pill ${m.friend ? "on" : "off"}">${m.friend ? "好友" : "未加好友"}</span></div>`).join("")}</div>` : '<div class="note">尚無會員</div>'}</div>
     </div>
@@ -961,7 +962,7 @@ function printReport(r) {
     header .p{text-align:right;font-size:12px;color:#575D69}header .p b{font-size:15px;letter-spacing:0;color:#1A2130}
     .kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0 6px}.kpi div{border:1px solid #E2D6C0;border-radius:8px;padding:8px 10px;background:#FAF7F1}
     .kpi span{display:block;font-size:10.5px;color:#575D69;font-weight:700}.kpi b{font-size:16px}.kpi .hl{background:#17181D;border-color:#17181D;color:#fff}.kpi .hl span{color:#C9CBD2}
-    section{margin-top:16px;break-inside:avoid}h2{display:flex;align-items:baseline;gap:10px;font-size:14px;margin:0 0 6px;padding-left:9px;border-left:4px solid #D7261E}h2 span{font-size:11px;color:#575D69;font-weight:700}
+    section{margin-top:16px;break-inside:avoid}h2{display:flex;align-items:baseline;gap:10px;font-size:14px;margin:0 0 6px;padding-left:9px;border-left:4px solid #C9362C}h2 span{font-size:11px;color:#575D69;font-weight:700}
     table{width:100%;border-collapse:collapse}th{background:#17181D;color:#fff;font-size:11px;padding:6px 8px;text-align:right}td{padding:6px 8px;border-bottom:1px solid #E6DED1;text-align:right;font-variant-numeric:tabular-nums}
     th:first-child,td:first-child{text-align:left}table.sm td:nth-child(3){text-align:left}table.sm th:nth-child(3){text-align:left}tbody tr:nth-child(even) td{background:#FBF9F5}
     tfoot td{font-weight:800;border-top:2px solid #17181D;border-bottom:0}
