@@ -1587,7 +1587,7 @@ function expireOrders_(force) {
       setOrderField_(String(o.orderNo), { status: "已取消" });
       sysLog_("系統", "system", "逾期取消訂單", o.orderNo + "・未於期限內付款，已退回庫存", String(o.orderNo));
       releaseOrder_(o);
-      if (o.lineUid) try { lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: "【赤貧軍團】訂單取消通知\n訂單編號：" + o.orderNo + "\n因未於付款期限內完成付款，本訂單已自動取消。\n如仍有需要，歡迎重新下單：" + SHOP_PAGE }] }); } catch (e) {}
+      if (o.lineUid) try { lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: "【赤貧軍團】訂單取消通知\n訂單編號：" + o.orderNo + "\n因未於付款期限內完成付款，本訂單已自動取消。" + backNote_(o) + "\n如仍有需要，歡迎重新下單：" + SHOP_PAGE }] }); } catch (e) {}
     });
   } finally { lock.releaseLock(); }
 }
@@ -1979,4 +1979,12 @@ function liffLogin_(req) {
     const r = memberFromLine_(idt, String(req.accessToken || ""));
     return { ok: true, mt: r.mt, member: memberCheck_(r.mt).member };
   } catch (e) { return { ok: false, error: "LINE 驗證失敗" }; }
+}
+
+// 取消通知附註：入會禮折扣碼、積分已退回（取消的訂單不算使用，系統自動恢復可用）
+function backNote_(o) {
+  const n = [];
+  if (o.code && isWelcome_(o.code)) { const g = welcomeGrant_(String(o.lineUid), false); n.push(g.expired ? "入會禮已超過使用期限，無法退回" : "入會禮 " + o.code + " 已退回，可於 " + g.date + " 前再次使用"); }
+  if (Number(o.pointsUsed) > 0) n.push("折抵的 " + o.pointsUsed + " 點已退回");
+  return n.length ? "\n" + n.join("\n") : "";
 }

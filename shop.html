@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-xtOuDteopPaxGdRkty2SMH7nVSKeEW8yGYYepgJvRjc='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-jpyE+gNn4p54xQwj0kVdJTvoBrOCdCWlsBtsVGgFoYc='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611101216">
+<meta name="build" content="202611101218">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 // 後台 LINE 登入的回呼（state 以 a_ 開頭）也會回到賣場：立刻轉給後台處理
@@ -520,6 +520,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .jlater{margin-top:8px;border:0;background:none;color:var(--faint);font-size:13px;font-weight:700;padding:6px}
 #nudgePop{position:fixed;z-index:90}
 .ptexp{display:block;margin-top:6px;font-style:normal;font-size:12px;color:#FFB650;font-weight:800}
+.idwarn{display:block;margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(215,38,30,.08);border:1px solid rgba(215,38,30,.35);font-size:13px;line-height:1.55;color:var(--text)}
+.idwarn b{display:block;color:var(--red);font-size:14px}
+.idok{display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:15px;font-weight:800}.idok input{width:20px;height:20px;accent-color:var(--red)}
 </style>
 </head>
 <body>
@@ -598,9 +601,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611101216"></script>
-<script src="shop-core.js?v=202611101216"></script>
-<script src="tw-zip.js?v=202611101216"></script>
+<script src="track.js?v=202611101218"></script>
+<script src="shop-core.js?v=202611101218"></script>
+<script src="tw-zip.js?v=202611101218"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -1075,7 +1078,7 @@ function drawCart() {
       ${memberBox(true)}
       <form id="orderForm" ${needLine() ? "hidden" : ""}>
         <div class="field"><label for="oName">收件人真實姓名</label><input id="oName" autocomplete="name" maxlength="10" required>
-          <span class="hint" id="nameHint">取貨時需核對證件，請填寫與證件相同的姓名；中文 2–5 字或英文 4–10 字母，不可有數字與符號</span></div>
+          <span class="idwarn" id="nameHint"><b>請填寫身分證上的真實姓名</b>包裹已付款（取貨 0 元），門市與物流人員會核對身分證件，姓名不符將無法領取。請勿填寫暱稱或 LINE 名稱。</span></div>
         <div class="field"><label for="oPhone">手機</label><input id="oPhone" type="tel" inputmode="tel" autocomplete="tel" required></div>
         <div class="field"><label for="oLine">LINE ID（選填）</label><input id="oLine"></div>
         <div class="field"><label>寄送方式</label><div class="ships" id="ships">
@@ -1095,6 +1098,7 @@ function drawCart() {
           <button type="button" data-pay="ATM" aria-pressed="${payM === "ATM"}">ATM 轉帳<small>虛擬帳號・3 日內繳費</small></button></div></div>` : ""}
         ${summary}
         <div class="msg bad" id="orderErr"></div>
+        <label class="idok"><input type="checkbox" id="idOk" required>收件人姓名與身分證件相同</label>
         <div class="buyrow"><button type="button" class="btn ghost" data-step="cart" style="flex:none;width:96px">返回</button><button class="btn" id="submitBtn">${catalog.settings.payReady ? "前往付款" : "送出訂單"}</button></div>
       </form>`;
     const saved = {...lsGet("cp-customer", {}), ...lsGet("cp-draft", {})};
@@ -1343,8 +1347,8 @@ function showZip() {
 $("cPanel").addEventListener("focusout", e => {
   if (e.target.id !== "oName" || !e.target.value.trim()) return;
   const m = checkName(e.target.value.normalize("NFKC").replace(/\s+/g, " ").trim()), h = $("nameHint");
-  h.style.color = m ? "var(--bad)" : ""; h.style.fontWeight = m ? "700" : "";
-  h.textContent = m || "取貨時需核對證件，請填寫與證件相同的姓名；中文 2–5 字或英文 4–10 字母，不可有數字與符號";
+  h.innerHTML = m ? `<b>${esc(m)}</b>請填寫身分證上的真實姓名：中文 2–5 字或英文 4–10 字母，不可有數字與符號。`
+    : "<b>請填寫身分證上的真實姓名</b>包裹已付款（取貨 0 元），門市與物流人員會核對身分證件，姓名不符將無法領取。請勿填寫暱稱或 LINE 名稱。";
 });
 $("cPanel").addEventListener("change", e => { if (e.target.id === "oCounty") fillDist(""); if (e.target.id === "oDist") showZip();
   if (e.target.matches("[data-usepts]")) { usePts = e.target.checked; lsSet("cp-usepts", usePts); serverQuote = null; drawCart(); refreshQuote(); } });
@@ -1376,6 +1380,7 @@ async function submitOrder() {
   c.name = c.name.normalize("NFKC").replace(/\s+/g, " ").trim();
   const nameErr = checkName(c.name);
   if (nameErr) { err.textContent = nameErr; $("oName").focus(); return; }
+  if (!$("idOk").checked) { err.textContent = "請確認收件人姓名與身分證件相同"; $("idOk").focus(); return; }
   if (!c.phone) { err.textContent = "請填寫手機"; return; }
   if (!/^09\d{8}$/.test(c.phone.replace(/[-\s]/g, ""))) { err.textContent = "手機格式為 09 開頭 10 碼"; return; }
   if (!c.address) { err.textContent = sm === SHIP_CVS ? "請選擇 7-11 門市" : !$("oCounty").value || !$("oDist").value ? "請選擇縣市與區域" : "請填寫路名門牌"; return; }
