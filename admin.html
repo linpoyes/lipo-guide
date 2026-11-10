@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-VGCxXBl3hFn1OEJYw08daFbxcYbMbQtm9QxxX2jB3QQ='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611101305">
+<meta name="build" content="202611101309">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -131,7 +131,7 @@ h2{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;justify-con
 .pdet[open]>summary{margin-bottom:8px}
 .lineb{background:#06C755!important;color:#fff!important;border:0!important;display:inline-flex;align-items:center;justify-content:center;gap:8px}.lineb svg{width:20px;height:20px}
 .lor{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--faint);font-size:12px}.lor::before,.lor::after{content:"";flex:1;height:1px;background:var(--line)}
-.lav{width:36px;height:36px;border-radius:50%;flex:none}.ucard summary{gap:10px}.ucard summary>span:nth-child(2){flex:1}
+.lav{width:36px;height:36px;border-radius:50%;flex:none}.ucard summary{gap:10px}.ucard summary>span:not(.pill){flex:1;min-width:0}.ucard summary>.pill{flex:none;align-self:flex-start;margin-top:2px}
 .lbind{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}.lbind .btn{height:40px;flex:none}.invout{flex-basis:100%}.invout input{width:100%;font-size:13px;padding:8px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text)}
 .tabs button{font-size:13px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -273,7 +273,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611101305"></script>
+<script src="shop-core.js?v=202611101309"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
