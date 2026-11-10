@@ -86,8 +86,6 @@ function doGet(e) {
   if (a === "cron") return out_(cron_()); // GitHub Actions 每小時呼叫（.github/workflows/cron.yml）
   if (a === "lineSetup") return out_(lineSetup_());
   if (a === "liffSetup") return out_(liffSetup_());
-  if (a === "welcomePreview") return out_(welcomePreview_());
-  if (a === "csPreview") return out_(csPreview_());
   if (a === "orderStatus") return out_(orderStatus_(e.parameter));
   if ((e.parameter || {}).cb === "linelogin") return lineLoginReturn_(e.parameter);
   if (a === "member") return out_(memberCheck_(e.parameter.mt));
@@ -1083,7 +1081,12 @@ function memberFromLine_(idt, accessToken) {
   const fr = JSON.parse(UrlFetchApp.fetch("https://api.line.me/friendship/v1/status", { muteHttpExceptions: true, headers: { Authorization: "Bearer " + accessToken } }).getContentText());
   const mt = Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, "");
   const rec = { uid: idt.sub, name: idt.name || "", pic: idt.picture || "", friend: !!fr.friendFlag, at: accessToken, exp: Date.now() + 30 * 86400000 };
-  PropertiesService.getScriptProperties().setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty("MEM_" + hash_(mt), JSON.stringify(rec));
+  try { // 同一個 LINE 只保留最新 3 組登入（指令碼屬性總量上限 500KB，不清會越積越多）
+    const all = props.getProperties(), mine = Object.keys(all).filter(k => k.indexOf("MEM_") === 0).map(k => ({ k: k, v: json_(all[k], {}) })).filter(x => x.v.uid === rec.uid).sort((a, b) => b.v.exp - a.v.exp);
+    mine.slice(3).forEach(x => props.deleteProperty(x.k));
+  } catch (e) {}
   welcomePush_(rec);
   memberLog_(rec, true);
   sysLog_(rec.name || "LINE 會員", "customer", "會員登入", (rec.name || "LINE 會員") + (rec.friend ? "・已加好友" : "・未加好友"), "");
@@ -1193,6 +1196,8 @@ function track_(req) {
   const cache = CacheService.getScriptCache(), rk = "trk:" + vid, n = Number(cache.get(rk) || 0);
   if (n > 120) return { ok: true }; // 同一訪客 10 分鐘內超過 120 批＝異常，丟掉
   cache.put(rk, String(n + 1), 600);
+  const g = Number(cache.get("trk:all") || 0); if (g > 3000) return { ok: true }; // 全站 10 分鐘 3000 批上限（換訪客碼灌資料）
+  cache.put("trk:all", String(g + 1), 600);
   const clip = (v, k) => String(v == null ? "" : v).replace(/[\r\n\t]/g, " ").slice(0, k);
   const now = Date.now(), sent = Number(req.sent) || now;
   const rows = req.ev.slice(0, 40).filter(e => e && TRAFFIC_TYPES.indexOf(e.t) >= 0).map(e => {
@@ -1520,12 +1525,12 @@ function logiReply_(q) {
     const key = "LGN_" + sh.id + "_" + (done ? "d" : arrived ? "a" : shipped ? "s" : back ? "b" + hash_(msg).slice(0, 6) : "");
     if (shipped || arrived || done || back) sysLog_("綠界物流", "system", "物流狀態", o.orderNo + "・" + msg, String(o.orderNo));
     if (back && !PropertiesService.getScriptProperties().getProperty(key)) { // 退件、門市閉店等異常：通知管理者處理
-      PropertiesService.getScriptProperties().setProperty(key, "1");
+      PropertiesService.getScriptProperties().setProperty(key, String(Date.now()));
       linePush_("【赤貧軍團】物流異常通知\n訂單編號：" + o.orderNo + "\n物流狀態：" + msg + "\n物流單號：" + sh.no + "\n請盡速處理：https://linpoyes.github.io/lipo-guide/admin.html#order=" + o.orderNo);
     }
     const pp = PropertiesService.getScriptProperties();
     if ((shipped || arrived || done) && !pp.getProperty(key)) {
-      pp.setProperty(key, "1");
+      pp.setProperty(key, String(Date.now()));
       const cvs = sh.sub === "UNIMARTC2C";
       if (shipped) push("【赤貧軍團】出貨通知\n訂單編號：" + o.orderNo + "\n您訂購的商品已寄出。\n" + (cvs ? "7-11 交貨便代號：" : "黑貓宅急便託運單號：") + sh.no + (cvs ? "\n商品送達取貨門市後，將再次通知您。" : "\n可至黑貓宅急便官網查詢配送進度。"));
       if (arrived) push("【赤貧軍團】到店通知\n訂單編號：" + o.orderNo + "\n商品已送達取貨門市：" + String(o.address).replace(/（店號.*?）/, "") + "\n請於 7 日內攜帶身分證件至門市取貨。");
@@ -1623,16 +1628,17 @@ function lineEvent_(ev) {
   if (ev.type === "follow") {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
     const w = welcomeInfo_();
-    if (w) w.expires = welcomeGrant_(uid, true).date; // 歡迎卡片已含入會禮（從現在起算期限），LINE 登入時不再重送
-    lineApi_("message/reply", { replyToken: ev.replyToken, messages: welcomeMessages_(name, w) });
+    if (w) w.expires = Utilities.formatDate(new Date(Date.now() + welcomeDays_() * 86400000), "Asia/Taipei", "yyyy/MM/dd");
+    const rr = lineApi_("message/reply", { replyToken: ev.replyToken, messages: welcomeMessages_(name, w) });
+    // GAS 讀不到簽章標頭：只有 LINE 真的發出的事件 replyToken 才有效，回覆成功才記錄入會禮（擋偽造請求灌資料）
+    if (w && rr && rr.getResponseCode() === 200) welcomeGrant_(uid, true);
     return;
   }
   if (ev.type === "message" && ev.message && ev.message.type === "text" && (String(ev.message.text).trim() === CS_TEXT || CS_OLD.indexOf(String(ev.message.text).trim()) >= 0)) {
     let name = ""; try { const r = lineApi_("profile/" + uid); if (r && r.getResponseCode() === 200) name = JSON.parse(r.getContentText()).displayName || ""; } catch (e) {}
-    lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好，已為您轉接客服人員，請稍候。\n\n為加快處理，請提供訂單編號或商品名稱，客服人員將盡快於此回覆您。" }] });
-    // 2026-11-10 使用者：客服直接在官方帳號聊天室回覆即可，不再推播到管理者私人 LINE；只留紀錄
-
-    sysLog_(name || "LINE 使用者", "customer", "聯絡客服", "透過官方帳號選單要求客服", "");
+    const rr = lineApi_("message/reply", { replyToken: ev.replyToken, messages: [{ type: "text", text: "您好，已為您轉接客服人員，請稍候。\n\n為加快處理，請提供訂單編號或商品名稱，客服人員將盡快於此回覆您。" }] });
+    // 2026-11-10 使用者：客服直接在官方帳號聊天室回覆即可，不再推播到管理者私人 LINE；只留紀錄（回覆成功＝真事件才記）
+    if (rr && rr.getResponseCode() === 200) sysLog_(name || "LINE 使用者", "customer", "聯絡客服", "透過官方帳號選單要求客服", "");
   }
 }
 // 歡迎訊息＝主卡片＋熱門商品圖卡（可左右滑，最多 6 件：熱銷優先、再依後台排序，排除售完）
@@ -1778,14 +1784,28 @@ function migrateLogiLive_() {
   if (!logiCfg_().public.senderOk) { p.deleteProperty("MIG_LOGILIVE"); return; }
   setSetting_("logiOn", "TRUE"); setSetting_("logiStage", "FALSE"); setSetting_("logiAuto", "TRUE");
 }
+// 指令碼屬性清理（上限 500KB）：過期會員權杖、過期邀請、90 天前的物流通知記號；回報目前用量
+function cleanProps_() {
+  const p = PropertiesService.getScriptProperties(), all = p.getProperties(), now = Date.now(); let del = 0, size = 0;
+  Object.keys(all).forEach(k => {
+    const v = all[k]; size += k.length + String(v).length;
+    let drop = false;
+    if (k.indexOf("MEM_") === 0) drop = (json_(v, {}).exp || 0) < now;
+    else if (k.indexOf("INV_") === 0) drop = (json_(v, {}).exp || 0) < now;
+    else if (k.indexOf("LGN_") === 0) drop = v === "1" || Number(v) < now - 90 * 86400000;
+    if (drop) { p.deleteProperty(k); del++; }
+  });
+  return { deleted: del, kb: Math.round(size / 1024) };
+}
 function cron_() {
   try { migrateLogiLive_(); } catch (e) {}
-  const c = CacheService.getScriptCache(); if (c.get("cronRan2")) return { ok: true, skipped: true }; c.put("cronRan2", "1", 900);
+  const c = CacheService.getScriptCache(); if (c.get("cronRan3")) return { ok: true, skipped: true }; c.put("cronRan3", "1", 900);
   const res = { ok: true, at: ts_(new Date()) };
   try { expireOrders_(true); res.expire = "ok"; } catch (e) { res.expire = String(e.message || e).slice(0, 100); }
   try { CacheService.getScriptCache().remove("wrem"); remindWelcome_(); res.remind = "ok"; } catch (e) { res.remind = String(e.message || e).slice(0, 100); }
   try { catalogCached_(); res.warm = "ok"; } catch (e) {} // 順便預熱型錄快取
   try { if (!c.get("ptrem")) { c.put("ptrem", "1", 21600); remindPoints_(); } res.ptrem = "ok"; } catch (e) { res.ptrem = String(e.message || e).slice(0, 80); }
+  try { if (!c.get("clean")) { c.put("clean", "1", 21600); res.props = cleanProps_(); } } catch (e) {}
   try { const l = logiCfg_().public; res.logi = (l.enabled ? "on" : "off") + "/" + (l.stage ? "stage" : "live") + "/" + (l.auto ? "auto" : "manual") + "/" + (l.senderOk ? "senderOk" : "senderMissing"); } catch (e) {} // 只回狀態，不含寄件人資料
   try { res.fees = syncFees_(); } catch (e) { res.fees = String(e.message || e).slice(0, 100); }
   return res;
