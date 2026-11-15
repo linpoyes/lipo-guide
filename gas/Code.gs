@@ -350,11 +350,19 @@ function migrateNoPorsche_() {
 }
 // 2026-11-10 使用者：還沒跟老闆談好，先不賣 → 關閉下單（商品照常展示、顯示即將開賣）；要開賣到後台「設定 → 賣場 → 開放下單」打勾
 function migrateCloseOrders_() { const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_CLOSE1110")) return; p.setProperty("MIG_CLOSE1110", "1"); setSetting_("ordersOpen", "FALSE"); }
+// 2026-11-15 使用者：老闆 IG 有新的開箱 → 3 支加進「老闆開箱」最前面（MP4＋封面放 media/ig/）
+function migrateIg1115_() {
+  const p = PropertiesService.getScriptProperties(); if (p.getProperty("MIG_IG1115")) return; p.setProperty("MIG_IG1115", "1");
+  const R = [["Dfw66zdALML", "姪女來遙控車店直接混熟"], ["Dfw4PH0gtE1", "甩尾拖車頭三兄弟上線"], ["DfpYclvAoL2", "時速 100 公里"]];
+  const have = rows_("videos").map(v => String(v.src));
+  R.forEach((r, i) => { const src = "media/ig/" + r[0] + ".mp4"; if (have.indexOf(src) >= 0) return;
+    upsert_("videos", "id", { id: "ig" + r[0].replace(/[^\w]/g, ""), title: r[1], src: src, poster: "media/ig/" + r[0] + ".jpg", productId: "", active: "TRUE", sort: String(97 + i), kind: "boss", updatedAt: new Date().toISOString() }); });
+}
 function catalog_() {
   migrateCloseOrders_();
   migrateNoPorsche_();
   migrateNoRequireLine_();
-  migrateIg_(); migrateIgMp4_();
+  migrateIg_(); migrateIgMp4_(); migrateIg1115_();
   migrateGoLive_();
   migrate_(); migrateAe86_(); migrateDims_(); migrateNoFreeShip_(); migrateSupraWhite_(); migrateOfficialImgs_(); migrate1087_();
   try { expireOrders_(); } catch (e) {}
@@ -1845,13 +1853,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson10");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson11");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson10", j, 3600);
+  if (j.length < 95000) c.put("catalogJson11", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson10"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson11"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────
