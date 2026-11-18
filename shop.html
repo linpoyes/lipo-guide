@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-TAcqfuctejzbkBQ5tA4EAhDUaSYEFLXQDESH84nuDT4='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-fDoBx/HJYSVYJ4yrMYMyxIJA/q/PRdm7TWEO1B//iqY='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611152221">
+<meta name="build" content="202611190216">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 // 後台 LINE 登入的回呼（state 以 a_ 開頭）也會回到賣場：立刻轉給後台處理
@@ -328,6 +328,10 @@ h2::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;backgro
 .linebtn{border:0;border-radius:10px;background:#06C755;color:#fff;font-weight:800;padding:9px 16px;text-decoration:none;font-size:15px}
 .memre,.memout{border:1.5px solid var(--line);background:transparent;color:var(--text);border-radius:10px;padding:8px 12px;font-weight:700}
 .va{display:grid;gap:8px;margin:14px 0 6px;text-align:left}
+.payinfo{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}.payinfo b{display:block;font-size:16px}.payinfo small{display:block;color:var(--dim);font-size:13px;margin-top:2px}
+.tbox{margin:12px 0 4px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}.tbox p,.mcod .tbox p{display:block;margin:0 0 4px;font-weight:700;font-size:16px;word-break:break-all}
+.tbox .due{font-weight:400;font-size:13px;color:var(--dim);margin-top:6px}.tbox .ok{font-weight:700;font-size:13px;color:#2C7A52}
+.trep{display:flex;gap:8px;margin-top:8px}.trep input{flex:1;min-width:0;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);letter-spacing:.1em}.trep .btn{flex:none;width:84px}
 .va div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
 .va small{display:block;font-size:12px;color:var(--dim);font-weight:700}
 .va b{font-size:20px;letter-spacing:.06em}
@@ -608,9 +612,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611152221"></script>
-<script src="shop-core.js?v=202611152221"></script>
-<script src="tw-zip.js?v=202611152221"></script>
+<script src="track.js?v=202611190216"></script>
+<script src="shop-core.js?v=202611190216"></script>
+<script src="tw-zip.js?v=202611190216"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -1089,7 +1093,7 @@ function drawCart() {
       ${memberBox(true)}
       <form id="orderForm" ${needLine() ? "hidden" : ""}>
         <div class="field"><label for="oName">收件人真實姓名</label><input id="oName" autocomplete="name" maxlength="10" required>
-          <span class="idwarn" id="nameHint"><b>請填寫身分證上的真實姓名</b>包裹已付款（取貨 0 元），門市與物流人員會核對身分證件，姓名不符將無法領取。請勿填寫暱稱或 LINE 名稱。</span></div>
+          <span class="idwarn" id="nameHint"><b>請填寫身分證上的真實姓名</b>門市與物流人員會核對身分證件，姓名不符將無法領取。請勿填寫暱稱或 LINE 名稱。</span></div>
         <div class="field"><label for="oPhone">手機</label><input id="oPhone" type="tel" inputmode="tel" autocomplete="tel" required></div>
         <div class="field"><label for="oLine">LINE ID（選填）</label><input id="oLine"></div>
         <div class="field"><label>寄送方式</label><div class="ships" id="ships">
@@ -1106,7 +1110,9 @@ function drawCart() {
         <div class="field"><label for="oNote">備註（選填）</label><textarea id="oNote"></textarea></div>
         ${catalog.settings.payReady ? `<div class="field"><label>付款方式</label><div class="ships" id="pays">
           <button type="button" data-pay="Credit" aria-pressed="${payM === "Credit"}">信用卡<small>一次付清</small></button>
-          <button type="button" data-pay="ATM" aria-pressed="${payM === "ATM"}">ATM 轉帳<small>虛擬帳號・3 日內繳費</small></button></div></div>` : ""}
+          <button type="button" data-pay="ATM" aria-pressed="${payM === "ATM"}">ATM 轉帳<small>虛擬帳號・3 日內繳費</small></button></div></div>`
+          : `<div class="field"><label>付款方式</label><div class="payinfo">${shipNow() === SHIP_CVS ? "<b>7-11 取貨付款</b><small>商品寄達門市後，取件時付款</small>"
+            : `<b>銀行轉帳</b><small>下單後 ${catalog.settings.transferDays || 3} 日內轉帳，確認入帳後寄出</small>`}</div></div>`}
         ${summary}
         <div class="msg bad" id="orderErr"></div>
         <label class="idok"><input type="checkbox" id="idOk" required>收件人姓名與身分證件相同</label>
@@ -1209,7 +1215,7 @@ function ptsRow() {
   const can = Math.min(q.pointsBalance, q.pointsMax || 0);
   return `<label class="ptsrow"><input type="checkbox" data-usepts ${usePts ? "checked" : ""} ${can ? "" : "disabled"}><span><b>使用積分折抵</b><small>可用 ${q.pointsBalance} 點・本單最多折 ${money(can)}</small></span></label>`;
 }
-const PAY_TXT = o => o.payStatus === "paid" ? "已付款" : o.payStatus === "awaiting" ? (o.vaAccount ? "待轉帳" : "待付款") : o.payStatus === "failed" ? "付款失敗" : "未付款";
+const PAY_TXT = o => o.payStatus === "paid" ? "已付款" : o.payMethod === "COD" ? (o.status === "已出貨" ? "已出貨・取貨付款" : "備貨中・取貨付款") : o.payMethod === "Transfer" ? (o.payRef ? "待確認入帳" : "待轉帳") : o.payStatus === "awaiting" ? (o.vaAccount ? "待轉帳" : "待付款") : o.payStatus === "failed" ? "付款失敗" : "未付款";
 function miniCards(ids) {
   const ps = ids.map(id => catalog.products.find(p => p.id === id)).filter(Boolean);
   return ps.length ? `<div class="mcgrid">${ps.map(p => `<button type="button" data-open="${esc(p.id)}">${p.images[0] ? `<img src="${esc(imgUrl(p.images[0], 300))}" alt="" loading="lazy">` : "<i></i>"}<span>${esc(p.name.replace(/^.*?[｜|]\s*/, "") || p.name)}</span><b>${money(p.price)}</b></button>`).join("")}</div>` : "";
@@ -1239,6 +1245,8 @@ function drawMC() {
           <p><span>運費</span><span>${o.shipping ? money(o.shipping) : "免運"}</span></p>
           <p class="note">${esc(o.shipMethod)}・${esc(o.address)}</p>
           ${o.vaAccount && o.payStatus !== "paid" ? `<p class="va">轉帳帳號 ${esc(o.vaBank)}－${esc(o.vaAccount)}<br>繳費期限 ${esc(o.vaExpire)}</p>` : ""}
+          ${o.payMethod === "Transfer" && o.bankInfo ? transferBox(o, {}) : ""}
+          ${o.tracking ? `<p class="note">${o.shipMethod.startsWith("7-11") ? "賣貨便寄件代碼" : "黑貓託運單號"} ${esc(o.tracking)}</p>` : ""}
           ${o.earn && o.status !== "已取消" ? `<p class="note">${o.payStatus === "paid" ? "已獲得" : "付款後可得"} ${o.earn} 點</p>` : ""}
           <button type="button" class="btn ghost" data-rebuy="${esc(o.orderNo)}">再買一次</button></div></details>`).join("") : '<div class="empty">還沒有訂單</div>';
   else if (mcTab === "coupons") body = d.coupons.length ? d.coupons.map(c => { const off = c.used || c.expired; return `<div class="gift${off ? " used" : ""}"><div><b>${esc(c.label)}</b><small>${c.minSpend ? `滿 ${money(c.minSpend)} 可用・` : ""}${c.endAt ? `${esc(c.endAt)} 前有效・` : ""}${esc(c.note || "")}</small><small>折扣碼 <code>${esc(c.code)}</code>${!off && c.daysLeft !== undefined && c.daysLeft <= 3 ? `<span class="soon">・剩 ${c.daysLeft} 天到期</span>` : ""}</small></div>
@@ -1315,6 +1323,27 @@ function goPay(pay) {
   for (const [k, v] of Object.entries(pay.fields)) { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v; f.appendChild(i); }
   document.body.appendChild(f); f.submit();
 }
+// 銀行轉帳：匯款資訊＋回報後五碼（下單完成頁與會員中心共用）
+function transferBox(o, auth) {
+  const bank = String(o.bankInfo || "").trim().split(/\n+/).filter(Boolean);
+  return `<div class="tbox">${bank.map(l => `<p>${esc(l)}</p>`).join("")}
+    <p class="due">請於 ${esc(o.payDue || "")} 前轉帳 ${money(o.total)}，逾期訂單自動取消</p>
+    ${o.payRef ? `<p class="ok">已回報後五碼 ${esc(o.payRef)}，確認入帳後寄出</p>` : ""}
+    <div class="trep"><input inputmode="numeric" maxlength="5" placeholder="轉帳帳號後五碼" aria-label="轉帳帳號後五碼" data-l5="${esc(o.orderNo)}">
+      <button type="button" class="btn ink" data-trep="${esc(o.orderNo)}" data-cid="${esc(auth.cid || "")}">${o.payRef ? "更新" : "回報"}</button></div></div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-trep]"); if (!b) return;
+  const no = b.dataset.trep, inp = document.querySelector(`[data-l5="${CSS.escape(no)}"]`);
+  busy(b, async () => {
+    try {
+      const r = await api({action: "transferReport", no, cid: b.dataset.cid, memberToken: memTok, last5: inp ? inp.value : ""});
+      const box = b.closest(".tbox"); let ok = box.querySelector(".ok");
+      if (!ok) { ok = document.createElement("p"); ok.className = "ok"; box.insertBefore(ok, box.querySelector(".trep")); }
+      ok.textContent = `已回報後五碼 ${r.payRef}，確認入帳後寄出`; b.textContent = "更新";
+    } catch (err) { toast(err.message); }
+  });
+});
 // 付款完成或 ATM 取號後回到賣場（#paid=訂單編號）：用下單時的 clientId 向後端查真正狀態，不信網址
 async function showPaid(no) {
   const last = lsGet("cp-last", {});
@@ -1359,7 +1388,7 @@ $("cPanel").addEventListener("focusout", e => {
   if (e.target.id !== "oName" || !e.target.value.trim()) return;
   const m = checkName(e.target.value.normalize("NFKC").replace(/\s+/g, " ").trim()), h = $("nameHint");
   h.innerHTML = m ? `<b>${esc(m)}</b>請填寫身分證上的真實姓名：中文 2–5 字或英文 4–10 字母，不可有數字與符號。`
-    : "<b>請填寫身分證上的真實姓名</b>包裹已付款（取貨 0 元），門市與物流人員會核對身分證件，姓名不符將無法領取。請勿填寫暱稱或 LINE 名稱。";
+    : "<b>請填寫身分證上的真實姓名</b>門市與物流人員會核對身分證件，姓名不符將無法領取。請勿填寫暱稱或 LINE 名稱。";
 });
 $("cPanel").addEventListener("change", e => { if (e.target.id === "oCounty") fillDist(""); if (e.target.id === "oDist") showZip();
   if (e.target.matches("[data-usepts]")) { usePts = e.target.checked; lsSet("cp-usepts", usePts); serverQuote = null; drawCart(); refreshQuote(); } });
@@ -1416,7 +1445,8 @@ async function submitOrder() {
       $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button>
         <div class="done"><div class="ptitle">訂單已送出</div><div class="no">${esc(r.orderNo)}</div>
         <div>應付金額 <b style="color:var(--red);font-size:20px">${money(r.total)}</b></div>
-        <p class="hint">專人將以電話或 LINE 與您確認付款與出貨</p>
+        ${r.payMethod === "Transfer" ? transferBox(r, {cid: clientId})
+          : r.payMethod === "COD" ? '<p class="hint">商品寄達門市後將以 LINE 通知，取件時付款並出示證件</p>' : '<p class="hint">專人將以電話或 LINE 與您確認付款與出貨</p>'}
         ${lineUrl ? `<div class="buyrow" style="position:static;border:0"><a class="btn ink" href="${esc(lineUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">LINE 聯絡</a></div>` : ""}</div>`;
     } catch (e) { err.textContent = e.message; }
   });
