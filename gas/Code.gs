@@ -47,6 +47,7 @@ const DEFAULT_SETTINGS = { shipFee: 150, shipFeeCvs: 60, freeShipOver: 0, lineUr
   capital: "0", // 初始資金（報表顯示回本進度）
   // 不走綠界時（2026-11-19 使用者）：7-11＝賣貨便取貨付款、黑貓＝銀行轉帳。bankInfo＝轉帳資訊（多行），transferDays＝幾天內未入帳自動取消
   bankInfo: "", transferDays: "3",
+  homeCod: "FALSE", // 與黑貓簽代收契約後打勾：黑貓單改貨到付款（司機代收），不必轉帳
   // 物流成本（未稅，綠界一般會員 2026-11 公告；記帳時 ×1.05）：交貨便每件、黑貓 60/90/120/150cm
   logiFeeCvs: "65", logiFeeHome: "130,170,210,250",
   // 綠界手續費（2026-11 查證，綠界官網服務費率表・一般會員，未稅＋5% 營業稅）：
@@ -384,7 +385,7 @@ function catalog_() {
     ok: true,
     products: withSold_(rows_("products").map(product_).filter(p => p.active)).sort(bySort).map(p => { delete p.cost; delete p.splitMode; delete p.costBy; delete p.supplier; delete p.commission; return p; }),
     videos: rows_("videos").map(video_).filter(v => v.active && v.src).sort(bySort),
-    settings: { ordersOpen: s.ordersOpen, requireLine: s.requireLine !== "FALSE", payReady: ecpayCfg_().ready, bankInfo: String(s.bankInfo || ""), transferDays: Number(s.transferDays) || 3, payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar, hotWords: s.hotWords, points: pointCfg_(), welcome: (w => w && { label: w.label, minSpend: w.minSpend })(welcomeInfo_()) },
+    settings: { ordersOpen: s.ordersOpen, requireLine: s.requireLine !== "FALSE", payReady: ecpayCfg_().ready, bankInfo: String(s.bankInfo || ""), transferDays: Number(s.transferDays) || 3, homeCod: s.homeCod === "TRUE", payTest: ecpayCfg_().stage, shipFee: s.shipFee, shipFeeCvs: s.shipFeeCvs, freeShipOver: s.freeShipOver, lineUrl: s.lineUrl, notice: s.notice, shipBarOn: bool_(s.shipBarOn), shipBar: s.shipBar, hotWords: s.hotWords, points: pointCfg_(), welcome: (w => w && { label: w.label, minSpend: w.minSpend })(welcomeInfo_()) },
   };
 }
 
@@ -494,7 +495,7 @@ function placeOrder_(req) {
   if (c.shipMethod !== SHIP_HOME && c.shipMethod !== SHIP_CVS) return { ok: false, error: "請選擇寄送方式" };
   // 線上付款（綠界）關閉時：7-11 賣貨便＝取貨付款（COD）、黑貓＝銀行轉帳（Transfer）
   const online = ecpayCfg_().ready;
-  const pay = online ? String(req.payMethod || "") : c.shipMethod === SHIP_CVS ? "COD" : "Transfer";
+  const pay = online ? String(req.payMethod || "") : c.shipMethod === SHIP_CVS || getSettings_().homeCod === "TRUE" ? "COD" : "Transfer";
   if (online && pay !== "Credit" && pay !== "ATM") return { ok: false, error: "請選擇付款方式" };
   if (pay === "Transfer" && !String(getSettings_().bankInfo || "").trim()) return { ok: false, error: "目前暫停宅配訂單，請與我們聯絡" };
   if (!c.address) return { ok: false, error: c.shipMethod === SHIP_CVS ? "請選擇 7-11 門市" : "請填寫收件地址" };
@@ -558,7 +559,7 @@ function customerOrderNotice_(orderNo) {
     const tr = String(o.payMethod) === "Transfer";
     const text = ["【赤貧軍團】訂單成立通知", "訂單編號：" + o.orderNo, items, "應付金額：$" + Number(o.total).toLocaleString(),
       tr ? "付款方式：銀行轉帳\n" + String(getSettings_().bankInfo || "").trim() + "\n請於 " + transferDue_(o) + " 前完成轉帳，逾期訂單將自動取消。\n轉帳後請至會員中心「我的訂單」回報帳號後五碼：" + SHOP_PAGE + "#orders"
-         : "付款方式：7-11 取貨付款\n商品寄達門市後將通知您，請於取件時付款並出示證件。"].join("\n");
+         : String(o.shipMethod) === SHIP_CVS ? "付款方式：7-11 取貨付款\n商品寄達門市後將通知您，請於取件時付款並出示證件。" : "付款方式：黑貓貨到付款\n商品送達時請將金額交給黑貓司機。"].join("\n");
     lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: text.slice(0, 4900) }] });
   } catch (e) {}
 }
@@ -831,7 +832,7 @@ const ADMIN = {
     const first = !json_(o.shipments, []).length && list.length;
     setOrderField_(String(o.orderNo), Object.assign({ shipments: JSON.stringify(list) }, list.length && ["新訂單", "已確認"].indexOf(String(o.status)) >= 0 ? { status: "已出貨" } : {}));
     if (first && o.lineUid) try { lineApi_("message/push", { to: String(o.lineUid), messages: [{ type: "text", text: "【赤貧軍團】出貨通知\n訂單編號：" + o.orderNo + "\n" +
-      (cvs ? "7-11 賣貨便寄件代碼：" : "黑貓託運單號：") + nos.join("、") + "\n" + (cvs ? "商品寄達門市後將再通知您，取件時請付款並出示證件。" : "可至黑貓宅急便官網以單號查詢配送進度。") }] }); } catch (e) {}
+      (cvs ? "7-11 賣貨便寄件代碼：" : "黑貓託運單號：") + nos.join("、") + "\n" + (cvs ? "商品寄達門市後將再通知您，取件時請付款並出示證件。" : "可至黑貓宅急便官網以單號查詢配送進度。" + (String(o.payMethod) === "COD" ? "送達時請將 $" + Number(o.total).toLocaleString() + " 交給司機。" : "")) }] }); } catch (e) {}
     return { shipments: list, status: list.length && ["新訂單", "已確認"].indexOf(String(o.status)) >= 0 ? "已出貨" : String(o.status) };
   },
   admin_expenses: () => ({ expenses: rows_("expenses").map(x => ({ id: String(x.id), date: String(x.date), item: String(x.item), amount: Number(x.amount) || 0, note: String(x.note || ""), scope: String(x.scope || "all") })) }),
@@ -884,7 +885,7 @@ const ADMIN = {
     const keys = Object.keys(s);
     if (keys.some(k => integ.indexOf(k) >= 0) && !has_(r.me, "integrations")) throw new Error("此帳號沒有權限");
     if (keys.some(k => integ.indexOf(k) < 0) && !has_(r.me, "settings")) throw new Error("此帳號沒有權限");
-    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "welcomeDays", "welcomeRemind", "hotWords", "capital", "pointsOn", "pointRate", "pointMaxPct", "bankInfo", "transferDays", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome", "homeBox"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
+    ["shipFee", "shipFeeCvs", "freeShipOver", "lineUrl", "notice", "ordersOpen", "requireLine", "shipBarOn", "shipBar", "feeCardPct", "feeCardMin", "feeCardOrder", "feeAtmPct", "feeAtmMin", "feeSplit", "welcomeCode", "welcomeDays", "welcomeRemind", "hotWords", "capital", "pointsOn", "pointRate", "pointMaxPct", "bankInfo", "transferDays", "homeCod", "logiOn", "logiStage", "logiAuto", "senderName", "senderPhone", "senderZip", "senderAddr", "logiSize", "logiFeeCvs", "logiFeeHome", "homeBox"].forEach(k => { if (s[k] !== undefined) setSetting_(k, s[k]); });
   },
   admin_changeLogin: r => {
     const nf = v => String(v || "").normalize("NFKC").trim(); // 跟登入一樣正規化
@@ -1121,7 +1122,8 @@ function shipFields_(o) {
       ["代收金額", String(o.payMethod) === "COD" ? String(Number(o.total)) : "0"]];
   }
   const m = String(o.address).match(/^(\d{3})(.*)$/) || [];
-  return [["訂單編號", String(o.orderNo)], ["收件人", String(o.name)], ["手機", String(o.phone)], ["郵遞區號", m[1] || ""], ["地址", m[2] || String(o.address)], ["品名", name], ["備註", String(o.note || "")]];
+  return [["訂單編號", String(o.orderNo)], ["收件人", String(o.name)], ["手機", String(o.phone)], ["郵遞區號", m[1] || ""], ["地址", m[2] || String(o.address)], ["品名", name],
+    ["代收金額", String(o.payMethod) === "COD" ? String(Number(o.total)) : ""], ["備註", String(o.note || "")]];
 }
 // 新訂單（不走綠界）：LINE 卡片，每一列點一下就複製，貼進賣貨便／黑貓寄件（LINE 14 以上支援複製動作）
 function shipFlex_(o, title) {
@@ -1131,7 +1133,7 @@ function shipFlex_(o, title) {
     contents: [{ type: "text", text: k, size: "sm", color: "#8A8F99", flex: 3 }, { type: "text", text: String(v), size: "md", weight: "bold", color: "#2A2F3A", flex: 7, wrap: true },
       { type: "text", text: "複製", size: "xs", color: "#C9362C", flex: 2, align: "end", gravity: "center" }] });
   const all = f.map(x => x[0] + "：" + x[1]).join("\n");
-  const payTxt = String(o.payMethod) === "COD" ? "取貨付款 $" + Number(o.total).toLocaleString() : String(o.payMethod) === "Transfer" ? "銀行轉帳 $" + Number(o.total).toLocaleString() + "・待入帳" : "$" + Number(o.total).toLocaleString();
+  const payTxt = String(o.payMethod) === "COD" ? (cvs ? "取貨付款 $" : "貨到付款 $") + Number(o.total).toLocaleString() : String(o.payMethod) === "Transfer" ? "銀行轉帳 $" + Number(o.total).toLocaleString() + "・待入帳" : "$" + Number(o.total).toLocaleString();
   return { type: "flex", altText: "【赤貧軍團】" + title + " " + o.orderNo + "・" + o.name + "・" + payTxt, contents: { type: "bubble",
     header: { type: "box", layout: "vertical", backgroundColor: "#2B2F38", paddingAll: "16px", contents: [
       { type: "text", text: "【赤貧軍團】" + title, color: "#FFFFFF", weight: "bold", size: "lg" },
@@ -1982,7 +1984,7 @@ const AUDIT_NAME = {
   admin_trashFile: "刪除檔案", admin_logiCreate: "建立寄件單", admin_setTracking: "填寄件代碼", admin_logiPrint: "列印託運單", admin_logiPrintBatch: "批次列印託運單", admin_saveExpense: "登錄支出",
   admin_deleteExpense: "刪除支出", admin_lineInvite: "產生 LINE 授權邀請", admin_lineInviteSelf: "綁定自己的 LINE", admin_lineUnbindUser: "解除 LINE 綁定", lineBind: "LINE 綁定帳號", lineLogin: "LINE 登入後台", lineLoginFail: "LINE 登入後台失敗", admin_lineSave: "修改 LINE 權杖", admin_lineBind: "產生 LINE 綁定碼", admin_lineUnbind: "移除 LINE 接收者", admin_lineTest: "傳送 LINE 測試",
   admin_setGithubToken: "設定 GitHub 權杖", admin_setLoginSecret: "設定 LINE 登入金鑰", admin_trafficPurge: "清除測試流量", admin_logiProbe: "物流連線測試" };
-const SET_NAME = { bankInfo: "轉帳資訊", transferDays: "轉帳期限天數", shipFee: "黑貓運費", shipFeeCvs: "7-11 運費", freeShipOver: "免運門檻", lineUrl: "LINE 聯絡網址", notice: "賣場公告", ordersOpen: "開放下單", requireLine: "需 LINE 會員",
+const SET_NAME = { homeCod: "黑貓貨到付款", bankInfo: "轉帳資訊", transferDays: "轉帳期限天數", shipFee: "黑貓運費", shipFeeCvs: "7-11 運費", freeShipOver: "免運門檻", lineUrl: "LINE 聯絡網址", notice: "賣場公告", ordersOpen: "開放下單", requireLine: "需 LINE 會員",
   shipBarOn: "免運公告條", shipBar: "免運公告文字", feeCardPct: "信用卡費率", feeCardMin: "信用卡最低", feeCardOrder: "信用卡處理費", feeAtmPct: "ATM 費率", feeAtmMin: "ATM 最低", feeSplit: "手續費分攤",
   welcomeCode: "入會禮", welcomeDays: "入會禮天數", welcomeRemind: "到期提醒天數", hotWords: "熱門搜尋", capital: "初始資金", pointsOn: "會員積分", pointRate: "積分比例", pointMaxPct: "積分折抵上限",
   logiOn: "綠界物流", logiStage: "物流測試模式", logiAuto: "自動建單", senderName: "寄件人", senderPhone: "寄件手機", senderZip: "寄件郵遞區號", senderAddr: "寄件地址", logiSize: "黑貓材積",

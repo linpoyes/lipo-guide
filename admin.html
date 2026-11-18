@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-YeSql2TKI6Ehc54AvHYBBkHiEiYCC/dlXYSWSGaPdW0='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-xXfIw7yBVKVhSAIFHgnBpxQtJT0B7a3l9gVNLkWmi4Q='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611190216">
+<meta name="build" content="202611190752">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -275,7 +275,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611190216"></script>
+<script src="shop-core.js?v=202611190752"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -496,7 +496,8 @@ function shipFields(o) {
       ...(o.payMethod === "COD" ? [["代收金額", String(o.total)]] : [])];
   }
   const m = o.address.match(/^(\d{3})(.*)$/) || [];
-  return [["收件人", o.name], ["手機", o.phone], ["郵遞區號", m[1] || ""], ["地址", m[2] || o.address], ["包裹數", `${o.packages || 1} 箱宅急便`], ["品名", name], ["備註", o.note]];
+  return [["收件人", o.name], ["手機", o.phone], ["郵遞區號", m[1] || ""], ["地址", m[2] || o.address], ["包裹數", `${o.packages || 1} 箱宅急便`], ["品名", name],
+    ...(o.payMethod === "COD" ? [["代收金額", String(o.total)]] : []), ["備註", o.note]];
 }
 // 綠界寄件單：交貨便代號（到 7-11 寄件時報給店員或用 ibon）／黑貓託運單號，可直接列印託運單
 function logiBlock(o) {
@@ -1218,6 +1219,8 @@ function drawSettings() {
       <span class="note" style="display:block;margin:-6px 0 8px 28px">未勾選＝商品照常展示，購物車與結帳顯示「尚未開放下單」</span>
       <div class="f2"><div class="f"><label for="sf">黑貓宅配運費</label><input id="sf" type="number" inputmode="numeric" value="${s.shipFee}"></div>
         <div class="f"><label for="sc">7-11 店到店運費</label><input id="sc" type="number" inputmode="numeric" value="${s.shipFeeCvs}"></div></div>
+      <label class="check"><input type="checkbox" id="shc" ${s.homeCod === "TRUE" ? "checked" : ""}>黑貓貨到付款（已與黑貓簽代收契約）</label>
+      <span class="note" style="display:block;margin:-6px 0 8px 28px">勾選＝黑貓訂單改由司機代收；未勾選＝客人下單後銀行轉帳</span>
       <div class="f"><label for="sbk">銀行轉帳資訊（黑貓宅配訂單）</label><textarea id="sbk" rows="3" placeholder="例：&#10;銀行 822 中國信託&#10;帳號 1234-5678-9012&#10;戶名 王小明">${esc(s.bankInfo || "")}</textarea><span class="note">下單完成頁、會員中心、LINE 通知會顯示；空白＝暫停宅配訂單</span></div>
       <div class="f"><label for="std">轉帳期限（天）</label><input id="std" type="number" inputmode="numeric" value="${esc(s.transferDays || 3)}"><span class="note">期限內未標記已付款，訂單自動取消並退回庫存</span></div>
       <div class="f"><label for="so">免運門檻</label><input id="so" type="number" inputmode="numeric" value="${s.freeShipOver || ""}" placeholder="不設"><span class="note">折扣後金額達門檻即免運（兩種寄送皆適用）</span></div>
@@ -1293,7 +1296,7 @@ function drawSettings() {
     await loadAll(); toast("已儲存"); drawSettings();
   }).catch(err => $("lgErr").textContent = err.message);
   $("sSave").onclick = e => busy(e.target, async () => {
-    await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim(), welcomeCode: $("swc").value, welcomeDays: String(Math.max(1, Number($("swd").value) || 30)), welcomeRemind: String(Math.max(1, Number($("swr").value) || 3)), hotWords: $("shw").value.trim(), pointsOn: $("spOn").checked ? "TRUE" : "FALSE", pointRate: Number($("spR").value) || 100, pointMaxPct: Number($("spM").value) || 50, bankInfo: $("sbk").value.trim().slice(0, 300), transferDays: String(Math.max(1, Math.min(14, Number($("std").value) || 3)))}});
+    await admin("admin_saveSettings", {settings: {shipBarOn: $("sbOn").checked ? "TRUE" : "FALSE", shipBar: $("sb").value.trim(), ordersOpen: $("sopen").checked ? "TRUE" : "FALSE", shipFee: Number($("sf").value) || 0, shipFeeCvs: Number($("sc").value) || 0, freeShipOver: Number($("so").value) || 0, lineUrl: $("sl").value.trim(), notice: $("sn").value.trim(), welcomeCode: $("swc").value, welcomeDays: String(Math.max(1, Number($("swd").value) || 30)), welcomeRemind: String(Math.max(1, Number($("swr").value) || 3)), hotWords: $("shw").value.trim(), pointsOn: $("spOn").checked ? "TRUE" : "FALSE", pointRate: Number($("spR").value) || 100, pointMaxPct: Number($("spM").value) || 50, bankInfo: $("sbk").value.trim().slice(0, 300), homeCod: $("shc").checked ? "TRUE" : "FALSE", transferDays: String(Math.max(1, Math.min(14, Number($("std").value) || 3)))}});
     await loadAll(); toast("已儲存");
   }).catch(err => $("serr").textContent = err.message);
   if (has("integrations") && st === "pay") admin("admin_ecpayStatus", {}, {tries: 2}).then(r => {
