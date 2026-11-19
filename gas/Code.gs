@@ -489,9 +489,11 @@ function placeOrder_(req) {
     if (nAll >= 30) return { ok: false, error: "目前訂單量較大，請稍後再試" };
   }
   // admin 帶 token＋test 可在未開放時測試下單（只給後台測試用）
-  if (!getSettings_().ordersOpen && !(req.test && (checkToken_(req.token) || {}).role === "owner")) return { ok: false, error: "目前尚未開放下單，敬請期待" };
   // LINE 會員：必須用 LINE 登入且已加入官方帳號好友才能下單（設定 requireLine，預設開）
   const mem = memberOf_(req.memberToken);
+  const tester = !getSettings_().ordersOpen && mem && isTester_(mem.uid);
+  if (!getSettings_().ordersOpen && !tester && !(req.test && (checkToken_(req.token) || {}).role === "owner")) return { ok: false, error: "目前尚未開放下單，敬請期待" };
+  if (tester) c.note = ("【測試單】" + c.note).slice(0, 300);
   if (getSettings_().requireLine !== "FALSE" && !(req.test && (checkToken_(req.token) || {}).role === "owner")) {
     if (!mem) return { ok: false, error: "請先用 LINE 登入會員", needLogin: true };
     if (!mem.friend) return { ok: false, error: "請先加入赤貧軍團官方帳號好友", needFriend: true };
@@ -1252,11 +1254,18 @@ function memberOf_(mt) {
   }
   return rec;
 }
+// 測試下單（2026-11-19 使用者要自己下單試流程）：後台帳號綁定的 LINE＝測試者，未開放下單時仍可下單，訂單備註自動標【測試單】
+// 同一個 provider（赤貧軍團）下 LINE Login 與 Messaging API 的 userId 相同，所以「收訂單通知的 LINE」也算
+function isTester_(uid) {
+  if (!uid) return false;
+  const u = users_();
+  return Object.keys(u).some(k => u[k].lineUid === uid) || json_(PropertiesService.getScriptProperties().getProperty("LINE_USERS"), []).some(x => x.id === uid);
+}
 function memberCheck_(mt) {
   const m = memberOf_(mt);
   if (!m) return { ok: true, member: null };
   const w = m.friend ? welcomeInfo_() : null;
-  return { ok: true, member: { name: m.name, pic: m.pic, friend: m.friend,
+  return { ok: true, member: { name: m.name, pic: m.pic, friend: m.friend, tester: isTester_(m.uid),
     welcome: w ? (g => ({ code: w.code, used: welcomeUsed_(m.uid), label: w.label, minSpend: w.minSpend, expires: g.date, daysLeft: g.left, expired: g.expired }))(welcomeGrant_(m.uid, true)) : null } };
 }
 /* 入會禮期限：每位會員從「領取」起算 welcomeDays 天。領取時間存 WELCOMED_<uid 雜湊>＝JSON {t: 毫秒, uid, r: 已提醒}；

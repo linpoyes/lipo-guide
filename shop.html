@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-IiOtZUhaHiZSVEKO1yDKALlkZmFMaYn/9h28TgtYT2s='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-zKliMLV5qCGXqjoOIgBRjkVK/wtgfQB1qV35wsGBcWs=' 'sha256-R8XA/mqSGpIfxyW+LFhbJ3WX79pCBPsfE8MJBceRys4='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611190938">
+<meta name="build" content="202611191037">
 <script>
 // 從 LINE 開啟且未登入：在載入任何東西之前就直接跳 LINE 登入（使用者 11-08：從官方 LINE 點進來登入要等）。與 shop.html 下方 lineAuthUrl 同一套參數。
 // 後台 LINE 登入的回呼（state 以 a_ 開頭）也會回到賣場：立刻轉給後台處理
@@ -612,9 +612,9 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 <!-- 影片 -->
 <div class="sheet" id="vSheet" role="dialog" aria-modal="true"><div class="panel" id="vPanel"></div></div>
 
-<script src="track.js?v=202611190938"></script>
-<script src="shop-core.js?v=202611190938"></script>
-<script src="tw-zip.js?v=202611190938"></script>
+<script src="track.js?v=202611191037"></script>
+<script src="shop-core.js?v=202611191037"></script>
+<script src="tw-zip.js?v=202611191037"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ICON = {
@@ -756,7 +756,9 @@ $("sorts").onclick = e => {
   lsSet("cp-sort", filter.sort); renderList();
 };
 // 下單開關：後台「開放下單」關閉時全站都不能買；個別商品勾「即將開賣」也不能買（後端同樣會擋）
-const canBuy = p => !!(catalog && catalog.settings.ordersOpen) && !p.preorder;
+// 尚未開放下單時，後台帳號綁定的 LINE 會員（member.tester）仍可下單測試
+const shopOpen = () => !!(catalog && (catalog.settings.ordersOpen || (member && member.tester)));
+const canBuy = p => shopOpen() && !p.preorder;
 // 商品編號 p<建立時間36進位>：拿來判斷新品與「最新上架」
 const created = p => parseInt(String(p.id).slice(1), 36) || 0;
 const isNew = p => Date.now() - created(p) < 30 * 86400000;
@@ -1090,7 +1092,7 @@ function drawCart() {
       ${giftBox()}
       <form class="coupon" id="couponForm"><input id="codeIn" placeholder="折扣碼" value="${esc(code)}" autocapitalize="characters" aria-label="折扣碼"><button>${code ? "更新" : "套用"}</button></form>
       ${codeMsg}${ptsRow()}${summary}
-      <div class="buyrow"><button class="btn" data-step="form" ${catalog.settings.ordersOpen ? "" : "disabled"}>${catalog.settings.ordersOpen ? "前往結帳" : "尚未開放下單"}</button></div>`;
+      <div class="buyrow"><button class="btn" data-step="form" ${shopOpen() ? "" : "disabled"}>${shopOpen() ? (catalog.settings.ordersOpen ? "前往結帳" : "前往結帳（測試單）") : "尚未開放下單"}</button></div>`;
   } else {
     $("cPanel").innerHTML = `<button class="close" data-close aria-label="關閉">×</button><div class="ptitle">填寫訂購資料</div>
       ${memberBox(true)}
@@ -1197,7 +1199,10 @@ function useGift() {
 }
 // 頁首會員鈕：未登入＝人像圖示；已登入＝LINE 大頭貼，點開看會員狀態／登出
 const ICON_USER = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+let drawnTester = false;
 function drawMemBtn() {
+  const t = !!(member && member.tester);
+  if (t !== drawnTester && catalog) { drawnTester = t; try { renderList(); renderLatest(); } catch (e) {} }
   const b = $("memBtn"), ok = member && member.friend;
   b.classList.toggle("ok", !!ok);
   b.setAttribute("aria-label", member ? "會員：" + (member.name || "LINE 會員") : "會員登入");
