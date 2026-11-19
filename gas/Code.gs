@@ -446,6 +446,8 @@ function quote_(items, codeStr, shipMethod, mem, usePoints) {
   let share = 0;
   lines.forEach(l => { const per = cvs ? prods[l.id].cvsPer : prods[l.id].homePer; if (per > 0) share += l.qty / per; });
   const packages = lines.length ? Math.max(1, Math.ceil(share - 1e-9)) : 0;
+  // 2026-11-19 使用者：7-11 改賣貨便取貨付款，一張訂單只寄一個包裹（拆包客人要分次付款）→ 裝不進一個交貨便就只能黑貓
+  if (cvs && share > 1 + 1e-9) errors.push("數量超過一個 7-11 包裹（最長邊 45 公分、三邊合計 105 公分、10 公斤），請改選黑貓宅配");
   // 運費＝每包運費 × 包裹數（達免運門檻全免）
   const shipping = !lines.length || (s.freeShipOver > 0 && after >= s.freeShipOver) ? 0 : (cvs ? s.shipFeeCvs : s.shipFee) * packages;
   // 積分折抵：在運費之後扣，最多折到商品金額（折扣後）的 pointMaxPct %
