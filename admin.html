@@ -2,9 +2,9 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-xXfIw7yBVKVhSAIFHgnBpxQtJT0B7a3l9gVNLkWmi4Q='">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://profile.line-scdn.net https://qr-official.line.me https://lh3.googleusercontent.com https://i.ytimg.com https://drive.google.com; media-src 'self' https://drive.usercontent.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api.line.me https://liffsdk.line-scdn.net https://access.line.me; frame-src https://www.youtube.com https://drive.google.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://payment.ecpay.com.tw https://payment-stage.ecpay.com.tw https://emap.presco.com.tw https://access.line.me https://logistics.ecpay.com.tw https://logistics-stage.ecpay.com.tw; script-src 'self' https://static.line-scdn.net 'sha256-0E4fZjvUpwpDNCxa89j1pCfdo3AhE4nQnYcXibRQGFM='">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="build" content="202611191037">
+<meta name="build" content="202611251238">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>赤貧軍團｜管理後台</title>
@@ -275,7 +275,7 @@ details.fold[open] summary i{color:var(--faint)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileIn" hidden>
 
-<script src="shop-core.js?v=202611191037"></script>
+<script src="shop-core.js?v=202611251238"></script>
 <script>
 const $ = id => document.getElementById(id);
 // 登入存在 localStorage，10 天內同一台裝置不用重新登入（到期由後端判斷）
@@ -623,13 +623,18 @@ function drawProducts() {
   $("newP").onclick = () => editProduct(null);
   $("main").querySelector(".list").onclick = e => { const b = e.target.closest("[data-p]"); if (b) editProduct(b.dataset.p); };
 }
-// 裝箱計算：跟後端 packCaps_ 同一算法（7-11 交貨便以 45×30×30、10 公斤計；黑貓用設定的紙箱、每箱 20 公斤）
+// 裝箱計算：跟後端 packCaps_ 同一算法（7-11 賣貨便照規定：最長邊 45、三邊合計 105、10 公斤；黑貓用設定的紙箱、每箱 20 公斤）
 const homeBox = () => { const b = String(data.settings.homeBox || "40,30,20").split(/[,x×*\s]+/).map(Number).filter(n => n > 0); return b.length === 3 ? b : [40, 30, 20]; };
 function packCaps(d, kg) {
   d = d.map(n => n + 1); // 每邊留 1 公分包材（同後端 PACK_PAD）
   const fit = box => Math.max(...[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]].map(p => Math.floor(box[0] / d[p[0]]) * Math.floor(box[1] / d[p[1]]) * Math.floor(box[2] / d[p[2]])));
   const byKg = lim => kg > 0 ? Math.floor(lim / kg) : Infinity;
-  return {cvs: Math.min(fit([45, 30, 30]), byKg(10)), home: Math.max(1, Math.min(fit(homeBox()), byKg(20)))};
+  const cvsFit = () => { let best = 0;
+    [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]].forEach(p => { const [x, y, z] = p.map(i => d[i]);
+      for (let a = 1; a * x <= 45; a++) for (let b = 1; b * y <= 45; b++) for (let c = 1; c * z <= 45; c++)
+        if (a * x + b * y + c * z <= 105) best = Math.max(best, a * b * c); });
+    return best; };
+  return {cvs: Math.min(cvsFit(), byKg(10)), home: Math.max(1, Math.min(fit(homeBox()), byKg(20)))};
 }
 function editProduct(id) {
   const src = id ? data.products.find(p => p.id === id) : null;
@@ -695,7 +700,7 @@ function editProduct(id) {
   const packShow = () => {
     const d = ["pdl", "pdw", "pdh"].map(k => Number($(k).value) || 0), kg = Number($("pwt").value) || 0, c = d.every(n => n > 0) ? packCaps(d, kg) : null;
     $("packManual").hidden = !!c;
-    $("packRes").innerHTML = c ? `<div class="${c.cvs ? "ok" : "no"}"><b>7-11 交貨便</b><span>${c.cvs ? `每件可裝 ${c.cvs} 個` : "超過尺寸或重量，僅限黑貓"}</span></div>
+    $("packRes").innerHTML = c ? `<div class="${c.cvs ? "ok" : "no"}"><b>7-11 賣貨便</b><span>${c.cvs ? `一個包裹可裝 ${c.cvs} 個` : "超過賣貨便規格（最長邊 45、三邊合計 105 公分、10 公斤），僅限黑貓"}</span></div>
       <div class="ok"><b>黑貓宅急便</b><span>每箱可裝 ${c.home} 個（${homeBox().join("×")} 紙箱）</span></div>` : "";
   };
   setTimeout(packShow);

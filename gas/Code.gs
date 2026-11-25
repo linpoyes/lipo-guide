@@ -1919,10 +1919,10 @@ function csPreview_() {
 
 /* ───────────── 裝箱計算（2026-11-09）─────────────
    商品填「包裝後」長寬高（公分）＋重量（公斤）→ 依各種擺放方向算一個箱子能裝幾件（取最多的方向），再受重量上限限制。
-   7-11 交貨便（綠界 C2C）：最長邊 45、三邊合計 105、10 公斤內 → 以 45×30×30 計。
+   7-11 賣貨便：包裹最長邊 45、三邊合計 105、10 公斤內（2026-11-25 改成照規定算，不再用 45×30×30 箱子近似）→ 把商品排成 a×b×c，找符合規定的最多件數。
    黑貓：用設定的紙箱內尺寸（homeBox，預設 40×30×20＝90 材），每箱 20 公斤內；材積級距由紙箱三邊合計決定。
    前台 admin.html 的 packCaps 必須跟這裡一致。 */
-const CVS_BOX = [45, 30, 30], CVS_KG = 10, HOME_KG = 20, PACK_PAD = 1; // 每邊多留 1 公分給包材／緩衝，不必塞到剛好
+const CVS_MAX = 45, CVS_SUM = 105, CVS_KG = 10, HOME_KG = 20, PACK_PAD = 1; // 每邊多留 1 公分給包材／緩衝，不必塞到剛好
 function dims_(v) { const a = String(v || "").split(/[,x×*\s]+/).map(Number).filter(n => n > 0); return a.length === 3 ? a : []; }
 function fit_(box, d) {
   const P = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
@@ -1931,10 +1931,17 @@ function fit_(box, d) {
 let HOMEBOX_ = null; // 同一次執行只讀一次設定（product_ 每列都會用到）
 function homeBox_() { if (!HOMEBOX_) { const b = dims_(getSettings_().homeBox); HOMEBOX_ = b.length ? b : [40, 30, 20]; } return HOMEBOX_; }
 function homeSpec_() { const b = dims_(getSettings_().homeBox); if (!b.length) return ""; const t = b[0] + b[1] + b[2]; return t <= 60 ? "0001" : t <= 90 ? "0002" : t <= 120 ? "0003" : "0004"; }
+function cvsFit_(d) { // 賣貨便規定：最長邊 ≤45、三邊合計 ≤105
+  const P = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]]; let best = 0;
+  P.forEach(p => { const x = d[p[0]], y = d[p[1]], z = d[p[2]];
+    for (let a = 1; a * x <= CVS_MAX; a++) for (let b = 1; b * y <= CVS_MAX; b++) for (let c = 1; c * z <= CVS_MAX; c++)
+      if (a * x + b * y + c * z <= CVS_SUM) best = Math.max(best, a * b * c); });
+  return best;
+}
 function packCaps_(dimsStr, kg) {
   const d = dims_(dimsStr).map(n => n + PACK_PAD); if (d.length < 3) return null;
   const byKg = (lim) => kg > 0 ? Math.floor(lim / kg) : Infinity;
-  return { cvs: Math.min(fit_(CVS_BOX, d), byKg(CVS_KG)), home: Math.max(1, Math.min(fit_(homeBox_(), d), byKg(HOME_KG))) }; // 放不進紙箱＝自己一箱
+  return { cvs: Math.min(cvsFit_(d), byKg(CVS_KG)), home: Math.max(1, Math.min(fit_(homeBox_(), d), byKg(HOME_KG))) }; // 放不進紙箱＝自己一箱
 }
 
 // 排程工作（2026-11-09）：逾期未付款取消、入會禮到期提醒。原本只在有人逛賣場時順便跑，改由 GitHub Actions 每小時打一次，不需要 Apps Script 觸發器授權。
@@ -1977,13 +1984,13 @@ function cron_() {
    catalog_ 每次要讀商品、影片、設定、訂單（算已售）四張表，加上冷啟動要 4–8 秒。結果放 CacheService 1 小時；
    後台任何寫入、下單、庫存變動都會清掉，所以不會看到舊資料。單一快取值上限 100KB，超過就不快取。 */
 function catalogCached_() {
-  const c = CacheService.getScriptCache(), hit = c.get("catalogJson13");
+  const c = CacheService.getScriptCache(), hit = c.get("catalogJson14");
   if (hit) return JSON.parse(hit);
   const d = catalog_(), j = JSON.stringify(d);
-  if (j.length < 95000) c.put("catalogJson13", j, 3600);
+  if (j.length < 95000) c.put("catalogJson14", j, 3600);
   return d;
 }
-function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson13"); } catch (e) {} }
+function dropCatalog_() { try { CacheService.getScriptCache().remove("catalogJson14"); } catch (e) {} }
 
 
 /* ───────────── 後台操作紀錄（2026-11-09）─────────────
